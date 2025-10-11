@@ -7,9 +7,10 @@ interface ButtonProps {
   onClick?: () => void;
 }
 
-const Button = ({ text, className }: ButtonProps) => {
+const Button = ({ text, className, onClick }: ButtonProps) => {
   return (
     <button
+      onClick={onClick}
       className={`bg-[#FFC412] text-black border border-[#060101]
                   rounded-[12px] font-normal
                   text-[20px] sm:text-[24px] md:text-[28px] lg:text-[32px]
