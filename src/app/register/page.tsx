@@ -35,7 +35,7 @@ export default function RegistrationPage() {
               <Input
                 type="text"
                 placeholder="Ismingizni kiriting"
-                className="h-14 w-full max-w-md bg-white/90 backdrop-blur-sm text-gray-600 placeholder:text-gray-400 text-center text-lg border-none shadow-lg"
+                className="h-14 w-full max-w-md bg-white/90 backdrop-blur-sm text-gray-600 placeholder:text-gray-400 text-center text-[24px] border-none shadow-lg placeholder-inika-24"
               />
             </div>
 
@@ -43,8 +43,8 @@ export default function RegistrationPage() {
             <div className="flex justify-center">
               <Input
                 type="tel"
-                placeholder="Telefon raqamingizkiriting"
-                className="h-14 w-full max-w-md bg-white/90 backdrop-blur-sm text-gray-600 placeholder:text-gray-400 text-center text-lg border-none shadow-lg"
+                placeholder="Telefon raqamingiz kiriting"
+                className="h-14 w-full max-w-md bg-white/90 backdrop-blur-sm text-gray-600 placeholder:text-gray-400 text-center text-[24px] border-none shadow-lg placeholder-inika-24"
               />
             </div>
 
@@ -52,8 +52,8 @@ export default function RegistrationPage() {
             <div className="flex justify-center">
               <Input
                 type="password"
-                placeholder="Parolni kirinting"
-                className="h-14 w-full max-w-md bg-white/90 backdrop-blur-sm text-gray-600 placeholder:text-gray-400 text-center text-lg border-none shadow-lg"
+                placeholder="Parolni kiriting"
+                className="h-14 w-full max-w-md bg-white/90 backdrop-blur-sm text-gray-600 placeholder:text-gray-400 text-center text-[24px] border-none shadow-lg placeholder-inika-24"
               />
             </div>
           </div>
@@ -72,8 +72,9 @@ export default function RegistrationPage() {
               <Button
                 variant="outline"
                 className="h-14 w-48 bg-[#FFB800] hover:bg-[#EFA800] text-black text-xl font-bold shadow-lg border-2 border-black rounded-lg"
+                href="/login"
               >
-                KIRISH
+                KIRISH &rarr; 
               </Button>
             </div>
           </div>

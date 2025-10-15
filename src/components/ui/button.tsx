@@ -1,4 +1,5 @@
 import * as React from "react";
+import Link from "next/link";
 import { Slot } from "@radix-ui/react-slot";
 import { cva, type VariantProps } from "class-variance-authority";
 
@@ -36,24 +37,62 @@ const buttonVariants = cva(
   },
 );
 
-function Button({
-  className,
-  variant,
-  size,
-  asChild = false,
-  ...props
-}: React.ComponentProps<"button"> &
-  VariantProps<typeof buttonVariants> & {
-    asChild?: boolean;
-  }) {
-  const Comp = asChild ? Slot : "button";
+type ButtonBaseProps = VariantProps<typeof buttonVariants> & {
+  className?: string;
+  asChild?: boolean;
+};
+
+type ButtonProps =
+  | (React.ComponentProps<"button"> & ButtonBaseProps)
+  | (Omit<React.ComponentProps<typeof Link>, "href"> &
+      ButtonBaseProps & { href: string });
+
+function Button(props: ButtonProps) {
+  const {
+    className,
+    asChild = false,
+    children,
+    href,
+    variant,
+    size,
+    ...domProps
+  } = props as any;
+
+  if (asChild) {
+    return (
+      <Slot
+        data-slot="button"
+        className={cn(buttonVariants({ variant, size, className }))}
+        {...domProps}
+      >
+        {children}
+      </Slot>
+    );
+  }
+
+  if (href) {
+    return (
+      <Link
+        href={href}
+        prefetch
+        data-slot="button"
+        className={cn(buttonVariants({ variant, size, className }))}
+        {...domProps}
+      >
+        {children}
+      </Link>
+    );
+  }
 
   return (
-    <Comp
+    <button
       data-slot="button"
       className={cn(buttonVariants({ variant, size, className }))}
-      {...props}
-    />
+      type="button"
+      {...domProps}
+    >
+      {children}
+    </button>
   );
 }
 
