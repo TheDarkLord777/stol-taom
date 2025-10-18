@@ -1,8 +1,67 @@
+"use client";
 import Image from "next/image";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import React, { useState } from "react";
+import { useRouter } from "next/navigation";
 
 export default function RegistrationPage() {
+  const router = useRouter();
+  const [name, setName] = useState("");
+  const [phone, setPhone] = useState("");
+  const [password, setPassword] = useState("");
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [cooldown, setCooldown] = useState<number>(0);
+
+  function normalizePhone(input: string) {
+    // ensure leading + and digits only
+    let s = input.replace(/[^\d+]/g, "");
+    if (!s.startsWith("+")) s = "+" + s.replace(/^\+/, "");
+    return s;
+  }
+
+  async function onSubmit() {
+    setError(null);
+    if (cooldown > 0) return;
+    const p = normalizePhone(phone);
+    if (!/^\+\d{10,15}$/.test(p)) {
+      setError("Telefon raqam noto'g'ri formatda");
+      return;
+    }
+    if (password.length < 6) {
+      setError("Parol kamida 6 ta belgi bo'lishi kerak");
+      return;
+    }
+    try {
+      setLoading(true);
+      const res = await fetch("/api/register/init", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ name: name || undefined, phone: p, password }),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        if (res.status === 429) {
+          const retry = Number(data.retryAfterSec || 0);
+          setCooldown(retry || 5);
+        }
+        throw new Error(data.error || "Xatolik yuz berdi");
+      }
+      router.push(`/verify?phone=${encodeURIComponent(data.phone)}&requestId=${encodeURIComponent(data.requestId)}`);
+    } catch (e: any) {
+      setError(e.message);
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  // Cooldown timer
+  React.useEffect(() => {
+    if (cooldown <= 0) return;
+    const id = setInterval(() => setCooldown((c) => (c > 0 ? c - 1 : 0)), 1000);
+    return () => clearInterval(id);
+  }, [cooldown]);
   return (
     <div className="relative min-h-screen w-full overflow-hidden">
       {/* Background Image */}
@@ -34,6 +93,8 @@ export default function RegistrationPage() {
             <div className="flex justify-center">
               <Input
                 type="text"
+                value={name}
+                onChange={(e) => setName(e.target.value)}
                 placeholder="Ismingizni kiriting"
                 className="h-14 w-full max-w-md bg-white/90 backdrop-blur-sm text-gray-600 placeholder:text-gray-400 text-center text-[24px] border-none shadow-lg placeholder-inika-24"
               />
@@ -43,6 +104,8 @@ export default function RegistrationPage() {
             <div className="flex justify-center">
               <Input
                 type="tel"
+                value={phone}
+                onChange={(e) => setPhone(e.target.value)}
                 placeholder="Telefon raqamingiz kiriting"
                 className="h-14 w-full max-w-md bg-white/90 backdrop-blur-sm text-gray-600 placeholder:text-gray-400 text-center text-[24px] border-none shadow-lg placeholder-inika-24"
               />
@@ -52,6 +115,8 @@ export default function RegistrationPage() {
             <div className="flex justify-center">
               <Input
                 type="password"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
                 placeholder="Parolni kiriting"
                 className="h-14 w-full max-w-md bg-white/90 backdrop-blur-sm text-gray-600 placeholder:text-gray-400 text-center text-[24px] border-none shadow-lg placeholder-inika-24"
               />
@@ -61,9 +126,10 @@ export default function RegistrationPage() {
           {/* Buttons */}
           <div className="space-y-4 pt-4">
             {/* Confirm Button */}
-            <div className="flex justify-center">
-              <Button className="h-16 w-full max-w-xs bg-[#C8FF00] hover:bg-[#B8EF00] text-black text-2xl font-bold shadow-xl rounded-lg">
-                Tasdiqlash
+            <div className="flex flex-col items-center gap-2">
+              {error && <p className="text-red-200">{error}</p>}
+              <Button onClick={onSubmit} disabled={loading || cooldown > 0} className="h-16 w-full max-w-xs bg-[#C8FF00] hover:bg-[#B8EF00] text-black text-2xl font-bold shadow-xl rounded-lg">
+                {cooldown > 0 ? `Qayta urinsh: ${cooldown}s` : loading ? "Yuborilmoqda..." : "Tasdiqlash"}
               </Button>
             </div>
 
