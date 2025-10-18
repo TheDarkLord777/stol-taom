@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { UserStore } from '@/lib/store';
+import { userRepo } from '@/lib/userRepo';
 import crypto from 'crypto';
 
 function verifyPassword(password: string, stored: string) {
@@ -18,7 +18,7 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Parol talab qilinadi' }, { status: 400 });
     }
 
-    const user = UserStore.get(phone);
+  const user = await userRepo.getByPhone(phone);
     if (!user) {
       return NextResponse.json({ error: 'Ro\'yxatdan o\'tmagan' }, { status: 404 });
     }

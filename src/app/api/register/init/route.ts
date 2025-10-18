@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { sendVerificationMessage } from '@/lib/telegramGateway';
-import { TempStore } from '@/lib/store';
+import { tempRepo } from '@/lib/tempRepo';
 
 function isValidPhone(phone: string) {
   return /^\+\d{10,15}$/.test(phone);
@@ -22,7 +22,7 @@ export async function POST(req: NextRequest) {
     }
 
     // 1) Server-side cooldown to avoid FLOOD_WAIT
-    const remain = TempStore.getCooldownRemaining(phone);
+  const remain = await tempRepo.getCooldownRemaining(phone);
     if (remain > 0) {
       return NextResponse.json(
         { error: `Juda tez-tez so'rov yuborildi. Iltimos ${remain} soniya kuting`, retryAfterSec: remain },
@@ -31,7 +31,7 @@ export async function POST(req: NextRequest) {
     }
 
     // 2) Send code directly
-    const sendRes: any = await sendVerificationMessage(phone);
+  const sendRes: any = await sendVerificationMessage(phone);
 
     // Handle gateway-declared errors
     if (sendRes && sendRes.ok === false) {
@@ -39,7 +39,7 @@ export async function POST(req: NextRequest) {
       const m = /FLOOD_WAIT_(\d+)/i.exec(err);
       if (m) {
         const retryAfterSec = Number(m[1] || 0);
-        TempStore.setCooldown(phone, retryAfterSec || 5);
+        await tempRepo.setCooldown(phone, retryAfterSec || 5);
         return NextResponse.json(
           { error: `Juda tez-tez so'rov yuborildi. Iltimos ${retryAfterSec} soniya kuting`, retryAfterSec, detail: sendRes },
           { status: 429, headers: { 'Retry-After': String(Math.max(1, retryAfterSec)) } },
@@ -63,7 +63,7 @@ export async function POST(req: NextRequest) {
     }
 
     // 2) Store temp registration in-memory (not DB yet)
-    TempStore.set({
+    await tempRepo.set({
       name,
       phone,
       passwordPlain: password,
@@ -71,8 +71,18 @@ export async function POST(req: NextRequest) {
       createdAt: Date.now(),
     });
 
-  // 3) Return requestId to client
-  return NextResponse.json({ success: true, requestId, phone });
+    // 3) Return requestId to client and set a short-lived HttpOnly cookie as fallback
+    const res = NextResponse.json({ success: true, requestId, phone });
+    try {
+      const tempPayload = JSON.stringify({ name, phone, passwordPlain: password, requestId, createdAt: Date.now() });
+      res.cookies.set('reg_temp', Buffer.from(tempPayload).toString('base64'), {
+        httpOnly: true,
+        sameSite: 'lax',
+        path: '/',
+        maxAge: 60 * 10, // 10 minutes
+      });
+    } catch {}
+    return res;
   } catch (e: any) {
     console.error('register/init error', e);
     return NextResponse.json({ error: 'Ichki server xatosi', detail: String(e?.message || e) }, { status: 500 });

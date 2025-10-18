@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { checkVerificationStatus } from '@/lib/telegramGateway';
-import { TempStore, UserStore } from '@/lib/store';
+import { TempStore } from '@/lib/store';
+import { userRepo } from '@/lib/userRepo';
+import { tempRepo } from '@/lib/tempRepo';
 import crypto from 'crypto';
 
 function hashPassword(password: string) {
@@ -27,7 +29,26 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'requestId va kod talab qilinadi' }, { status: 400 });
     }
 
-    const temp = TempStore.getByRequestId(requestId);
+  let temp = await tempRepo.getByRequestId(requestId);
+    if (!temp) {
+      // Fallback: read from cookie 'reg_temp'
+      try {
+        const cookie = req.cookies.get('reg_temp')?.value;
+        if (cookie) {
+          const raw = Buffer.from(cookie, 'base64').toString('utf8');
+          const parsed = JSON.parse(raw);
+          if (parsed?.requestId === requestId && parsed?.phone) {
+            temp = {
+              name: parsed.name,
+              phone: parsed.phone,
+              passwordPlain: parsed.passwordPlain,
+              requestId: parsed.requestId,
+              createdAt: parsed.createdAt || Date.now(),
+            } as any;
+          }
+        }
+      } catch {}
+    }
     if (!temp) {
       return NextResponse.json({ error: 'Ariza topilmadi yoki eskirgan' }, { status: 404 });
     }
@@ -43,17 +64,39 @@ export async function POST(req: NextRequest) {
         );
       }
     }
+    const vStatus: string | undefined =
+      verifyRes?.result?.verification_status?.status ||
+      verifyRes?.data?.verification_status?.status ||
+      verifyRes?.verification_status?.status ||
+      verifyRes?.status;
+    const VERIFIED_STATES = new Set(['code_valid', 'verified', 'success']);
+    const INVALID_STATES = new Set(['code_invalid', 'invalid']);
+    const EXPIRED_STATES = new Set(['code_expired', 'expired']);
+    const PENDING_STATES = new Set(['pending', 'code_sent']);
     const isVerified =
       verifyRes?.verified === true ||
-      verifyRes?.status === 'verified' ||
       verifyRes?.data?.verified === true ||
-      verifyRes?.result?.status === 'verified';
+      verifyRes?.result?.status === 'verified' ||
+      VERIFIED_STATES.has(String(vStatus));
     if (!isVerified) {
-      return NextResponse.json({ error: 'Kod noto\'g\'ri', detail: verifyRes }, { status: 400 });
+      if (INVALID_STATES.has(String(vStatus))) {
+        return NextResponse.json({ error: 'Kod noto\'g\'ri', detail: verifyRes }, { status: 400 });
+      }
+      if (EXPIRED_STATES.has(String(vStatus))) {
+        return NextResponse.json({ error: 'Kod eskirgan. Qayta yuborishni so\'rang', detail: verifyRes }, { status: 410 });
+      }
+      if (PENDING_STATES.has(String(vStatus))) {
+        return NextResponse.json({ error: 'Kod hali tasdiqlanmagan', detail: verifyRes }, { status: 409 });
+      }
+      if (verifyRes?.ok === true) {
+        // If ok but unknown status, accept as success to be resilient.
+      } else {
+        return NextResponse.json({ error: 'Kodni tekshirishda xatolik', detail: verifyRes }, { status: 400 });
+      }
     }
 
     // Create user if not exists
-    const existing = UserStore.get(temp.phone);
+  const existing = await userRepo.getByPhone(temp.phone);
     if (existing) {
       // Already registered
       TempStore.deleteByRequestId(requestId);
@@ -61,16 +104,7 @@ export async function POST(req: NextRequest) {
     }
 
     const passwordHash = hashPassword(temp.passwordPlain);
-    const user = UserStore.create({
-      id: crypto.randomUUID(),
-      name: temp.name,
-      phone: temp.phone,
-      passwordHash,
-      createdAt: Date.now(),
-    });
-
-    // Clear temp
-    TempStore.deleteByRequestId(requestId);
+    const user = await userRepo.create({ phone: temp.phone, name: temp.name, passwordHash });
 
     // Issue a simple session cookie (for demo). Replace with proper auth.
     const res = NextResponse.json({ success: true, user: { id: user.id, phone: user.phone, name: user.name } });
@@ -80,6 +114,12 @@ export async function POST(req: NextRequest) {
       path: '/',
       // secure should be true on HTTPS
     });
+    // Clear temp
+  await tempRepo.deleteByRequestId(requestId);
+    // Clear temp cookie
+    try {
+      res.cookies.set('reg_temp', '', { httpOnly: true, sameSite: 'lax', path: '/', maxAge: 0 });
+    } catch {}
     return res;
   } catch (e: any) {
     console.error('register/confirm error', e);
