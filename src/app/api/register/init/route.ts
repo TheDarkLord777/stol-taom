@@ -48,6 +48,24 @@ export async function POST(req: NextRequest) {
       if (/PHONE(_NUMBER)?_INVALID/i.test(err)) {
         return NextResponse.json({ error: "Telefon raqam noto'g'ri", detail: sendRes }, { status: 400 });
       }
+      if (/UNAUTHORIZED|INVALID(_TOKEN)?/i.test(err)) {
+        return NextResponse.json({ error: "Gateway token noto'g'ri yoki ruxsat yo'q", detail: sendRes }, { status: 401 });
+      }
+      if (/ACCESS_TOKEN_IP_RESTRICTED/i.test(err)) {
+        return NextResponse.json({
+          error: "Gateway token IP cheklangan. Serverning jamoat IP manzilini whitelist qiling yoki IP cheklovni o'chiring",
+          detail: sendRes,
+        }, { status: 403 });
+      }
+      if (/BALANCE_NOT_ENOUGH|INSUFFICIENT_BALANCE/i.test(err)) {
+        return NextResponse.json({
+          error: "Gateway balans yetarli emas. Iltimos, hisobni to'ldiring yoki keyinroq urinib ko'ring",
+          detail: sendRes,
+        }, { status: 402 });
+      }
+      if (/SERVICE_UNAVAILABLE|BAD_GATEWAY|GATEWAY_TIMEOUT/i.test(err)) {
+        return NextResponse.json({ error: "Gateway hozircha mavjud emas. Keyinroq urinib ko'ring", detail: sendRes }, { status: 502 });
+      }
       return NextResponse.json({ error: "Gateway xatosi", detail: sendRes }, { status: 502 });
     }
 
@@ -85,7 +103,17 @@ export async function POST(req: NextRequest) {
     return res;
   } catch (e: any) {
     console.error('register/init error', e);
-    return NextResponse.json({ error: 'Ichki server xatosi', detail: String(e?.message || e) }, { status: 500 });
+    const detail = String(e?.message || e);
+    if (/TELEGRAM_GATEWAY_TOKEN/i.test(detail)) {
+      return NextResponse.json({ error: "Gateway token o'rnatilmagan", detail }, { status: 500 });
+    }
+    if (/\b(401|403)\b/.test(detail) || /UNAUTHORIZED|FORBIDDEN/i.test(detail)) {
+      return NextResponse.json({ error: "Gateway token noto'g'ri yoki ruxsat yo'q", detail }, { status: 401 });
+    }
+    if (/(502|503|504)/.test(detail) || /BAD_GATEWAY|SERVICE_UNAVAILABLE|GATEWAY_TIMEOUT/i.test(detail)) {
+      return NextResponse.json({ error: "Gateway hozircha mavjud emas. Keyinroq urinib ko'ring", detail }, { status: 502 });
+    }
+    return NextResponse.json({ error: 'Ichki server xatosi', detail }, { status: 500 });
   }
 }
 

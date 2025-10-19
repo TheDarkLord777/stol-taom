@@ -1,11 +1,24 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { userRepo } from '@/lib/userRepo';
 import crypto from 'crypto';
+import bcrypt from 'bcryptjs';
 
 function verifyPassword(password: string, stored: string) {
-  const [salt, hash] = stored.split(':');
-  const verify = crypto.scryptSync(password, salt, 64).toString('hex');
-  return crypto.timingSafeEqual(Buffer.from(hash, 'hex'), Buffer.from(verify, 'hex'));
+  try {
+    // bcrypt format detection
+    if (stored.startsWith('$2a$') || stored.startsWith('$2b$') || stored.startsWith('$2y$')) {
+      return bcrypt.compareSync(password, stored);
+    }
+    // scrypt format: salt:hexhash
+    const [salt, hash] = stored.split(':');
+    if (!salt || !hash) return false;
+    const verify = crypto.scryptSync(password, salt, 64);
+    const hashBuf = Buffer.from(hash, 'hex');
+    if (hashBuf.length !== verify.length) return false;
+    return crypto.timingSafeEqual(hashBuf, verify);
+  } catch {
+    return false;
+  }
 }
 
 export async function POST(req: NextRequest) {
@@ -14,7 +27,7 @@ export async function POST(req: NextRequest) {
     if (!phone || !/^\+\d{10,15}$/.test(phone)) {
       return NextResponse.json({ error: 'Telefon raqam noto\'g\'ri formatda' }, { status: 400 });
     }
-    if (!password) {
+    if (!password || password.length < 1) {
       return NextResponse.json({ error: 'Parol talab qilinadi' }, { status: 400 });
     }
 

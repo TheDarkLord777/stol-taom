@@ -1,5 +1,5 @@
 // Shared Telegram Gateway client utilities
-export const TELEGRAM_GATEWAY_URL = 'https://gatewayapi.telegram.org';
+export const TELEGRAM_GATEWAY_URL = process.env.TELEGRAM_GATEWAY_URL || 'https://gatewayapi.telegram.org';
 
 const MOCK = (process.env.TELEGRAM_GATEWAY_MOCK || '').toLowerCase() === 'true' || process.env.TELEGRAM_GATEWAY_MOCK === '1';
 
