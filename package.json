@@ -4,13 +4,16 @@
   "private": true,
   "scripts": {
     "dev": "next dev --turbopack",
+    "dev:https": "next dev --turbopack --experimental-https --experimental-https-key .cert/localhost-key.pem --experimental-https-cert .cert/localhost.pem",
     "build": "next build --turbopack",
     "start": "next start",
+    "start:https": "local-ssl-proxy --source 3443 --target 3000 --cert .cert/localhost.pem --key .cert/localhost-key.pem",
     "lint": "biome check",
     "format": "biome format --write",
     "prisma:generate": "prisma generate",
     "prisma:push": "prisma db push"
   },
+
   "dependencies": {
     "@hookform/resolvers": "^3.10.0",
     "@radix-ui/react-accordion": "1.2.2",

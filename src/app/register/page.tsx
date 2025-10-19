@@ -48,7 +48,9 @@ export default function RegistrationPage() {
         }
         throw new Error(data.error || "Xatolik yuz berdi");
       }
-      router.push(`/verify?phone=${encodeURIComponent(data.phone)}&requestId=${encodeURIComponent(data.requestId)}`);
+      router.push(
+        `/verify?phone=${encodeURIComponent(data.phone)}&requestId=${encodeURIComponent(data.requestId)}`,
+      );
     } catch (e: any) {
       setError(e.message);
     } finally {
@@ -128,8 +130,16 @@ export default function RegistrationPage() {
             {/* Confirm Button */}
             <div className="flex flex-col items-center gap-2">
               {error && <p className="text-red-200">{error}</p>}
-              <Button onClick={onSubmit} disabled={loading || cooldown > 0} className="h-16 w-full max-w-xs bg-[#C8FF00] hover:bg-[#B8EF00] text-black text-2xl font-bold shadow-xl rounded-lg">
-                {cooldown > 0 ? `Qayta urinsh: ${cooldown}s` : loading ? "Yuborilmoqda..." : "Tasdiqlash"}
+              <Button
+                onClick={onSubmit}
+                disabled={loading || cooldown > 0}
+                className="h-16 w-full max-w-xs bg-[#C8FF00] hover:bg-[#B8EF00] text-black text-2xl font-bold shadow-xl rounded-lg"
+              >
+                {cooldown > 0
+                  ? `Qayta urinsh: ${cooldown}s`
+                  : loading
+                    ? "Yuborilmoqda..."
+                    : "Tasdiqlash"}
               </Button>
             </div>
 
@@ -140,7 +150,7 @@ export default function RegistrationPage() {
                 className="h-14 w-48 bg-[#FFB800] hover:bg-[#EFA800] text-black text-xl font-bold shadow-lg border-2 border-black rounded-lg"
                 href="/login"
               >
-                KIRISH &rarr; 
+                KIRISH &rarr;
               </Button>
             </div>
           </div>

@@ -1,5 +1,5 @@
-import { TempStore, type TempRegistration } from './store';
-import { getRedis } from './redis';
+import { TempStore, type TempRegistration } from "./store";
+import { getRedis } from "./redis";
 
 const TTL_SEC = 60 * 10; // 10 minutes
 
@@ -8,10 +8,12 @@ export const tempRepo = {
     const r = getRedis();
     if (!r) return TempStore.set(temp);
     const key = `reg:req:${temp.requestId}`;
-    await r.set(key, JSON.stringify(temp), 'EX', TTL_SEC);
-    await r.set(`reg:phone:${temp.phone}`, temp.requestId, 'EX', TTL_SEC);
+    await r.set(key, JSON.stringify(temp), "EX", TTL_SEC);
+    await r.set(`reg:phone:${temp.phone}`, temp.requestId, "EX", TTL_SEC);
   },
-  async getByRequestId(requestId: string): Promise<TempRegistration | undefined> {
+  async getByRequestId(
+    requestId: string,
+  ): Promise<TempRegistration | undefined> {
     const r = getRedis();
     if (!r) return TempStore.getByRequestId(requestId);
     const raw = await r.get(`reg:req:${requestId}`);
@@ -39,7 +41,7 @@ export const tempRepo = {
     const r = getRedis();
     if (!r) return TempStore.setCooldown(phone, seconds);
     const ttl = Math.max(1, seconds);
-    await r.set(`reg:cooldown:${phone}`, '1', 'EX', ttl);
+    await r.set(`reg:cooldown:${phone}`, "1", "EX", ttl);
     return Date.now() + ttl * 1000;
   },
   async getCooldownRemaining(phone: string) {

@@ -35,11 +35,12 @@ export const TempStore = {
       return next;
     }
     // If no current, require requestId to index by
-    if (!patch.requestId) throw new Error('upsertByPhone requires requestId when creating new');
+    if (!patch.requestId)
+      throw new Error("upsertByPhone requires requestId when creating new");
     const created: TempRegistration = {
       name: patch.name,
       phone,
-      passwordPlain: patch.passwordPlain || '',
+      passwordPlain: patch.passwordPlain || "",
       requestId: patch.requestId,
       createdAt: patch.createdAt || Date.now(),
       cooldownUntil: patch.cooldownUntil,
@@ -67,7 +68,7 @@ export const TempStore = {
       const created: TempRegistration = {
         phone,
         requestId: reqId,
-        passwordPlain: '',
+        passwordPlain: "",
         createdAt: Date.now(),
         cooldownUntil: until,
       };

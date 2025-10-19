@@ -95,8 +95,12 @@ export default function Login() {
           <div className="space-y-4 pt-4">
             {/* Confirm Button */}
             <div className="flex justify-center">
-              <Button onClick={onSubmit} disabled={loading} className="h-16 w-full max-w-xs bg-[#C8FF00] hover:bg-[#B8EF00] text-black text-2xl font-bold shadow-xl rounded-lg">
-                {loading ? 'Kirilmoqda...' : 'Kirish'}
+              <Button
+                onClick={onSubmit}
+                disabled={loading}
+                className="h-16 w-full max-w-xs bg-[#C8FF00] hover:bg-[#B8EF00] text-black text-2xl font-bold shadow-xl rounded-lg"
+              >
+                {loading ? "Kirilmoqda..." : "Kirish"}
               </Button>
             </div>
             {error && <p className="text-center text-red-200">{error}</p>}
@@ -108,7 +112,7 @@ export default function Login() {
                 className="h-14 w-48  bg-[#FFB800] hover:bg-[#EFA800] text-black text-xl font-bold shadow-lg border-2 border-black rounded-lg"
                 href="/register"
               >
-                Ro'yhatdan o'tish &rarr; 
+                Ro'yhatdan o'tish &rarr;
               </Button>
             </div>
           </div>
