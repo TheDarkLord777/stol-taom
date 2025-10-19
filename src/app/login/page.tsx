@@ -83,6 +83,8 @@ export default function Login() {
             <div className="flex justify-center">
               <Input
                 type="password"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
                 placeholder="Parolni kiriting"
                 className="h-14 w-full max-w-md bg-white/90 backdrop-blur-sm text-gray-600 placeholder:text-gray-400 text-center text-lg border-none shadow-lg placeholder-inika-24"
               />
