@@ -1,11 +1,11 @@
 "use client";
 import { useRouter, useSearchParams } from 'next/navigation';
 import Image from 'next/image';
-import { useEffect, useState } from 'react';
+import { Suspense, useEffect, useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 
-export default function VerifyPage() {
+function VerifyContent() {
   const params = useSearchParams();
   const router = useRouter();
   const phone = params.get('phone') || '';
@@ -83,5 +83,13 @@ export default function VerifyPage() {
         </div>
       </div>
     </div>
+  );
+}
+
+export default function VerifyPage() {
+  return (
+    <Suspense fallback={<div className="min-h-screen" />}> 
+      <VerifyContent />
+    </Suspense>
   );
 }

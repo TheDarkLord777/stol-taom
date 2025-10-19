@@ -4,6 +4,7 @@ import { TempStore } from '@/lib/store';
 import { userRepo } from '@/lib/userRepo';
 import { tempRepo } from '@/lib/tempRepo';
 import crypto from 'crypto';
+import { issueAndSetAuthCookies } from '@/lib/jwtAuth';
 
 function hashPassword(password: string) {
   // Use Node crypto scrypt as a light alternative; in real app, use bcrypt
@@ -106,14 +107,9 @@ export async function POST(req: NextRequest) {
     const passwordHash = hashPassword(temp.passwordPlain);
     const user = await userRepo.create({ phone: temp.phone, name: temp.name, passwordHash });
 
-    // Issue a simple session cookie (for demo). Replace with proper auth.
+    // Issue JWT cookies (access + refresh)
     const res = NextResponse.json({ success: true, user: { id: user.id, phone: user.phone, name: user.name } });
-    res.cookies.set('session', user.id, {
-      httpOnly: true,
-      sameSite: 'lax',
-      path: '/',
-      // secure should be true on HTTPS
-    });
+    await issueAndSetAuthCookies(res, { id: user.id, phone: user.phone, name: user.name });
     // Clear temp
   await tempRepo.deleteByRequestId(requestId);
     // Clear temp cookie

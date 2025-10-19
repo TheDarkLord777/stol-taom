@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { userRepo } from '@/lib/userRepo';
 import crypto from 'crypto';
 import bcrypt from 'bcryptjs';
+import { issueAndSetAuthCookies } from '@/lib/jwtAuth';
 
 function verifyPassword(password: string, stored: string) {
   try {
@@ -41,11 +42,7 @@ export async function POST(req: NextRequest) {
     }
 
     const res = NextResponse.json({ success: true, user: { id: user.id, phone: user.phone, name: user.name } });
-    res.cookies.set('session', user.id, {
-      httpOnly: true,
-      sameSite: 'lax',
-      path: '/',
-    });
+    await issueAndSetAuthCookies(res, { id: user.id, phone: user.phone, name: user.name });
     return res;
   } catch (e: any) {
     console.error('login error', e);
