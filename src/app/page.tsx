@@ -28,6 +28,7 @@ export default function Home() {
             <Button
               text="KIRISH"
               className="min-w-[180px] h-[48px] px-[20px] text-[18px]"
+              href="/login"
             />
             <Button
               text="RO‘YHATDAN O‘TISH"

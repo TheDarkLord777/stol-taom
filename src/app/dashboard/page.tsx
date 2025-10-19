@@ -5,10 +5,10 @@ import { Button } from "@/components/ui/button";
 export default function Dashboard() {
   const actions = [
     { label: "Restorantni tanlash", href: "/restaurants" },
-    { label: "Joy band qilish", href: "/reservation" },
-    { label: "Menyu", href: "/menu" },
-    { label: "Buyurtma berish", href: "/orders" },
-    { label: "Profil", href: "/profile" },
+    { label: "🍽️ Joy band qilish", href: "/reservation" },
+    { label: "🍔 Menyu", href: "/menu" },
+    { label: "📅 Buyurtma berish", href: "/orders" },
+    { label: "️⚙️ Profil", href: "/profile" },
   ];
 
   return (
