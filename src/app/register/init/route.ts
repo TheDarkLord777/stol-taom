@@ -16,19 +16,32 @@ const pendingRegistrations = new Map<
   }
 >();
 
-// 📞 Telegram Gateway sozlamalari
-const TELEGRAM_GATEWAY_TOKEN = process.env.TELEGRAM_GATEWAY_TOKEN;
-const TELEGRAM_GATEWAY_URL = "https://gatewayapi.telegram.org";
-
-if (!TELEGRAM_GATEWAY_TOKEN) {
-  throw new Error("TELEGRAM_GATEWAY_TOKEN not set in .env.local");
-}
+// 📞 Telegram Gateway sozlamalari (runtime’da o‘qiladi)
+const TELEGRAM_GATEWAY_URL =
+  process.env.TELEGRAM_GATEWAY_URL || "https://gatewayapi.telegram.org";
+const TELEGRAM_GATEWAY_MOCK =
+  (process.env.TELEGRAM_GATEWAY_MOCK || "").toLowerCase() === "true" ||
+  process.env.TELEGRAM_GATEWAY_MOCK === "1";
 
 async function gatewayPost(endpoint: string, body: any) {
+  // Mock rejim: lokal dev uchun backendga haqiqiy chaqiriqsiz ishlash
+  if (TELEGRAM_GATEWAY_MOCK) {
+    if (endpoint === "checkSendAbility") {
+      return { ok: true, result: { request_id: `${Date.now()}_${Math.random().toString(36).slice(2, 8)}` } };
+    }
+    if (endpoint === "sendVerificationMessage") {
+      return { ok: true, result: { sent: true } };
+    }
+  }
+  const token = process.env.TELEGRAM_GATEWAY_TOKEN;
+  if (!token) {
+    // Runtime’da token yo‘q — foydalanuvchiga tushunarli xabar qaytaramiz
+    throw new Error("TELEGRAM_GATEWAY_TOKEN not set in environment");
+  }
   const res = await fetch(`${TELEGRAM_GATEWAY_URL}/${endpoint}`, {
     method: "POST",
     headers: {
-      Authorization: `Bearer ${TELEGRAM_GATEWAY_TOKEN}`,
+      Authorization: `Bearer ${token}`,
       "Content-Type": "application/json",
     },
     body: JSON.stringify(body),

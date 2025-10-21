@@ -1,18 +1,21 @@
 // app/api/verify/route.ts
 import { NextRequest, NextResponse } from "next/server";
 
-const TELEGRAM_GATEWAY_URL = "https://gatewayapi.telegram.org";
-const TOKEN = process.env.TELEGRAM_GATEWAY_TOKEN;
-
-if (!TOKEN) {
-  throw new Error("TELEGRAM_GATEWAY_TOKEN not set in environment");
-}
+const TELEGRAM_GATEWAY_URL = process.env.TELEGRAM_GATEWAY_URL || "https://gatewayapi.telegram.org";
+const MOCK = (process.env.TELEGRAM_GATEWAY_MOCK || "").toLowerCase() === "true" || process.env.TELEGRAM_GATEWAY_MOCK === "1";
 
 async function gatewayRequest(endpoint: string, body: any) {
+  if (MOCK) {
+    if (endpoint === "checkSendAbility") return { ok: true };
+    if (endpoint === "sendVerificationMessage") return { ok: true };
+    if (endpoint === "checkVerificationStatus") return { ok: body.code === '123456', verified: body.code === '123456' };
+  }
+  const token = process.env.TELEGRAM_GATEWAY_TOKEN;
+  if (!token) throw new Error("TELEGRAM_GATEWAY_TOKEN not set in environment");
   const res = await fetch(`${TELEGRAM_GATEWAY_URL}/${endpoint}`, {
     method: "POST",
     headers: {
-      Authorization: `Bearer ${TOKEN}`,
+      Authorization: `Bearer ${token}`,
       "Content-Type": "application/json",
     },
     body: JSON.stringify(body),
