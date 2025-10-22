@@ -27,7 +27,12 @@ async function gatewayPost(endpoint: string, body: any) {
   // Mock rejim: lokal dev uchun backendga haqiqiy chaqiriqsiz ishlash
   if (TELEGRAM_GATEWAY_MOCK) {
     if (endpoint === "checkSendAbility") {
-      return { ok: true, result: { request_id: `${Date.now()}_${Math.random().toString(36).slice(2, 8)}` } };
+      return {
+        ok: true,
+        result: {
+          request_id: `${Date.now()}_${Math.random().toString(36).slice(2, 8)}`,
+        },
+      };
     }
     if (endpoint === "sendVerificationMessage") {
       return { ok: true, result: { sent: true } };
