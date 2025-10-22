@@ -1,3 +1,23 @@
+/**
+ * @swagger
+ * /api/auth/logout:
+ *   post:
+ *     summary: Logout current user
+ *     description: Revokes refresh token (if registry enabled) and clears auth cookies.
+ *     tags: [Auth]
+ *     security:
+ *       - cookieAuth: []
+ *     responses:
+ *       200:
+ *         description: Logout success
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ */
 import { cookies } from "next/headers";
 import { NextResponse } from "next/server";
 import {

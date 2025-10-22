@@ -1,3 +1,52 @@
+/**
+ * @swagger
+ * /api/register/confirm:
+ *   post:
+ *     summary: Confirm verification code and create user
+ *     description: Verifies the code with the gateway, creates the user, and issues JWT cookies (access + refresh).
+ *     tags: [Auth]
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               requestId:
+ *                 type: string
+ *               code:
+ *                 type: string
+ *             required: [requestId, code]
+ *     responses:
+ *       200:
+ *         description: Registration confirmed and tokens issued
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                 user:
+ *                   type: object
+ *                   properties:
+ *                     id:
+ *                       type: string
+ *                     phone:
+ *                       type: string
+ *                     name:
+ *                       type: string
+ *       400:
+ *         description: Invalid code or request
+ *       404:
+ *         description: Pending registration not found
+ *       410:
+ *         description: Code expired
+ *       429:
+ *         description: Too many attempts
+ *       5XX:
+ *         description: Server error
+ */
 import { NextRequest, NextResponse } from "next/server";
 import { checkVerificationStatus } from "@/lib/telegramGateway";
 import { TempStore } from "@/lib/store";

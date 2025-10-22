@@ -1,3 +1,47 @@
+/**
+ * @swagger
+ * /api/register/init:
+ *   post:
+ *     summary: Start phone verification for registration
+ *     description: Sends a verification code via Telegram Gateway and stores a temporary registration record.
+ *     tags: [Auth]
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               name:
+ *                 type: string
+ *               phone:
+ *                 type: string
+ *                 example: "+998901234567"
+ *               password:
+ *                 type: string
+ *                 format: password
+ *             required: [phone, password]
+ *     responses:
+ *       200:
+ *         description: Verification code sent
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                 requestId:
+ *                   type: string
+ *                 phone:
+ *                   type: string
+ *       400:
+ *         description: Validation error
+ *       429:
+ *         description: Too many requests (cooldown)
+ *       5XX:
+ *         description: Gateway or server error
+ */
 import { NextRequest, NextResponse } from "next/server";
 import { sendVerificationMessage } from "@/lib/telegramGateway";
 import { tempRepo } from "@/lib/tempRepo";

@@ -1,3 +1,45 @@
+/**
+ * @swagger
+ * /api/login:
+ *   post:
+ *     summary: Login with phone and password
+ *     description: Validates credentials and issues JWT cookies (access + refresh) on success.
+ *     tags: [Auth]
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               phone:
+ *                 type: string
+ *                 example: "+998901234567"
+ *               password:
+ *                 type: string
+ *                 format: password
+ *             required: [phone, password]
+ *     responses:
+ *       200:
+ *         description: Login successful
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                 user:
+ *                   type: object
+ *       400:
+ *         description: Validation error
+ *       401:
+ *         description: Invalid credentials
+ *       404:
+ *         description: User not found
+ *       5XX:
+ *         description: Server error
+ */
 import { NextRequest, NextResponse } from "next/server";
 import { userRepo } from "@/lib/userRepo";
 import crypto from "crypto";
