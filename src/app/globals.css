@@ -25,6 +25,17 @@ body {
   font-family: Arial, Helvetica, sans-serif;
 }
 
+/* Force theme via class, useful for env-controlled overrides */
+.force-dark {
+  --background: #0a0a0a;
+  --foreground: #ededed;
+}
+
+.force-light {
+  --background: #ffffff;
+  --foreground: #171717;
+}
+
 /* Utility class to style input placeholders with Inika at 24px */
 .placeholder-inika-24::placeholder {
   font-family: var(--font-inika), serif;
