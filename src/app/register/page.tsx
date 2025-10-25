@@ -129,36 +129,35 @@ export default function RegistrationPage() {
                 className="h-14 w-full max-w-md bg-white/90 backdrop-blur-sm text-gray-600 placeholder:text-gray-400 text-center text-[24px] border-none shadow-lg placeholder-inika-24"
               />
             </div>
-          
 
-          {/* Buttons */}
-          <div className="space-y-4 pt-4">
-            {/* Confirm Button */}
-            <div className="flex flex-col items-center gap-2">
-              {error && <p className="text-red-200">{error}</p>}
-              <Button
-                type="submit"
-                disabled={loading || cooldown > 0}
-                className="h-16 w-full max-w-xs bg-[#C8FF00] hover:bg-[#B8EF00] text-black text-2xl font-bold shadow-xl rounded-lg"
-              >
-                {cooldown > 0
-                  ? `Qayta urinsh: ${cooldown}s`
-                  : loading
-                    ? "Yuborilmoqda..."
-                    : "Tasdiqlash"}
-              </Button>
-            </div>
+            {/* Buttons */}
+            <div className="space-y-4 pt-4">
+              {/* Confirm Button */}
+              <div className="flex flex-col items-center gap-2">
+                {error && <p className="text-red-200">{error}</p>}
+                <Button
+                  type="submit"
+                  disabled={loading || cooldown > 0}
+                  className="h-16 w-full max-w-xs bg-[#C8FF00] hover:bg-[#B8EF00] text-black text-2xl font-bold shadow-xl rounded-lg"
+                >
+                  {cooldown > 0
+                    ? `Qayta urinsh: ${cooldown}s`
+                    : loading
+                      ? "Yuborilmoqda..."
+                      : "Tasdiqlash"}
+                </Button>
+              </div>
 
-            {/* Login Button */}
-            <div className="flex justify-end">
-              <Link
-                href="/login"
-                className="inline-flex items-center gap-2 rounded-lg bg-black/50 px-4 py-2 text-white hover:bg-black/60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/60 shadow-md drop-shadow-md"
-              >
-                KIRISH &rarr;
-              </Link>
+              {/* Login Button */}
+              <div className="flex justify-end">
+                <Link
+                  href="/login"
+                  className="inline-flex items-center gap-2 rounded-lg bg-black/50 px-4 py-2 text-white hover:bg-black/60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/60 shadow-md drop-shadow-md"
+                >
+                  KIRISH &rarr;
+                </Link>
+              </div>
             </div>
-          </div>
           </form>
         </div>
       </div>

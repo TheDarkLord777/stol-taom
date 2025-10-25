@@ -95,34 +95,31 @@ export default function Login() {
                 className="h-14 w-full max-w-md bg-white/90 backdrop-blur-sm text-gray-600 placeholder:text-gray-400 text-center text-lg border-none shadow-lg placeholder-inika-24"
               />
             </div>
-          
 
-          {/* Buttons */}
-          <div className="space-y-4 pt-4">
-            {/* Confirm Button */}
-            <div className="flex justify-center">
-              <Button
-                type="submit"
-                disabled={loading}
-                className="h-16 w-full max-w-xs bg-[#C8FF00] hover:bg-[#B8EF00] text-black text-2xl font-bold shadow-xl rounded-lg"
-              >
-                {loading ? "Kirilmoqda..." : "Kirish"}
-              </Button>
-            </div>
-            {error && <p className="text-center text-red-200">{error}</p>}
+            {/* Buttons */}
+            <div className="space-y-4 pt-4">
+              {/* Confirm Button */}
+              <div className="flex justify-center">
+                <Button
+                  type="submit"
+                  disabled={loading}
+                  className="h-16 w-full max-w-xs bg-[#C8FF00] hover:bg-[#B8EF00] text-black text-2xl font-bold shadow-xl rounded-lg"
+                >
+                  {loading ? "Kirilmoqda..." : "Kirish"}
+                </Button>
+              </div>
+              {error && <p className="text-center text-red-200">{error}</p>}
 
-            {/* Register Button */}
-            <div className="flex justify-end">
-              <Link
-               href="/register"
-               className="inline-flex items-center gap-2 rounded-lg bg-black/50 px-4 py-2 text-white hover:bg-black/60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/60 shadow-md drop-shadow-md"
-               >
-                
+              {/* Register Button */}
+              <div className="flex justify-end">
+                <Link
+                  href="/register"
+                  className="inline-flex items-center gap-2 rounded-lg bg-black/50 px-4 py-2 text-white hover:bg-black/60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/60 shadow-md drop-shadow-md"
+                >
                   Ro'yhatdan o'tish &rarr;
-               
-              </Link>
+                </Link>
+              </div>
             </div>
-          </div>
           </form>
         </div>
       </div>

@@ -32,12 +32,12 @@ export default function RootLayout({
   // Determine theme override from env:
   // - DEFAULT_THEME: 'dark' | 'light' | 'system'
   // - ENABLE_DARK_MODE: 'true' | 'false' (legacy boolean)
-  const themePref = (process.env.DEFAULT_THEME || '').toLowerCase()
-  let themeClass = ''
-  if (themePref === 'dark') themeClass = 'force-dark'
-  else if (themePref === 'light') themeClass = 'force-light'
-  else if (process.env.ENABLE_DARK_MODE === 'true') themeClass = 'force-dark'
-  else if (process.env.ENABLE_DARK_MODE === 'false') themeClass = 'force-light'
+  const themePref = (process.env.DEFAULT_THEME || "").toLowerCase();
+  let themeClass = "";
+  if (themePref === "dark") themeClass = "force-dark";
+  else if (themePref === "light") themeClass = "force-light";
+  else if (process.env.ENABLE_DARK_MODE === "true") themeClass = "force-dark";
+  else if (process.env.ENABLE_DARK_MODE === "false") themeClass = "force-light";
 
   return (
     <html lang="en">
