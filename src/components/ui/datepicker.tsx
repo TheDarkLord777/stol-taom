@@ -2,6 +2,7 @@
 import * as React from "react";
 import * as Popover from "@radix-ui/react-popover";
 import { format } from "date-fns";
+import { uz } from "date-fns/locale";
 import { Calendar } from "@/components/ui/calendar";
 import { Button } from "@/components/ui/button";
 import type { DateRange } from "react-day-picker";
@@ -46,7 +47,7 @@ export function DatePicker({
         >
           <span className="truncate">
             {date ? (
-              format(date, formatString)
+              format(date, formatString, { locale: uz })
             ) : (
               <span className="text-gray-500">{placeholder}</span>
             )}
@@ -134,8 +135,8 @@ export function DateRangePicker({
   const today = React.useMemo(() => new Date(), []);
   function label() {
     if (range?.from && range?.to)
-      return `${format(range.from, formatString)} — ${format(range.to, formatString)}`;
-    if (range?.from) return `${format(range.from, formatString)} — …`;
+      return `${format(range.from, formatString, { locale: uz })} — ${format(range.to, formatString, { locale: uz })}`;
+    if (range?.from) return `${format(range.from, formatString, { locale: uz })} — …`;
     return "";
   }
   return (

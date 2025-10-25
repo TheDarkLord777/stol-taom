@@ -3,11 +3,12 @@
 "use client";
 import * as React from "react";
 import { DayPicker } from "react-day-picker";
+import { uz } from 'date-fns/locale';
 import type { DayPickerProps } from "react-day-picker";
 
 type Props = DayPickerProps & { className?: string };
 
-export function Calendar({ className, ...props }: Props) {
+export function Calendar({ className, locale = uz, ...props }: Props) {
   // Bugungi sanani hisoblash
   const today = React.useMemo(() => new Date(), []);
 
@@ -27,9 +28,11 @@ export function Calendar({ className, ...props }: Props) {
   };
 
   return (
-    <DayPicker
+    <div className="px-[40px]">
+      <DayPicker
       showOutsideDays
       {...props}
+      locale={locale}
       modifiers={modifiers}
       modifiersStyles={modifiersStyles}
       className={className}
@@ -62,7 +65,8 @@ export function Calendar({ className, ...props }: Props) {
         day_range_start: "aria-selected:rounded-l-md",
         day_range_end: "aria-selected:rounded-r-md",
       }}
-    />
+      />
+    </div>
   );
 }
 
