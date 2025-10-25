@@ -1,7 +1,7 @@
 "use client";
 import * as React from "react";
 import * as Popover from "@radix-ui/react-popover";
-import { format } from "date-fns";
+import { format, startOfDay } from "date-fns";
 import { uz } from "date-fns/locale";
 import { Calendar } from "@/components/ui/calendar";
 import { Button } from "@/components/ui/button";
@@ -35,6 +35,14 @@ export function DatePicker({
 }: DatePickerProps) {
   const [open, setOpen] = React.useState(false);
   const today = React.useMemo(() => new Date(), []);
+  const disabledMatcher = React.useMemo(() => {
+    if (disabled) return disabled;
+    if (fromDate) {
+      const min = startOfDay(fromDate);
+      return (d: Date) => d < min;
+    }
+    return undefined;
+  }, [disabled, fromDate]);
   return (
     <Popover.Root open={open} onOpenChange={setOpen}>
       <Popover.Trigger asChild>
@@ -86,7 +94,7 @@ export function DatePicker({
           defaultMonth={date ?? today}
           fromDate={fromDate}
           toDate={toDate}
-          disabled={disabled}
+          disabled={disabledMatcher}
           initialFocus
         />
         <div className="flex justify-between gap-2 pt-2">
@@ -133,6 +141,14 @@ export function DateRangePicker({
 }: DateRangePickerProps) {
   const [open, setOpen] = React.useState(false);
   const today = React.useMemo(() => new Date(), []);
+  const disabledMatcher = React.useMemo(() => {
+    if (disabled) return disabled;
+    if (fromDate) {
+      const min = startOfDay(fromDate);
+      return (d: Date) => d < min;
+    }
+    return undefined;
+  }, [disabled, fromDate]);
   function label() {
     if (range?.from && range?.to)
       return `${format(range.from, formatString, { locale: uz })} — ${format(range.to, formatString, { locale: uz })}`;
@@ -184,7 +200,7 @@ export function DateRangePicker({
           defaultMonth={range?.from ?? today}
           fromDate={fromDate}
           toDate={toDate}
-          disabled={disabled}
+          disabled={disabledMatcher}
           initialFocus
         />
         <div className="flex justify-between gap-2 pt-2">
@@ -194,7 +210,7 @@ export function DateRangePicker({
               size="sm"
               onClick={() => onRangeChange?.(undefined)}
             >
-              Clear
+              Tozalash
             </Button>
             <Button
               variant="ghost"
@@ -205,7 +221,7 @@ export function DateRangePicker({
             </Button>
           </div>
           <Button size="sm" onClick={() => setOpen(false)}>
-            Apply
+            Qo‘llamoq
           </Button>
         </div>
       </Popover.Content>

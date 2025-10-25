@@ -132,6 +132,38 @@ export function Combobox(props: ComboboxProps) {
   const { inputPlaceholder = "Type to search…", inputClassName } =
     props as InputModeProps;
   const inputRef = React.useRef<HTMLInputElement | null>(null);
+  const listRef = React.useRef<HTMLDivElement | null>(null);
+  const itemRefs = React.useRef<Array<HTMLDivElement | null>>([]);
+  const [activeIndex, setActiveIndex] = React.useState<number>(-1);
+
+  // Reset highlighted item when query or open state changes
+  React.useEffect(() => {
+    if (!open) {
+      setActiveIndex(-1);
+      return;
+    }
+    // Default to first item when list opens with results
+    setActiveIndex((idx) => {
+      const next = filtered.length > 0 ? Math.min(Math.max(idx, 0), filtered.length - 1) : -1;
+      return next;
+    });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [query, open, filtered.length]);
+
+  // Ensure active item is visible
+  React.useEffect(() => {
+    if (activeIndex < 0) return;
+    const el = itemRefs.current[activeIndex];
+    const listEl = listRef.current;
+    if (el && listEl) {
+      const elTop = el.offsetTop;
+      const elBottom = elTop + el.offsetHeight;
+      const viewTop = listEl.scrollTop;
+      const viewBottom = viewTop + listEl.clientHeight;
+      if (elTop < viewTop) listEl.scrollTop = elTop;
+      else if (elBottom > viewBottom) listEl.scrollTop = elBottom - listEl.clientHeight;
+    }
+  }, [activeIndex]);
 
   return (
     <Popover.Root open={open} onOpenChange={setOpen}>
@@ -146,6 +178,29 @@ export function Combobox(props: ComboboxProps) {
               if (!open) setOpen(true);
             }}
             onFocus={() => setOpen(true)}
+            onKeyDown={(e) => {
+              if (!open && (e.key === 'ArrowDown' || e.key === 'ArrowUp')) {
+                setOpen(true);
+              }
+              if (e.key === 'ArrowDown') {
+                e.preventDefault();
+                if (filtered.length === 0) return;
+                setActiveIndex((i) => (i < filtered.length - 1 ? i + 1 : 0));
+              } else if (e.key === 'ArrowUp') {
+                e.preventDefault();
+                if (filtered.length === 0) return;
+                setActiveIndex((i) => (i > 0 ? i - 1 : filtered.length - 1));
+              } else if (e.key === 'Enter') {
+                if (activeIndex >= 0 && activeIndex < filtered.length) {
+                  const opt = filtered[activeIndex];
+                  onChange?.(opt.value);
+                  setQuery(opt.label);
+                  setOpen(false);
+                }
+              } else if (e.key === 'Escape') {
+                setOpen(false);
+              }
+            }}
             placeholder={inputPlaceholder}
             className={
               inputClassName ||
@@ -182,20 +237,34 @@ export function Combobox(props: ComboboxProps) {
         }}
       >
         <Command label="combobox" className="w-full">
-          <Command.List className="max-h-60 overflow-auto py-1">
+          <Command.List
+            ref={(el) => {
+              listRef.current = el as unknown as HTMLDivElement | null;
+            }}
+            className="max-h-60 overflow-auto py-1"
+          >
             <Command.Empty className="px-3 py-2 text-sm text-gray-500">
               {emptyText}
             </Command.Empty>
-            {filtered.map((opt) => (
+            {filtered.map((opt, idx) => (
               <Command.Item
+                // Attach ref for scrolling
+                ref={(el) => {
+                  itemRefs.current[idx] = el as unknown as HTMLDivElement | null;
+                }}
                 key={opt.value}
                 value={opt.label}
+                onMouseMove={() => setActiveIndex(idx)}
+                onMouseLeave={() => setActiveIndex(-1)}
                 onSelect={() => {
                   onChange?.(opt.value);
                   setQuery(opt.label);
                   setOpen(false);
                 }}
-                className="cursor-pointer select-none px-3 py-2 text-sm aria-selected:bg-gray-100 aria-selected:text-gray-900"
+                className={
+                  "cursor-pointer select-none px-3 py-2 text-sm aria-selected:bg-gray-100 aria-selected:text-gray-900" +
+                  (idx === activeIndex ? " bg-gray-100 text-gray-900" : "")
+                }
               >
                 {opt.label}
               </Command.Item>

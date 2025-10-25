@@ -21,9 +21,36 @@ export function Calendar({ className, locale = uz, ...props }: Props) {
   const modifiersStyles = {
     today: {
       fontWeight: "bold",
-      color: "#2563eb", // mavi
-      border: "1px solid #2563eb", // mavi ring
-      borderRadius: "4px",
+      color: "black", // mavi
+      borderRadius: "15px",
+      backgroundColor: '#62c7dc',
+    },
+    // Tanlangan kundagi (selected) ranglar
+    selected: {
+      backgroundColor: '#b0fb37',
+      color: 'black',
+      borderRadius: '15px',
+    },
+    // Oralig' (range) holatlari uchun bir xil yashil fon
+    range_middle: {
+      backgroundColor: '#b0fb37',
+      color: 'black',
+      borderRadius: '0',
+    },
+    range_start: {
+      backgroundColor: '#b0fb37',
+      color: 'black',
+      borderRadius: '15px 0 0 15px',
+    },
+    range_end: {
+      backgroundColor: '#b0fb37',
+      color: 'black',
+      borderRadius: '0 15px 15px 0',
+    },
+    disabled: {
+      cursor: 'not-allowed',
+      backgroundColor: '#f3f4f6', // gray-100
+      borderRadius: '15px',
     },
   };
 
@@ -57,11 +84,11 @@ export function Calendar({ className, locale = uz, ...props }: Props) {
 `,
 
         day_selected:
-          "bg-black text-white focus:bg-black aria-selected:bg-black rounded-md cursor-pointer",
+          "rounded-md cursor-pointer",
         // day_today olib tashlandi — endi modifiers bilan ishlaymiz
         day_outside: "text-gray-300 opacity-50",
-        day_disabled: "opacity-50 pointer-events-none",
-        day_range_middle: "aria-selected:bg-gray-200 rounded-none",
+  day_disabled: "opacity-50 bg-gray-100 cursor-not-allowed",
+        day_range_middle: "rounded-none",
         day_range_start: "aria-selected:rounded-l-md",
         day_range_end: "aria-selected:rounded-r-md",
       }}

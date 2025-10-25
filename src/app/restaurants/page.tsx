@@ -6,10 +6,11 @@ import type { DateRange } from "react-day-picker";
 import Image from "next/image";
 
 const restaurants = [
-  { value: "r1", label: "Look" },
-  { value: "r2", label: "Oqtepa" },
-  { value: "r3", label: "Bellissimo piza" },
+  { value: "r1", label: "LOOOK", logo: "/logos/loook.jpg" },
+  { value: "r2", label: "OQTEPA LAVASH", logo: "/logos/oqtepa.webp" },
+  { value: "r3", label: "Bellissimo PIZZA", logo: "/logos/bellissimo.png" },
 ];
+
 
 export default function Page() {
   const [selected, setSelected] = React.useState<string | undefined>();
@@ -44,11 +45,19 @@ export default function Page() {
         />
       </div>
 
-      {selected && (
-        <div className="text-sm text-gray-700">
-          Tanlandi: {restaurants.find((r) => r.value === selected)?.label}
-        </div>
-      )}
+     {selected && (
+  <div className="flex items-center gap-2 text-sm text-gray-700">
+    <Image
+      src={restaurants.find((r) => r.value === selected)?.logo || ""}
+      alt="Logo"
+      width={36}
+      height={36}
+      className="rounded"
+    />
+    <span>{restaurants.find((r) => r.value === selected)?.label}</span>
+  </div>
+)}
+
 
       <section className="space-y-2">
         <div className="text-sm font-medium">Sana tanlash</div>
