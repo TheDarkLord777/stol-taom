@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import Link from "next/link";
 
 export default function Login() {
   const router = useRouter();
@@ -34,7 +35,7 @@ export default function Login() {
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || "Xatolik yuz berdi");
-      router.replace("/dashboard");
+      router.replace("/home");
     } catch (e: any) {
       setError(e.message);
     } finally {
@@ -66,8 +67,13 @@ export default function Login() {
             </h1>
           </div>
 
-          {/* Form Fields */}
-          <div className="space-y-4">
+          <form
+            className="space-y-4"
+            onSubmit={(e) => {
+              e.preventDefault();
+              if (!loading) void onSubmit();
+            }}
+          >
             {/* Phone Input */}
             <div className="flex justify-center">
               <Input
@@ -89,14 +95,14 @@ export default function Login() {
                 className="h-14 w-full max-w-md bg-white/90 backdrop-blur-sm text-gray-600 placeholder:text-gray-400 text-center text-lg border-none shadow-lg placeholder-inika-24"
               />
             </div>
-          </div>
+          
 
           {/* Buttons */}
           <div className="space-y-4 pt-4">
             {/* Confirm Button */}
             <div className="flex justify-center">
               <Button
-                onClick={onSubmit}
+                type="submit"
                 disabled={loading}
                 className="h-16 w-full max-w-xs bg-[#C8FF00] hover:bg-[#B8EF00] text-black text-2xl font-bold shadow-xl rounded-lg"
               >
@@ -106,16 +112,18 @@ export default function Login() {
             {error && <p className="text-center text-red-200">{error}</p>}
 
             {/* Register Button */}
-            <div className="flex justify-center">
-              <Button
-                variant="outline"
-                className="h-14 w-48  bg-[#FFB800] hover:bg-[#EFA800] text-black text-xl font-bold shadow-lg border-2 border-black rounded-lg"
-                href="/register"
-              >
-                Ro'yhatdan o'tish &rarr;
-              </Button>
+            <div className="flex justify-end">
+              <Link
+               href="/register"
+               className="inline-flex items-center gap-2 rounded-lg bg-black/50 px-4 py-2 text-white hover:bg-black/60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/60 shadow-md drop-shadow-md"
+               >
+                
+                  Ro'yhatdan o'tish &rarr;
+               
+              </Link>
             </div>
           </div>
+          </form>
         </div>
       </div>
     </div>

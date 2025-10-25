@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import React, { useState } from "react";
 import { useRouter } from "next/navigation";
+import Link from "next/link";
 
 export default function RegistrationPage() {
   const router = useRouter();
@@ -89,8 +90,13 @@ export default function RegistrationPage() {
             </h1>
           </div>
 
-          {/* Form Fields */}
-          <div className="space-y-4">
+          <form
+            className="space-y-4"
+            onSubmit={(e) => {
+              e.preventDefault();
+              if (!loading && cooldown <= 0) void onSubmit();
+            }}
+          >
             {/* Name Input */}
             <div className="flex justify-center">
               <Input
@@ -123,7 +129,7 @@ export default function RegistrationPage() {
                 className="h-14 w-full max-w-md bg-white/90 backdrop-blur-sm text-gray-600 placeholder:text-gray-400 text-center text-[24px] border-none shadow-lg placeholder-inika-24"
               />
             </div>
-          </div>
+          
 
           {/* Buttons */}
           <div className="space-y-4 pt-4">
@@ -131,7 +137,7 @@ export default function RegistrationPage() {
             <div className="flex flex-col items-center gap-2">
               {error && <p className="text-red-200">{error}</p>}
               <Button
-                onClick={onSubmit}
+                type="submit"
                 disabled={loading || cooldown > 0}
                 className="h-16 w-full max-w-xs bg-[#C8FF00] hover:bg-[#B8EF00] text-black text-2xl font-bold shadow-xl rounded-lg"
               >
@@ -144,16 +150,16 @@ export default function RegistrationPage() {
             </div>
 
             {/* Login Button */}
-            <div className="flex justify-center">
-              <Button
-                variant="outline"
-                className="h-14 w-48 bg-[#FFB800] hover:bg-[#EFA800] text-black text-xl font-bold shadow-lg border-2 border-black rounded-lg"
+            <div className="flex justify-end">
+              <Link
                 href="/login"
+                className="inline-flex items-center gap-2 rounded-lg bg-black/50 px-4 py-2 text-white hover:bg-black/60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/60 shadow-md drop-shadow-md"
               >
                 KIRISH &rarr;
-              </Button>
+              </Link>
             </div>
           </div>
+          </form>
         </div>
       </div>
     </div>
