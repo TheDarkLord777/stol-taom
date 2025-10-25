@@ -6,9 +6,9 @@ import type { DateRange } from "react-day-picker";
 import Image from "next/image";
 
 const restaurants = [
-  { value: "r1", label: "Besh qozon" },
-  { value: "r2", label: "Caravan" },
-  { value: "r3", label: "Forn Lebnen" },
+  { value: "r1", label: "Look" },
+  { value: "r2", label: "Oqtepa" },
+  { value: "r3", label: "Bellissimo piza" },
 ];
 
 export default function Page() {
@@ -46,7 +46,7 @@ export default function Page() {
 
       {selected && (
         <div className="text-sm text-gray-700">
-          Selected: {restaurants.find((r) => r.value === selected)?.label}
+          Tanlandi: {restaurants.find((r) => r.value === selected)?.label}
         </div>
       )}
 

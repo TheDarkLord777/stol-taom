@@ -103,7 +103,7 @@ export function DatePicker({
               size="sm"
               onClick={() => onDateChange?.(today)}
             >
-              Today
+              Bugun
             </Button>
           </div>
         </div>
@@ -201,7 +201,7 @@ export function DateRangePicker({
               size="sm"
               onClick={() => onRangeChange?.({ from: today, to: today })}
             >
-              Today
+              Bugun
             </Button>
           </div>
           <Button size="sm" onClick={() => setOpen(false)}>

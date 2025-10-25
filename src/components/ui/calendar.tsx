@@ -42,8 +42,8 @@ export function Calendar({ className, locale = uz, ...props }: Props) {
         caption: "flex justify-center pt-1 relative items-center",
         caption_label: "text-sm font-medium",
         nav: "space-x-1 flex items-center",
-        button_previous: "absolute left-1 p-1.5 rounded hover:bg-gray-100",
-        button_next: "absolute right-1 p-1.5 rounded hover:bg-gray-100",
+  button_previous: "absolute left-1 p-1.5 rounded cursor-pointer",
+  button_next: "absolute right-1 p-1.5 rounded cursor-pointer",
         table: "w-full border-collapse space-y-1",
         head_row: "grid grid-cols-7",
         head_cell:
@@ -52,12 +52,12 @@ export function Calendar({ className, locale = uz, ...props }: Props) {
         cell: "h-9 w-9 text-center text-sm p-0 relative",
         day: `
   relative h-9 w-9 p-0 text-center text-sm font-normal
-  aria-selected:opacity-100 rounded-md hover:bg-gray-100 focus:outline-none
+  aria-selected:opacity-100 rounded-md focus:outline-none 
   leading-9
 `,
 
         day_selected:
-          "bg-black text-white hover:bg-black focus:bg-black aria-selected:bg-black rounded-md",
+          "bg-black text-white focus:bg-black aria-selected:bg-black rounded-md cursor-pointer",
         // day_today olib tashlandi — endi modifiers bilan ishlaymiz
         day_outside: "text-gray-300 opacity-50",
         day_disabled: "opacity-50 pointer-events-none",
