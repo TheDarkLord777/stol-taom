@@ -4,12 +4,13 @@ import { Button } from "@/components/ui/button";
 
 export default function Dashboard() {
   const actions = [
-    { label: "Restorantni tanlash", href: "/restaurants" },
-    { label: "🍽️ Joy band qilish", href: "/reservation" },
     { label: "🍔 Menyu", href: "/menu" },
+    { label: "🍽️ Joy band qilish", href: "/reservation" },
     { label: "📅 Buyurtma berish", href: "/orders" },
     { label: "️⚙️ Profil", href: "/profile" },
   ];
+
+  // Responsiv chap padding: mobil ~20px (pl-5), desktop ~40px (md:pl-10)
 
   return (
     <div className="relative min-h-screen w-full overflow-hidden">
@@ -34,7 +35,7 @@ export default function Dashboard() {
               <Button
                 key={a.label}
                 href={a.href}
-                className="h-14 w-full max-w-xs bg-[#C8FF00] hover:bg-[#B8EF00] text-black text-xl font-bold shadow-xl rounded-lg"
+                className="h-14 w-full max-w-xs bg-[#C8FF00] hover:bg-[#B8EF00] text-black text-xl font-bold shadow-xl rounded-lg justify-start text-left pl-5 md:pl-15"
               >
                 {a.label}
               </Button>
