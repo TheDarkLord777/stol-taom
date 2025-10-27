@@ -11,7 +11,8 @@
     "lint": "biome check",
     "format": "biome format --write",
     "prisma:generate": "prisma generate",
-    "prisma:push": "prisma db push"
+    "prisma:push": "prisma db push",
+    "seed": "node scripts/seed.cjs"
   },
   "dependencies": {
     "@hookform/resolvers": "^3.10.0",
