@@ -3,29 +3,31 @@ import React from "react";
 import Combobox from "@/components/ui/combobox";
 import Image from "next/image";
 
-const meals = [
-  { value: "r1", label: "Somsa", logo: "/logos/loook.svg" },
-  { value: "r2", label: "Osh", logo: "/logos/oqtepa.svg" },
-  { value: "r3", label: "Mastava", logo: "/logos/bellissimo.svg" },
-  { value: "r4", label: "Sho'rva", logo: "/logos/loook.svg" },
-  { value: "r5", label: "Chuchvara", logo: "/logos/oqtepa.svg" },
-  { value: "r6", label: "Lag'mon", logo: "/logos/bellissimo.svg" },
-  { value: "r7", label: "Shashlik", logo: "/logos/loook.svg" },
-  { value: "r8", label: "Osh", logo: "/logos/oqtepa.svg" },
-  { value: "r9", label: "Manti", logo: "/logos/bellissimo.svg" },
-  { value: "r10", label: "Xonim", logo: "/logos/loook.svg" },
-  { value: "r11", label: "Beshbarmoq", logo: "/logos/oqtepa.svg" },
-  { value: "r12", label: "Norin", logo: "/logos/bellissimo.svg" },
-  { value: "r13", label: "Hasb", logo: "/logos/bellissimo.svg" },
-  { value: "r14", label: "Tandir go'shti", logo: "/logos/bellissimo.svg" },
-  { value: "r15", label: "Grill", logo: "/logos/bellissimo.svg" },
-  { value: "r16", label: "Mampar", logo: "/logos/bellissimo.svg" },
-
-].sort((a, b) => a.label.localeCompare(b.label));
+type Option = { value: string; label: string; logo?: string };
 
 
 export default function Page() {
   const [selected, setSelected] = React.useState<string | undefined>();
+  const [meals, setMeals] = React.useState<Option[]>([]);
+  React.useEffect(() => {
+    let mounted = true;
+    fetch("/api/menu")
+      .then((r) => r.json())
+      .then((d) => {
+        if (!mounted) return;
+        const items = (d.items || []) as Array<{ id: string; name: string; slug: string; logoUrl?: string }>;
+        const opts: Option[] = items.map((it) => ({
+          value: it.id,
+          label: it.name,
+          logo: it.logoUrl,
+        }));
+        setMeals(opts);
+      })
+      .catch(() => {});
+    return () => {
+      mounted = false;
+    };
+  }, []);
 
   return (
     <div className="max-w-3xl mx-auto p-6 space-y-8">

@@ -5,15 +5,12 @@ import { DatePicker, DateRangePicker } from "@/components/ui/datepicker";
 import type { DateRange } from "react-day-picker";
 import Image from "next/image";
 
-const restaurants = [
-  { value: "r1", label: "LOOOK", logo: "/logos/loook.svg" },
-  { value: "r2", label: "OQTEPA LAVASH", logo: "/logos/oqtepa.svg" },
-  { value: "r3", label: "Bellissimo PIZZA", logo: "/logos/bellissimo.svg" },
-].sort((a, b) => a.label.localeCompare(b.label));
+type Option = { value: string; label: string; logo?: string };
 
 
 export default function Page() {
   const [selected, setSelected] = React.useState<string | undefined>();
+  const [restaurants, setRestaurants] = React.useState<Option[]>([]);
   const [date, setDate] = React.useState<Date | undefined>();
   const [range, setRange] = React.useState<DateRange | undefined>();
   const today = React.useMemo(() => new Date(), []);
@@ -21,6 +18,26 @@ export default function Page() {
     const d = new Date();
     d.setFullYear(d.getFullYear() + 1);
     return d;
+  }, []);
+
+  React.useEffect(() => {
+    let mounted = true;
+    fetch("/api/restaurants")
+      .then((r) => r.json())
+      .then((d) => {
+        if (!mounted) return;
+        const items = (d.items || []) as Array<{ id: string; name: string; logoUrl?: string }>;
+        const opts: Option[] = items.map((it) => ({
+          value: it.id,
+          label: it.name,
+          logo: it.logoUrl,
+        }));
+        setRestaurants(opts);
+      })
+      .catch(() => {});
+    return () => {
+      mounted = false;
+    };
   }, []);
 
   return (
