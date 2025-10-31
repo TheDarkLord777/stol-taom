@@ -1,19 +1,8 @@
-import { cookies } from "next/headers";
-import { redirect } from "next/navigation";
-import { ACCESS_TOKEN_NAME, verifyToken } from "@/lib/jwtAuth";
 import ClientOnly from "@/components/ClientOnly";
 import ProfileClient from "./ProfileClient";
 
 export default async function ProfilePage() {
-  // Page-level guard (fallback in dev): require a valid access token
-  const cookieStore = await cookies();
-  const token = cookieStore.get(ACCESS_TOKEN_NAME)?.value;
-  if (!token) redirect("/login");
-  try {
-    await verifyToken(token);
-  } catch {
-    redirect("/login");
-  }
+  // Auth is enforced by middleware; avoid verifying here to let refresh flow work seamlessly.
 
   return (
     <ClientOnly

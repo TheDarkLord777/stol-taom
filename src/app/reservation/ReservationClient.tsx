@@ -22,6 +22,8 @@ export default function ReservationClient() {
 
   React.useEffect(() => {
     let mounted = true;
+    const MIN_SKELETON_MS = 600; // minimum shimmer visibility
+    const start = Date.now();
     fetch("/api/restaurants")
       .then((r) => r.json())
       .then((d) => {
@@ -40,7 +42,11 @@ export default function ReservationClient() {
       })
       .catch(() => {})
       .finally(() => {
-        if (mounted) setLoading(false);
+        if (!mounted) return;
+        const elapsed = Date.now() - start;
+        const remain = Math.max(0, MIN_SKELETON_MS - elapsed);
+        if (remain === 0) setLoading(false);
+        else setTimeout(() => mounted && setLoading(false), remain);
       });
     return () => {
       mounted = false;

@@ -34,7 +34,7 @@ export function Combobox(props: ComboboxProps) {
     options,
     value,
     onChange,
-    emptyText = "No results",
+    emptyText = "Hech narsa topilmadi",
     loading = false,
     loadingCount = 5,
   } = props as BaseProps & { loading?: boolean; loadingCount?: number };
@@ -65,7 +65,7 @@ export function Combobox(props: ComboboxProps) {
 
   // Button trigger mode (default)
   if (props.mode !== "input") {
-    const { placeholder = "Select…", buttonClassName } =
+    const { placeholder = "Tanlang…", buttonClassName } =
       props as ButtonModeProps;
     return (
       <Popover.Root open={open} onOpenChange={setOpen}>
@@ -108,7 +108,7 @@ export function Combobox(props: ComboboxProps) {
                 autoFocus
                 value={query}
                 onValueChange={setQuery}
-                placeholder="Search…"
+                placeholder="Qidirish…"
                 className="w-full bg-transparent text-sm outline-none placeholder:text-gray-400"
               />
             </div>
@@ -118,7 +118,7 @@ export function Combobox(props: ComboboxProps) {
                   {Array.from({ length: loadingCount }).map((_, i) => (
                     <div
                       key={i}
-                      className="mb-2 h-5 w-full animate-pulse rounded bg-gray-100 last:mb-0"
+                      className="mb-2 h-5 w-full rounded bg-gray-200 shimmer last:mb-0"
                     />
                   ))}
                 </div>
@@ -151,7 +151,7 @@ export function Combobox(props: ComboboxProps) {
   }
 
   // Input trigger mode
-  const { inputPlaceholder = "Type to search…", inputClassName } =
+  const { inputPlaceholder = "Qidirish uchun yozing…", inputClassName } =
     props as InputModeProps;
   const inputRef = React.useRef<HTMLInputElement | null>(null);
   const listRef = React.useRef<HTMLDivElement | null>(null);
@@ -241,7 +241,7 @@ export function Combobox(props: ComboboxProps) {
                 onChange?.("");
                 inputRef.current?.focus();
               }}
-              aria-label="Clear"
+              aria-label="Tozalash"
               className="absolute inset-y-0 right-2 my-auto h-6 w-6 rounded text-gray-400 hover:text-gray-600"
             >
               ×
@@ -274,7 +274,7 @@ export function Combobox(props: ComboboxProps) {
                 {Array.from({ length: loadingCount }).map((_, i) => (
                   <div
                     key={i}
-                    className="mb-2 h-5 w-full animate-pulse rounded bg-gray-100 last:mb-0"
+                    className="mb-2 h-5 w-full rounded bg-gray-200 shimmer last:mb-0"
                   />
                 ))}
               </div>
