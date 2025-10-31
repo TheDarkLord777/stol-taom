@@ -331,6 +331,27 @@ export async function authGuard(req: NextRequest): Promise<NextResponse> {
             landing: true,
             authed: true,
             action: "redirect-home",
+            via: "access",
+          }),
+        );
+      return redir;
+    }
+    // Try to refresh on landing: if refresh is valid, mint access and redirect to /home
+    const url = req.nextUrl.clone();
+    url.pathname = "/home";
+    url.search = "";
+    const redir = NextResponse.redirect(url);
+    const refreshed = await refreshAccessToken(req, redir);
+    if (refreshed?.user) {
+      if (dev)
+        redir.headers.set(
+          "x-auth-debug",
+          JSON.stringify({
+            path: pathname,
+            landing: true,
+            authed: true,
+            action: "redirect-home",
+            via: "refresh",
           }),
         );
       return redir;
