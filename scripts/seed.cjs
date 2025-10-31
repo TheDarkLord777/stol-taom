@@ -24,7 +24,11 @@ const sampleMenu = [
   { name: "Beshbarmoq", slug: "beshbarmoq", logoUrl: "/logos/oqtepa.svg" },
   { name: "Norin", slug: "norin", logoUrl: "/logos/bellissimo.svg" },
   { name: "Hasb", slug: "hasb", logoUrl: "/logos/bellissimo.svg" },
-  { name: "Tandir go'shti", slug: "tandir-goshti", logoUrl: "/logos/bellissimo.svg" },
+  {
+    name: "Tandir go'shti",
+    slug: "tandir-goshti",
+    logoUrl: "/logos/bellissimo.svg",
+  },
   { name: "Grill", slug: "grill", logoUrl: "/logos/bellissimo.svg" },
   { name: "Mampar", slug: "mampar", logoUrl: "/logos/bellissimo.svg" },
 ];

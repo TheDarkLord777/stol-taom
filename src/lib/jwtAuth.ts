@@ -252,10 +252,7 @@ function normalizePath(p: string) {
 
 export const AuthControl = {
   // Pages that require login (exact match or prefix with *; RegExp supported)
-  protectedPages: [
-    "/profile",
-    "/orders",
-  ] as PathRule[],
+  protectedPages: ["/profile", "/orders"] as PathRule[],
   // API routes that require login
   protectedApi: [
     "/api/reservations",
@@ -297,11 +294,29 @@ export async function authGuard(req: NextRequest): Promise<NextResponse> {
       url.pathname = "/home";
       url.search = "";
       const redir = NextResponse.redirect(url);
-      if (dev) redir.headers.set("x-auth-debug", JSON.stringify({ path: pathname, landing: true, authed: true, action: "redirect-home" }));
+      if (dev)
+        redir.headers.set(
+          "x-auth-debug",
+          JSON.stringify({
+            path: pathname,
+            landing: true,
+            authed: true,
+            action: "redirect-home",
+          }),
+        );
       return redir;
     }
     const pass = NextResponse.next();
-    if (dev) pass.headers.set("x-auth-debug", JSON.stringify({ path: pathname, landing: true, authed: false, action: "show-landing" }));
+    if (dev)
+      pass.headers.set(
+        "x-auth-debug",
+        JSON.stringify({
+          path: pathname,
+          landing: true,
+          authed: false,
+          action: "show-landing",
+        }),
+      );
     return pass;
   }
   const isPublic = matchPath(pathname, AuthControl.publicPages);
@@ -313,7 +328,11 @@ export async function authGuard(req: NextRequest): Promise<NextResponse> {
 
   if (!needsAuth || isPublic) {
     const res = NextResponse.next();
-    if (dev) res.headers.set("x-auth-debug", JSON.stringify({ path: pathname, isApi, needsAuth, isPublic }));
+    if (dev)
+      res.headers.set(
+        "x-auth-debug",
+        JSON.stringify({ path: pathname, isApi, needsAuth, isPublic }),
+      );
     return res;
   }
 
@@ -321,7 +340,17 @@ export async function authGuard(req: NextRequest): Promise<NextResponse> {
   const user = await getUserFromRequest(req);
   if (user) {
     const res = NextResponse.next();
-    if (dev) res.headers.set("x-auth-debug", JSON.stringify({ path: pathname, isApi, needsAuth, isPublic, authed: true }));
+    if (dev)
+      res.headers.set(
+        "x-auth-debug",
+        JSON.stringify({
+          path: pathname,
+          isApi,
+          needsAuth,
+          isPublic,
+          authed: true,
+        }),
+      );
     return res;
   }
 
@@ -334,7 +363,17 @@ export async function authGuard(req: NextRequest): Promise<NextResponse> {
   if (isApi) {
     const body = { error: "Unauthorized" };
     const res = NextResponse.json(body, { status: 401 });
-    if (dev) res.headers.set("x-auth-debug", JSON.stringify({ path: pathname, isApi, needsAuth, isPublic, authed: false }));
+    if (dev)
+      res.headers.set(
+        "x-auth-debug",
+        JSON.stringify({
+          path: pathname,
+          isApi,
+          needsAuth,
+          isPublic,
+          authed: false,
+        }),
+      );
     return res;
   }
   const url = req.nextUrl.clone();
@@ -343,6 +382,17 @@ export async function authGuard(req: NextRequest): Promise<NextResponse> {
     ? `?from=${encodeURIComponent(pathname + search)}`
     : `?from=${encodeURIComponent(pathname)}`;
   const redir = NextResponse.redirect(url);
-  if (dev) redir.headers.set("x-auth-debug", JSON.stringify({ path: pathname, isApi, needsAuth, isPublic, authed: false, action: "redirect-login" }));
+  if (dev)
+    redir.headers.set(
+      "x-auth-debug",
+      JSON.stringify({
+        path: pathname,
+        isApi,
+        needsAuth,
+        isPublic,
+        authed: false,
+        action: "redirect-login",
+      }),
+    );
   return redir;
 }

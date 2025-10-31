@@ -5,9 +5,13 @@ export const dynamic = "force-dynamic";
 
 export async function POST(req: NextRequest) {
   const body = await req.json();
-  const { restaurantId, fromDate, toDate, partySize, note, userId } = body || {};
+  const { restaurantId, fromDate, toDate, partySize, note, userId } =
+    body || {};
   if (!restaurantId || !fromDate) {
-    return NextResponse.json({ error: "restaurantId and fromDate are required" }, { status: 400 });
+    return NextResponse.json(
+      { error: "restaurantId and fromDate are required" },
+      { status: 400 },
+    );
   }
   const dto = await reservationRepo.create({
     restaurantId,

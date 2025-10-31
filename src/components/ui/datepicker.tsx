@@ -152,7 +152,8 @@ export function DateRangePicker({
   function label() {
     if (range?.from && range?.to)
       return `${format(range.from, formatString, { locale: uz })} — ${format(range.to, formatString, { locale: uz })}`;
-    if (range?.from) return `${format(range.from, formatString, { locale: uz })} — …`;
+    if (range?.from)
+      return `${format(range.from, formatString, { locale: uz })} — …`;
     return "";
   }
   return (

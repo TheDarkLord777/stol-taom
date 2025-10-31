@@ -10,7 +10,9 @@ export type RestaurantDTO = {
 
 export const restaurantRepo = {
   async list(): Promise<RestaurantDTO[]> {
-    const rows = await dbTry((p) => (p as any).restaurant.findMany({ orderBy: { name: "asc" } }));
+    const rows = await dbTry((p) =>
+      (p as any).restaurant.findMany({ orderBy: { name: "asc" } }),
+    );
     return (rows as any[]).map((r) => ({
       id: r.id,
       name: r.name,
@@ -18,13 +20,18 @@ export const restaurantRepo = {
       createdAt: r.createdAt.getTime(),
     }));
   },
-  async upsert(data: { name: string; logoUrl?: string }): Promise<RestaurantDTO> {
+  async upsert(data: {
+    name: string;
+    logoUrl?: string;
+  }): Promise<RestaurantDTO> {
     const slugName = data.name.trim();
-    const row: any = await dbTry((p) => (p as any).restaurant.upsert({
-      where: { name: slugName },
-      update: { logoUrl: data.logoUrl ?? null },
-      create: { name: slugName, logoUrl: data.logoUrl ?? null },
-    }));
+    const row: any = await dbTry((p) =>
+      (p as any).restaurant.upsert({
+        where: { name: slugName },
+        update: { logoUrl: data.logoUrl ?? null },
+        create: { name: slugName, logoUrl: data.logoUrl ?? null },
+      }),
+    );
     return {
       id: row.id,
       name: row.name,

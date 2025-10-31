@@ -13,7 +13,7 @@ export default function Dashboard() {
   // Responsiv chap padding: mobil ~20px (pl-5), desktop ~40px (md:pl-10)
 
   return (
-    <div className="relative min-h-screen w-full overflow-hidden">
+    <div suppressHydrationWarning className="relative min-h-screen w-full overflow-hidden">
       {/* Background Image */}
       <div className="absolute inset-0 z-0">
         <Image

@@ -10,6 +10,7 @@ type Option = { value: string; label: string; logo?: string };
 export default function ReservationClient() {
   const [selected, setSelected] = React.useState<string | undefined>();
   const [restaurants, setRestaurants] = React.useState<Option[]>([]);
+  const [loading, setLoading] = React.useState(true);
   const [date, setDate] = React.useState<Date | undefined>();
   const [range, setRange] = React.useState<DateRange | undefined>();
   const today = React.useMemo(() => new Date(), []);
@@ -37,7 +38,10 @@ export default function ReservationClient() {
         }));
         setRestaurants(opts);
       })
-      .catch(() => {});
+      .catch(() => {})
+      .finally(() => {
+        if (mounted) setLoading(false);
+      });
     return () => {
       mounted = false;
     };
@@ -82,6 +86,7 @@ export default function ReservationClient() {
           value={selected}
           onChange={setSelected}
           inputPlaceholder="Restaran nomini kiriting"
+          loading={loading}
         />
       </div>
 

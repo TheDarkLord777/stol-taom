@@ -11,6 +11,8 @@ type BaseProps = {
   value?: string;
   onChange?: (value: string) => void;
   emptyText?: string;
+  loading?: boolean;
+  loadingCount?: number;
 };
 
 type ButtonModeProps = BaseProps & {
@@ -28,7 +30,14 @@ type InputModeProps = BaseProps & {
 type ComboboxProps = ButtonModeProps | InputModeProps;
 
 export function Combobox(props: ComboboxProps) {
-  const { options, value, onChange, emptyText = "No results" } = props;
+  const {
+    options,
+    value,
+    onChange,
+    emptyText = "No results",
+    loading = false,
+    loadingCount = 5,
+  } = props as BaseProps & { loading?: boolean; loadingCount?: number };
   const [open, setOpen] = React.useState(false);
   const selected = React.useMemo(
     () => options.find((o) => o.value === value) || null,
@@ -104,23 +113,36 @@ export function Combobox(props: ComboboxProps) {
               />
             </div>
             <Command.List className="max-h-60 overflow-auto py-1">
-              <Command.Empty className="px-3 py-2 text-sm text-gray-500">
-                {emptyText}
-              </Command.Empty>
-              {filtered.map((opt) => (
-                <Command.Item
-                  key={opt.value}
-                  value={opt.label}
-                  onSelect={() => {
-                    onChange?.(opt.value);
-                    setOpen(false);
-                    setQuery("");
-                  }}
-                  className="cursor-pointer select-none px-3 py-2 text-sm aria-selected:bg-gray-100 aria-selected:text-gray-900"
-                >
-                  {opt.label}
-                </Command.Item>
-              ))}
+              {loading ? (
+                <div className="px-3 py-2">
+                  {Array.from({ length: loadingCount }).map((_, i) => (
+                    <div
+                      key={i}
+                      className="mb-2 h-5 w-full animate-pulse rounded bg-gray-100 last:mb-0"
+                    />
+                  ))}
+                </div>
+              ) : (
+                <>
+                  <Command.Empty className="px-3 py-2 text-sm text-gray-500">
+                    {emptyText}
+                  </Command.Empty>
+                  {filtered.map((opt) => (
+                    <Command.Item
+                      key={opt.value}
+                      value={opt.label}
+                      onSelect={() => {
+                        onChange?.(opt.value);
+                        setOpen(false);
+                        setQuery("");
+                      }}
+                      className="cursor-pointer select-none px-3 py-2 text-sm aria-selected:bg-gray-100 aria-selected:text-gray-900"
+                    >
+                      {opt.label}
+                    </Command.Item>
+                  ))}
+                </>
+              )}
             </Command.List>
           </Command>
         </Popover.Content>
@@ -144,7 +166,10 @@ export function Combobox(props: ComboboxProps) {
     }
     // Default to first item when list opens with results
     setActiveIndex((idx) => {
-      const next = filtered.length > 0 ? Math.min(Math.max(idx, 0), filtered.length - 1) : -1;
+      const next =
+        filtered.length > 0
+          ? Math.min(Math.max(idx, 0), filtered.length - 1)
+          : -1;
       return next;
     });
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -161,7 +186,8 @@ export function Combobox(props: ComboboxProps) {
       const viewTop = listEl.scrollTop;
       const viewBottom = viewTop + listEl.clientHeight;
       if (elTop < viewTop) listEl.scrollTop = elTop;
-      else if (elBottom > viewBottom) listEl.scrollTop = elBottom - listEl.clientHeight;
+      else if (elBottom > viewBottom)
+        listEl.scrollTop = elBottom - listEl.clientHeight;
     }
   }, [activeIndex]);
 
@@ -179,25 +205,25 @@ export function Combobox(props: ComboboxProps) {
             }}
             onFocus={() => setOpen(true)}
             onKeyDown={(e) => {
-              if (!open && (e.key === 'ArrowDown' || e.key === 'ArrowUp')) {
+              if (!open && (e.key === "ArrowDown" || e.key === "ArrowUp")) {
                 setOpen(true);
               }
-              if (e.key === 'ArrowDown') {
+              if (e.key === "ArrowDown") {
                 e.preventDefault();
                 if (filtered.length === 0) return;
                 setActiveIndex((i) => (i < filtered.length - 1 ? i + 1 : 0));
-              } else if (e.key === 'ArrowUp') {
+              } else if (e.key === "ArrowUp") {
                 e.preventDefault();
                 if (filtered.length === 0) return;
                 setActiveIndex((i) => (i > 0 ? i - 1 : filtered.length - 1));
-              } else if (e.key === 'Enter') {
+              } else if (e.key === "Enter") {
                 if (activeIndex >= 0 && activeIndex < filtered.length) {
                   const opt = filtered[activeIndex];
                   onChange?.(opt.value);
                   setQuery(opt.label);
                   setOpen(false);
                 }
-              } else if (e.key === 'Escape') {
+              } else if (e.key === "Escape") {
                 setOpen(false);
               }
             }}
@@ -243,32 +269,46 @@ export function Combobox(props: ComboboxProps) {
             }}
             className="max-h-60 overflow-auto py-1"
           >
-            <Command.Empty className="px-3 py-2 text-sm text-gray-500">
-              {emptyText}
-            </Command.Empty>
-            {filtered.map((opt, idx) => (
-              <Command.Item
-                // Attach ref for scrolling
-                ref={(el) => {
-                  itemRefs.current[idx] = el as unknown as HTMLDivElement | null;
-                }}
-                key={opt.value}
-                value={opt.label}
-                onMouseMove={() => setActiveIndex(idx)}
-                onMouseLeave={() => setActiveIndex(-1)}
-                onSelect={() => {
-                  onChange?.(opt.value);
-                  setQuery(opt.label);
-                  setOpen(false);
-                }}
-                className={
-                  "cursor-pointer select-none px-3 py-2 text-sm aria-selected:bg-gray-100 aria-selected:text-gray-900" +
-                  (idx === activeIndex ? " bg-gray-100 text-gray-900" : "")
-                }
-              >
-                {opt.label}
-              </Command.Item>
-            ))}
+            {loading ? (
+              <div className="px-3 py-2">
+                {Array.from({ length: loadingCount }).map((_, i) => (
+                  <div
+                    key={i}
+                    className="mb-2 h-5 w-full animate-pulse rounded bg-gray-100 last:mb-0"
+                  />
+                ))}
+              </div>
+            ) : (
+              <>
+                <Command.Empty className="px-3 py-2 text-sm text-gray-500">
+                  {emptyText}
+                </Command.Empty>
+                {filtered.map((opt, idx) => (
+                  <Command.Item
+                    // Attach ref for scrolling
+                    ref={(el) => {
+                      itemRefs.current[idx] =
+                        el as unknown as HTMLDivElement | null;
+                    }}
+                    key={opt.value}
+                    value={opt.label}
+                    onMouseMove={() => setActiveIndex(idx)}
+                    onMouseLeave={() => setActiveIndex(-1)}
+                    onSelect={() => {
+                      onChange?.(opt.value);
+                      setQuery(opt.label);
+                      setOpen(false);
+                    }}
+                    className={
+                      "cursor-pointer select-none px-3 py-2 text-sm aria-selected:bg-gray-100 aria-selected:text-gray-900" +
+                      (idx === activeIndex ? " bg-gray-100 text-gray-900" : "")
+                    }
+                  >
+                    {opt.label}
+                  </Command.Item>
+                ))}
+              </>
+            )}
           </Command.List>
         </Command>
       </Popover.Content>

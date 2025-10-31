@@ -34,7 +34,11 @@ export default function RestaurantsPage() {
       <div>
         <Combobox
           mode="input"
-          options={items.map((r) => ({ value: r.id, label: r.name, logo: r.logoUrl }))}
+          options={items.map((r) => ({
+            value: r.id,
+            label: r.name,
+            logo: r.logoUrl,
+          }))}
           value={selected}
           onChange={setSelected}
           inputPlaceholder="Restoran nomini qidiring"
@@ -46,20 +50,30 @@ export default function RestaurantsPage() {
         <div className="text-sm text-gray-600">Hozircha ma'lumot yo'q.</div>
       )}
       <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
-        {(selected ? items.filter((r) => r.id === selected) : items).map((r) => (
-          <div key={r.id} className="flex items-center gap-3 border rounded-lg p-3 bg-white">
-            <div className="relative size-12 overflow-hidden rounded">
-              {r.logoUrl ? (
-                <Image src={r.logoUrl} alt={r.name} fill className="object-contain" />
-              ) : (
-                <div className="size-full grid place-items-center bg-gray-100 text-gray-500 text-xs">
-                  No logo
-                </div>
-              )}
+        {(selected ? items.filter((r) => r.id === selected) : items).map(
+          (r) => (
+            <div
+              key={r.id}
+              className="flex items-center gap-3 border rounded-lg p-3 bg-white"
+            >
+              <div className="relative size-12 overflow-hidden rounded">
+                {r.logoUrl ? (
+                  <Image
+                    src={r.logoUrl}
+                    alt={r.name}
+                    fill
+                    className="object-contain"
+                  />
+                ) : (
+                  <div className="size-full grid place-items-center bg-gray-100 text-gray-500 text-xs">
+                    No logo
+                  </div>
+                )}
+              </div>
+              <div className="font-medium">{r.name}</div>
             </div>
-            <div className="font-medium">{r.name}</div>
-          </div>
-        ))}
+          ),
+        )}
       </div>
     </div>
   );

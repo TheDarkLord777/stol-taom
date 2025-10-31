@@ -5,17 +5,22 @@ import Image from "next/image";
 
 type Option = { value: string; label: string; logo?: string };
 
-
 export default function Page() {
   const [selected, setSelected] = React.useState<string | undefined>();
   const [meals, setMeals] = React.useState<Option[]>([]);
+  const [loading, setLoading] = React.useState(true);
   React.useEffect(() => {
     let mounted = true;
     fetch("/api/menu")
       .then((r) => r.json())
       .then((d) => {
         if (!mounted) return;
-        const items = (d.items || []) as Array<{ id: string; name: string; slug: string; logoUrl?: string }>;
+        const items = (d.items || []) as Array<{
+          id: string;
+          name: string;
+          slug: string;
+          logoUrl?: string;
+        }>;
         const opts: Option[] = items.map((it) => ({
           value: it.id,
           label: it.name,
@@ -23,7 +28,10 @@ export default function Page() {
         }));
         setMeals(opts);
       })
-      .catch(() => {});
+      .catch(() => {})
+      .finally(() => {
+        if (mounted) setLoading(false);
+      });
     return () => {
       mounted = false;
     };
@@ -48,24 +56,22 @@ export default function Page() {
           value={selected}
           onChange={setSelected}
           inputPlaceholder="Taom nomini kiriting"
+          loading={loading}
         />
       </div>
 
-     {selected && (
-  <div className="flex items-center gap-2 text-sm text-gray-700">
-    <Image
-      src={meals.find((r) => r.value === selected)?.logo || ""}
-      alt="Logo"
-      width={50}
-      height={50}
-      className="rounded"
-    />
-    <span>{meals.find((r) => r.value === selected)?.label}</span>
-  </div>
-)}
-
-
-      
+      {selected && (
+        <div className="flex items-center gap-2 text-sm text-gray-700">
+          <Image
+            src={meals.find((r) => r.value === selected)?.logo || ""}
+            alt="Logo"
+            width={50}
+            height={50}
+            className="rounded"
+          />
+          <span>{meals.find((r) => r.value === selected)?.label}</span>
+        </div>
+      )}
     </div>
   );
 }

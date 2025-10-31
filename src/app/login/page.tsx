@@ -99,6 +99,9 @@ export default function Login() {
               <div className="flex justify-center">
                 <Input
                   type="tel"
+                  name="username"
+                  autoComplete="tel"
+                  inputMode="tel"
                   value={phone}
                   onChange={(e) => setPhone(e.target.value)}
                   placeholder="Telefon raqamingiz kiriting"
@@ -110,6 +113,8 @@ export default function Login() {
               <div className="flex justify-center">
                 <Input
                   type="password"
+                  name="current-password"
+                  autoComplete="current-password"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   placeholder="Parolni kiriting"

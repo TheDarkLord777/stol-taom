@@ -84,7 +84,7 @@ export default function DevEnvPage() {
   }
 
   return (
-    <div className="p-6 space-y-6">
+    <div suppressHydrationWarning className="p-6 space-y-6">
       <h1 className="text-2xl font-semibold">Dev Env Admin</h1>
       <div className="flex items-center gap-3">
         <label className="text-sm font-medium">File:</label>
