@@ -4,8 +4,22 @@ import { SignJWT, jwtVerify, JWTPayload } from "jose";
 // Cookie names and TTLs
 export const ACCESS_TOKEN_NAME = "access_token";
 export const REFRESH_TOKEN_NAME = "refresh_token";
-export const ACCESS_TTL_SEC = 60 * 15; // 15 minutes
-export const REFRESH_TTL_SEC = 60 * 60 * 24 * 14; // 14 days
+
+// Allow env-based overrides for testing or ops
+function readSeconds(name: string, fallback: number): number {
+  const raw = process.env[name];
+  if (!raw) return fallback;
+  const n = Number(raw);
+  if (!Number.isFinite(n) || n <= 0) return fallback;
+  return Math.floor(n);
+}
+
+// Defaults: access 15 minutes, refresh 14 days
+export const ACCESS_TTL_SEC = readSeconds("ACCESS_TTL_SECONDS", 60 * 15);
+export const REFRESH_TTL_SEC = readSeconds(
+  "REFRESH_TTL_SECONDS",
+  60 * 60 * 24 * 14,
+);
 
 type PublicUser = { id: string; phone: string; name?: string };
 
@@ -170,13 +184,16 @@ export function clearAuthCookies(res: NextResponse) {
   res.cookies.set(REFRESH_TOKEN_NAME, "", { ...base, maxAge: 0 });
 }
 
-export async function refreshAccessToken(req: NextRequest, res: NextResponse) {
+export async function refreshAccessToken(
+  req: NextRequest,
+  res?: NextResponse,
+) {
   const refresh = req.cookies.get(REFRESH_TOKEN_NAME)?.value;
   if (!refresh) return null;
   try {
     const payload = await verifyToken(refresh);
     if (!payload?.sub || !payload.phone) return null;
-    // If Redis is enabled, require the JTI to exist, then rotate
+    // If Redis is enabled, require the JTI to exist. Rotate only if we can also set cookie on response
     if (payload.typ === "refresh" && "jti" in payload) {
       const jti = String((payload as any).jti || "");
       if (jti) {
@@ -189,36 +206,38 @@ export async function refreshAccessToken(req: NextRequest, res: NextResponse) {
           ok = true;
         }
         if (!ok) return null; // revoked or missing
-        // rotate: delete old, issue new
-        const user: PublicUser = {
-          id: payload.sub,
-          phone: payload.phone,
-          name: payload.name,
-        };
-        const nextJti = newJti();
-        const newRefresh = await signRefreshToken(user, nextJti);
-        try {
-          if (repo) await repo.rotate(jti, nextJti, user.id, REFRESH_TTL_SEC);
-        } catch {
-          // ignore rotation errors and proceed with newly issued refresh token
+        if (res) {
+          // rotate: delete old, issue new, and set cookie
+          const userForRt: PublicUser = {
+            id: payload.sub,
+            phone: payload.phone,
+            name: payload.name,
+          };
+          const nextJti = newJti();
+          const newRefresh = await signRefreshToken(userForRt, nextJti);
+          try {
+            if (repo) await repo.rotate(jti, nextJti, userForRt.id, REFRESH_TTL_SEC);
+          } catch {
+            // ignore rotation errors
+          }
+          const cookieSecureEnv = process.env.COOKIE_SECURE?.toLowerCase();
+          const cookieSecure =
+            cookieSecureEnv === "true"
+              ? true
+              : cookieSecureEnv === "false"
+                ? false
+                : process.env.NODE_ENV === "production";
+          const base = {
+            httpOnly: true,
+            sameSite: "lax" as const,
+            path: "/",
+            secure: cookieSecure,
+          };
+          res.cookies.set(REFRESH_TOKEN_NAME, newRefresh, {
+            ...base,
+            maxAge: REFRESH_TTL_SEC,
+          });
         }
-        const cookieSecureEnv = process.env.COOKIE_SECURE?.toLowerCase();
-        const cookieSecure =
-          cookieSecureEnv === "true"
-            ? true
-            : cookieSecureEnv === "false"
-              ? false
-              : process.env.NODE_ENV === "production";
-        const base = {
-          httpOnly: true,
-          sameSite: "lax" as const,
-          path: "/",
-          secure: cookieSecure,
-        };
-        res.cookies.set(REFRESH_TOKEN_NAME, newRefresh, {
-          ...base,
-          maxAge: REFRESH_TTL_SEC,
-        });
       }
     }
     const user: PublicUser = {
@@ -227,23 +246,25 @@ export async function refreshAccessToken(req: NextRequest, res: NextResponse) {
       name: payload.name,
     };
     const access = await signAccessToken(user);
-    const cookieSecureEnv = process.env.COOKIE_SECURE?.toLowerCase();
-    const cookieSecure =
-      cookieSecureEnv === "true"
-        ? true
-        : cookieSecureEnv === "false"
-          ? false
-          : process.env.NODE_ENV === "production";
-    const base = {
-      httpOnly: true,
-      sameSite: "lax" as const,
-      path: "/",
-      secure: cookieSecure,
-    };
-    res.cookies.set(ACCESS_TOKEN_NAME, access, {
-      ...base,
-      maxAge: ACCESS_TTL_SEC,
-    });
+    if (res) {
+      const cookieSecureEnv = process.env.COOKIE_SECURE?.toLowerCase();
+      const cookieSecure =
+        cookieSecureEnv === "true"
+          ? true
+          : cookieSecureEnv === "false"
+            ? false
+            : process.env.NODE_ENV === "production";
+      const base = {
+        httpOnly: true,
+        sameSite: "lax" as const,
+        path: "/",
+        secure: cookieSecure,
+      };
+      res.cookies.set(ACCESS_TOKEN_NAME, access, {
+        ...base,
+        maxAge: ACCESS_TTL_SEC,
+      });
+    }
     return { access, user };
   } catch {
     return null;

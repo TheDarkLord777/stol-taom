@@ -2,6 +2,7 @@
 import * as React from "react";
 import * as Tabs from "@radix-ui/react-tabs";
 import { Button } from "@/components/ui/button";
+import AuthSessionTimer from "@/components/AuthSessionTimer";
 import { Input } from "@/components/ui/input";
 
 type MeResponse = {
@@ -194,6 +195,7 @@ export default function ProfileClient() {
         <Tabs.Content value="security" className="space-y-4">
           <Section title="Sessiyalar">
             <div className="flex flex-col gap-3">
+              <AuthSessionTimer />
               <div className="text-sm text-gray-400">
                 Faol sessiya: ushbu qurilma
               </div>
