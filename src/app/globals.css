@@ -43,7 +43,6 @@ body {
   line-height: 1.2;
 }
 
-
 .shimmer {
   @apply relative overflow-hidden;
 }

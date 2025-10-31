@@ -184,10 +184,7 @@ export function clearAuthCookies(res: NextResponse) {
   res.cookies.set(REFRESH_TOKEN_NAME, "", { ...base, maxAge: 0 });
 }
 
-export async function refreshAccessToken(
-  req: NextRequest,
-  res?: NextResponse,
-) {
+export async function refreshAccessToken(req: NextRequest, res?: NextResponse) {
   const refresh = req.cookies.get(REFRESH_TOKEN_NAME)?.value;
   if (!refresh) return null;
   try {
@@ -216,7 +213,8 @@ export async function refreshAccessToken(
           const nextJti = newJti();
           const newRefresh = await signRefreshToken(userForRt, nextJti);
           try {
-            if (repo) await repo.rotate(jti, nextJti, userForRt.id, REFRESH_TTL_SEC);
+            if (repo)
+              await repo.rotate(jti, nextJti, userForRt.id, REFRESH_TTL_SEC);
           } catch {
             // ignore rotation errors
           }

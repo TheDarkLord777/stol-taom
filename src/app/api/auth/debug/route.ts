@@ -11,7 +11,10 @@ export async function GET(req: NextRequest) {
     (process.env.AUTH_DEBUG_ENABLED || "").toLowerCase() === "true" ||
     process.env.AUTH_DEBUG_ENABLED === "1";
   if (!enabled) {
-    return NextResponse.json({ enabled: false, message: "Auth debug disabled" }, { status: 404 });
+    return NextResponse.json(
+      { enabled: false, message: "Auth debug disabled" },
+      { status: 404 },
+    );
   }
   const r = getRedis();
   const nowSec = Math.floor(Date.now() / 1000);

@@ -21,10 +21,10 @@ let nextBin =
     : join(process.cwd(), "node_modules", ".bin", "next");
 if (existsSync(nextBin)) {
   cmd = nextBin;
-  args = ["build", "--turbopack"];
+  args = ["build"]; // Use standard build for reliable standalone output
 } else {
   cmd = process.platform === "win32" ? "npx.cmd" : "npx";
-  args = ["next", "build", "--turbopack"];
+  args = ["next", "build"]; // No turbopack for standalone build
 }
 const build = spawnSync(cmd, args, { stdio: "inherit", env: process.env });
 
