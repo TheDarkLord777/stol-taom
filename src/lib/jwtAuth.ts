@@ -181,7 +181,13 @@ export async function refreshAccessToken(req: NextRequest, res: NextResponse) {
       const jti = String((payload as any).jti || "");
       if (jti) {
         const repo = await getRefreshRepo();
-        const ok = repo ? await repo.exists(jti) : true;
+        let ok = true;
+        try {
+          ok = repo ? await repo.exists(jti) : true;
+        } catch {
+          // Redis unavailable or error: fallback to stateless behavior
+          ok = true;
+        }
         if (!ok) return null; // revoked or missing
         // rotate: delete old, issue new
         const user: PublicUser = {
@@ -191,7 +197,11 @@ export async function refreshAccessToken(req: NextRequest, res: NextResponse) {
         };
         const nextJti = newJti();
         const newRefresh = await signRefreshToken(user, nextJti);
-        if (repo) await repo.rotate(jti, nextJti, user.id, REFRESH_TTL_SEC);
+        try {
+          if (repo) await repo.rotate(jti, nextJti, user.id, REFRESH_TTL_SEC);
+        } catch {
+          // ignore rotation errors and proceed with newly issued refresh token
+        }
         const cookieSecureEnv = process.env.COOKIE_SECURE?.toLowerCase();
         const cookieSecure =
           cookieSecureEnv === "true"

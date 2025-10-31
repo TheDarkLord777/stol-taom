@@ -46,15 +46,27 @@ export default function ProfileClient() {
   React.useEffect(() => {
     let active = true;
     setLoadingMe(true);
-    fetch("/api/auth/me")
-      .then((r) => (r.ok ? r.json() : Promise.reject(r)))
+    fetch("/api/auth/me", { credentials: "same-origin" })
+      .then(async (r) => {
+        if (r.status === 401) {
+          // Not authenticated: redirect to login preserving return path
+          if (active) {
+            const from = encodeURIComponent("/profile");
+            window.location.href = `/login?from=${from}`;
+          }
+          return Promise.reject("unauthorized");
+        }
+        if (!r.ok) return Promise.reject(r);
+        return r.json();
+      })
       .then((d: MeResponse) => {
         if (!active) return;
         setMe(d.user ?? null);
       })
-      .catch(() => {
+      .catch((err) => {
         if (!active) return;
-        setErrorMe("Ma'lumotlarni yuklashda xatolik");
+        if (err !== "unauthorized")
+          setErrorMe("Ma'lumotlarni yuklashda xatolik");
       })
       .finally(() => {
         if (active) setLoadingMe(false);
