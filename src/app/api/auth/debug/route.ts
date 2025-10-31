@@ -7,6 +7,12 @@ import {
 } from "@/lib/jwtAuth";
 
 export async function GET(req: NextRequest) {
+  const enabled =
+    (process.env.AUTH_DEBUG_ENABLED || "").toLowerCase() === "true" ||
+    process.env.AUTH_DEBUG_ENABLED === "1";
+  if (!enabled) {
+    return NextResponse.json({ enabled: false, message: "Auth debug disabled" }, { status: 404 });
+  }
   const r = getRedis();
   const nowSec = Math.floor(Date.now() / 1000);
 
@@ -55,6 +61,7 @@ export async function GET(req: NextRequest) {
 
   if (!r) {
     return NextResponse.json({
+      enabled: true,
       enableRedis: false,
       connected: false,
       cookies: { access, refresh },
@@ -71,6 +78,7 @@ export async function GET(req: NextRequest) {
     );
 
     return NextResponse.json({
+      enabled: true,
       enableRedis: true,
       connected: pong === "PONG",
       redis: { keysCount: keys.length, keys: redisKeys },
@@ -79,6 +87,7 @@ export async function GET(req: NextRequest) {
   } catch (e: any) {
     return NextResponse.json(
       {
+        enabled: true,
         enableRedis: true,
         connected: false,
         error: String(e?.message || e),

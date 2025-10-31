@@ -48,6 +48,10 @@ function Pill({ label, value, tone }: { label: string; value: string; tone: "ok"
 }
 
 export default function AuthSessionTimer({ className = "" }: { className?: string }) {
+  const enabled =
+    (process.env.NEXT_PUBLIC_AUTH_DEBUG || "").toLowerCase() === "true" ||
+    process.env.NEXT_PUBLIC_AUTH_DEBUG === "1";
+  if (!enabled) return null;
   const [data, setData] = React.useState<DebugResponse | null>(null);
   const [error, setError] = React.useState<string | null>(null);
 
