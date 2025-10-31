@@ -1,6 +1,7 @@
 import type { NextConfig } from "next";
 
 const isProd = process.env.NODE_ENV === "production";
+const useStandalone = process.env.NEXT_STANDALONE === "true";
 
 /**
  * Content Security Policy (CSP) configuration string.
@@ -55,7 +56,7 @@ const csp = [
 ].join("; ");
 
 const nextConfig: NextConfig = {
-  output: "standalone",
+  output: useStandalone ? "standalone" : undefined,
   async headers() {
     return [
       {

@@ -1,3 +1,4 @@
+import { dbTry } from "./dbTry";
 import { prisma } from "./prisma";
 
 export type ReservationDTO = {
@@ -20,16 +21,18 @@ export const reservationRepo = {
     partySize?: number;
     note?: string;
   }): Promise<ReservationDTO> {
-    const row = await (prisma as any).reservation.create({
-      data: {
-        restaurantId: data.restaurantId,
-        userId: data.userId ?? null,
-        fromDate: data.fromDate,
-        toDate: data.toDate ?? null,
-        partySize: data.partySize ?? null,
-        note: data.note ?? null,
-      },
-    });
+    const row: any = await dbTry((p) =>
+      (p as any).reservation.create({
+        data: {
+          restaurantId: data.restaurantId,
+          userId: data.userId ?? null,
+          fromDate: data.fromDate,
+          toDate: data.toDate ?? null,
+          partySize: data.partySize ?? null,
+          note: data.note ?? null,
+        },
+      }),
+    );
     return {
       id: row.id,
       restaurantId: row.restaurantId,

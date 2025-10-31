@@ -1,3 +1,4 @@
+import { dbTry } from "./dbTry";
 import { prisma } from "./prisma";
 
 export type RestaurantDTO = {
@@ -9,7 +10,7 @@ export type RestaurantDTO = {
 
 export const restaurantRepo = {
   async list(): Promise<RestaurantDTO[]> {
-    const rows = await (prisma as any).restaurant.findMany({ orderBy: { name: "asc" } });
+    const rows = await dbTry((p) => (p as any).restaurant.findMany({ orderBy: { name: "asc" } }));
     return (rows as any[]).map((r) => ({
       id: r.id,
       name: r.name,
@@ -19,11 +20,11 @@ export const restaurantRepo = {
   },
   async upsert(data: { name: string; logoUrl?: string }): Promise<RestaurantDTO> {
     const slugName = data.name.trim();
-    const row = await (prisma as any).restaurant.upsert({
+    const row: any = await dbTry((p) => (p as any).restaurant.upsert({
       where: { name: slugName },
       update: { logoUrl: data.logoUrl ?? null },
       create: { name: slugName, logoUrl: data.logoUrl ?? null },
-    });
+    }));
     return {
       id: row.id,
       name: row.name,

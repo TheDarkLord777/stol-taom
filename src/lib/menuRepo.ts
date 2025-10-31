@@ -1,3 +1,4 @@
+import { dbTry } from "./dbTry";
 import { prisma } from "./prisma";
 
 export type MenuItemDTO = {
@@ -10,7 +11,7 @@ export type MenuItemDTO = {
 
 export const menuRepo = {
   async list(): Promise<MenuItemDTO[]> {
-    const rows = await (prisma as any).menuItem.findMany({ orderBy: { name: "asc" } });
+    const rows = await dbTry((p) => (p as any).menuItem.findMany({ orderBy: { name: "asc" } }));
     return (rows as any[]).map((m) => ({
       id: m.id,
       name: m.name,
@@ -20,11 +21,11 @@ export const menuRepo = {
     }));
   },
   async upsert(data: { name: string; slug: string; logoUrl?: string }): Promise<MenuItemDTO> {
-    const row = await (prisma as any).menuItem.upsert({
+    const row: any = await dbTry((p) => (p as any).menuItem.upsert({
       where: { slug: data.slug },
       update: { name: data.name, logoUrl: data.logoUrl ?? null },
       create: { name: data.name, slug: data.slug, logoUrl: data.logoUrl ?? null },
-    });
+    }));
     return {
       id: row.id,
       name: row.name,

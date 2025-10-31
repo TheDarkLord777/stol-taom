@@ -128,11 +128,18 @@ export async function issueAndSetAuthCookies(
   } catch {
     // ignore
   }
+  const cookieSecureEnv = process.env.COOKIE_SECURE?.toLowerCase();
+  const cookieSecure =
+    cookieSecureEnv === "true"
+      ? true
+      : cookieSecureEnv === "false"
+        ? false
+        : process.env.NODE_ENV === "production";
   const base = {
     httpOnly: true,
     sameSite: "lax" as const,
     path: "/",
-    secure: process.env.NODE_ENV === "production",
+    secure: cookieSecure,
   };
   res.cookies.set(ACCESS_TOKEN_NAME, access, {
     ...base,
@@ -146,11 +153,18 @@ export async function issueAndSetAuthCookies(
 }
 
 export function clearAuthCookies(res: NextResponse) {
+  const cookieSecureEnv = process.env.COOKIE_SECURE?.toLowerCase();
+  const cookieSecure =
+    cookieSecureEnv === "true"
+      ? true
+      : cookieSecureEnv === "false"
+        ? false
+        : process.env.NODE_ENV === "production";
   const base = {
     httpOnly: true,
     sameSite: "lax" as const,
     path: "/",
-    secure: process.env.NODE_ENV === "production",
+    secure: cookieSecure,
   };
   res.cookies.set(ACCESS_TOKEN_NAME, "", { ...base, maxAge: 0 });
   res.cookies.set(REFRESH_TOKEN_NAME, "", { ...base, maxAge: 0 });
@@ -178,11 +192,18 @@ export async function refreshAccessToken(req: NextRequest, res: NextResponse) {
         const nextJti = newJti();
         const newRefresh = await signRefreshToken(user, nextJti);
         if (repo) await repo.rotate(jti, nextJti, user.id, REFRESH_TTL_SEC);
+        const cookieSecureEnv = process.env.COOKIE_SECURE?.toLowerCase();
+        const cookieSecure =
+          cookieSecureEnv === "true"
+            ? true
+            : cookieSecureEnv === "false"
+              ? false
+              : process.env.NODE_ENV === "production";
         const base = {
           httpOnly: true,
           sameSite: "lax" as const,
           path: "/",
-          secure: process.env.NODE_ENV === "production",
+          secure: cookieSecure,
         };
         res.cookies.set(REFRESH_TOKEN_NAME, newRefresh, {
           ...base,
@@ -196,11 +217,18 @@ export async function refreshAccessToken(req: NextRequest, res: NextResponse) {
       name: payload.name,
     };
     const access = await signAccessToken(user);
+    const cookieSecureEnv = process.env.COOKIE_SECURE?.toLowerCase();
+    const cookieSecure =
+      cookieSecureEnv === "true"
+        ? true
+        : cookieSecureEnv === "false"
+          ? false
+          : process.env.NODE_ENV === "production";
     const base = {
       httpOnly: true,
       sameSite: "lax" as const,
       path: "/",
-      secure: process.env.NODE_ENV === "production",
+      secure: cookieSecure,
     };
     res.cookies.set(ACCESS_TOKEN_NAME, access, {
       ...base,
