@@ -33,11 +33,11 @@ type DebugResponse = {
 function Pill({ label, value, tone }: { label: string; value: string; tone: "ok" | "warn" | "bad" | "muted" }) {
   const color =
     tone === "ok"
-      ? "bg-emerald-500/20 text-emerald-300 border-emerald-400/30"
+      ? "bg-emerald-500/20 text-emerald-700 border-emerald-400/30"
       : tone === "warn"
-        ? "bg-amber-500/20 text-amber-300 border-amber-400/30"
+        ? "bg-amber-500/20 text-amber-700 border-amber-400/30"
         : tone === "bad"
-          ? "bg-red-500/20 text-red-300 border-red-400/30"
+          ? "bg-red-500/20 text-red-700 border-red-400/30"
           : "bg-white/10 text-gray-300 border-white/10";
   return (
     <span className={`inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-xs ${color}`}>
