@@ -5,6 +5,7 @@ import { Input } from "@/components/ui/input";
 import React, { useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
+import ClientOnly from "@/components/ClientOnly";
 
 export default function RegistrationPage() {
   const router = useRouter();
@@ -90,75 +91,100 @@ export default function RegistrationPage() {
             </h1>
           </div>
 
-          <form
-            className="space-y-4"
-            onSubmit={(e) => {
-              e.preventDefault();
-              if (!loading && cooldown <= 0) void onSubmit();
-            }}
+          <ClientOnly
+            fallback={
+              <form className="space-y-4">
+                <div className="flex justify-center">
+                  <div className="h-14 w-full max-w-md bg-white/50 backdrop-blur-sm rounded shadow-lg" />
+                </div>
+                <div className="flex justify-center">
+                  <div className="h-14 w-full max-w-md bg-white/50 backdrop-blur-sm rounded shadow-lg" />
+                </div>
+                <div className="flex justify-center">
+                  <div className="h-14 w-full max-w-md bg-white/50 backdrop-blur-sm rounded shadow-lg" />
+                </div>
+                <div className="space-y-4 pt-4">
+                  <div className="flex flex-col items-center gap-2">
+                    <div className="h-6 w-[240px] bg-white/40 rounded" />
+                    <div className="h-16 w-full max-w-xs bg-white/50 rounded-lg" />
+                  </div>
+                  <div className="flex justify-end">
+                    <div className="h-10 w-[140px] bg-black/30 rounded-lg" />
+                  </div>
+                </div>
+              </form>
+            }
           >
-            {/* Name Input */}
-            <div className="flex justify-center">
-              <Input
-                type="text"
-                value={name}
-                onChange={(e) => setName(e.target.value)}
-                placeholder="Ismingizni kiriting"
-                className="h-14 w-full max-w-md bg-white/90 backdrop-blur-sm text-gray-600 placeholder:text-gray-400 text-center text-[24px] border-none shadow-lg placeholder-inika-24"
-              />
-            </div>
-
-            {/* Phone Input */}
-            <div className="flex justify-center">
-              <Input
-                type="tel"
-                value={phone}
-                onChange={(e) => setPhone(e.target.value)}
-                placeholder="Telefon raqamingiz kiriting"
-                className="h-14 w-full max-w-md bg-white/90 backdrop-blur-sm text-gray-600 placeholder:text-gray-400 text-center text-[24px] border-none shadow-lg placeholder-inika-24"
-              />
-            </div>
-
-            {/* Password Input */}
-            <div className="flex justify-center">
-              <Input
-                type="password"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                placeholder="Parolni kiriting"
-                className="h-14 w-full max-w-md bg-white/90 backdrop-blur-sm text-gray-600 placeholder:text-gray-400 text-center text-[24px] border-none shadow-lg placeholder-inika-24"
-              />
-            </div>
-
-            {/* Buttons */}
-            <div className="space-y-4 pt-4">
-              {/* Confirm Button */}
-              <div className="flex flex-col items-center gap-2">
-                {error && <p className="text-red-200">{error}</p>}
-                <Button
-                  type="submit"
-                  disabled={loading || cooldown > 0}
-                  className="h-16 w-full max-w-xs bg-[#C8FF00] hover:bg-[#B8EF00] text-black text-2xl font-bold shadow-xl rounded-lg"
-                >
-                  {cooldown > 0
-                    ? `Qayta urinsh: ${cooldown}s`
-                    : loading
-                      ? "Yuborilmoqda..."
-                      : "Tasdiqlash"}
-                </Button>
+            <form
+              className="space-y-4"
+              onSubmit={(e) => {
+                e.preventDefault();
+                if (!loading && cooldown <= 0) void onSubmit();
+              }}
+            >
+              {/* Name Input */}
+              <div className="flex justify-center">
+                <Input
+                  type="text"
+                  value={name}
+                  onChange={(e) => setName(e.target.value)}
+                  placeholder="Ismingizni kiriting"
+                  className="h-14 w-full max-w-md bg-white/90 backdrop-blur-sm text-gray-600 placeholder:text-gray-400 text-center text-[24px] border-none shadow-lg placeholder-inika-24"
+                />
               </div>
 
-              {/* Login Button */}
-              <div className="flex justify-end">
-                <Link
-                  href="/login"
-                  className="inline-flex items-center gap-2 rounded-lg bg-black/50 px-4 py-2 text-white hover:bg-black/60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/60 shadow-md drop-shadow-md"
-                >
-                  KIRISH &rarr;
-                </Link>
+              {/* Phone Input */}
+              <div className="flex justify-center">
+                <Input
+                  type="tel"
+                  value={phone}
+                  onChange={(e) => setPhone(e.target.value)}
+                  placeholder="Telefon raqamingiz kiriting"
+                  className="h-14 w-full max-w-md bg-white/90 backdrop-blur-sm text-gray-600 placeholder:text-gray-400 text-center text-[24px] border-none shadow-lg placeholder-inika-24"
+                />
               </div>
-            </div>
-          </form>
+
+              {/* Password Input */}
+              <div className="flex justify-center">
+                <Input
+                  type="password"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  placeholder="Parolni kiriting"
+                  className="h-14 w-full max-w-md bg-white/90 backdrop-blur-sm text-gray-600 placeholder:text-gray-400 text-center text-[24px] border-none shadow-lg placeholder-inika-24"
+                />
+              </div>
+
+              {/* Buttons */}
+              <div className="space-y-4 pt-4">
+                {/* Confirm Button */}
+                <div className="flex flex-col items-center gap-2">
+                  {error && <p className="text-red-200">{error}</p>}
+                  <Button
+                    type="submit"
+                    disabled={loading || cooldown > 0}
+                    className="h-16 w-full max-w-xs bg-[#C8FF00] hover:bg-[#B8EF00] text-black text-2xl font-bold shadow-xl rounded-lg"
+                  >
+                    {cooldown > 0
+                      ? `Qayta urinsh: ${cooldown}s`
+                      : loading
+                        ? "Yuborilmoqda..."
+                        : "Tasdiqlash"}
+                  </Button>
+                </div>
+
+                {/* Login Button */}
+                <div className="flex justify-end">
+                  <Link
+                    href="/login"
+                    className="inline-flex items-center gap-2 rounded-lg bg-black/50 px-4 py-2 text-white hover:bg-black/60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/60 shadow-md drop-shadow-md"
+                  >
+                    KIRISH &rarr;
+                  </Link>
+                </div>
+              </div>
+            </form>
+          </ClientOnly>
         </div>
       </div>
     </div>

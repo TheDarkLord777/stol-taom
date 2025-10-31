@@ -225,13 +225,12 @@ function normalizePath(p: string) {
 export const AuthControl = {
   // Pages that require login (exact match or prefix with *; RegExp supported)
   protectedPages: [
-    "/dashboard",
     "/profile",
-    // '/restaurants',
-    // '/orders',
+    "/orders",
   ] as PathRule[],
   // API routes that require login
   protectedApi: [
+    "/api/reservations",
     // '/api/profile*',
     // /^\/api\/orders(\/.*)?$/,
   ] as PathRule[],
@@ -260,18 +259,43 @@ function matchPath(pathname: string, rules: PathRule[]): boolean {
 export async function authGuard(req: NextRequest): Promise<NextResponse> {
   const { pathname, search } = req.nextUrl;
   const isApi = pathname.startsWith("/api/");
+  const dev = process.env.NODE_ENV !== "production";
+  // If user hits landing ("/") and already authenticated (valid access token),
+  // redirect them to /home. If no/expired token, keep the landing page visible.
+  if (!isApi && normalizePath(pathname) === "/") {
+    const user = await getUserFromRequest(req);
+    if (user) {
+      const url = req.nextUrl.clone();
+      url.pathname = "/home";
+      url.search = "";
+      const redir = NextResponse.redirect(url);
+      if (dev) redir.headers.set("x-auth-debug", JSON.stringify({ path: pathname, landing: true, authed: true, action: "redirect-home" }));
+      return redir;
+    }
+    const pass = NextResponse.next();
+    if (dev) pass.headers.set("x-auth-debug", JSON.stringify({ path: pathname, landing: true, authed: false, action: "show-landing" }));
+    return pass;
+  }
   const isPublic = matchPath(pathname, AuthControl.publicPages);
   const needsAuth = isApi
     ? matchPath(pathname, AuthControl.protectedApi)
     : matchPath(pathname, AuthControl.protectedPages);
 
+  // dev is defined above
+
   if (!needsAuth || isPublic) {
-    return NextResponse.next();
+    const res = NextResponse.next();
+    if (dev) res.headers.set("x-auth-debug", JSON.stringify({ path: pathname, isApi, needsAuth, isPublic }));
+    return res;
   }
 
   // Try access token
   const user = await getUserFromRequest(req);
-  if (user) return NextResponse.next();
+  if (user) {
+    const res = NextResponse.next();
+    if (dev) res.headers.set("x-auth-debug", JSON.stringify({ path: pathname, isApi, needsAuth, isPublic, authed: true }));
+    return res;
+  }
 
   // Try refresh token to mint new access
   const res = NextResponse.next();
@@ -280,12 +304,17 @@ export async function authGuard(req: NextRequest): Promise<NextResponse> {
 
   // Unauthenticated
   if (isApi) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    const body = { error: "Unauthorized" };
+    const res = NextResponse.json(body, { status: 401 });
+    if (dev) res.headers.set("x-auth-debug", JSON.stringify({ path: pathname, isApi, needsAuth, isPublic, authed: false }));
+    return res;
   }
   const url = req.nextUrl.clone();
   url.pathname = AuthControl.loginPath;
   url.search = search
     ? `?from=${encodeURIComponent(pathname + search)}`
     : `?from=${encodeURIComponent(pathname)}`;
-  return NextResponse.redirect(url);
+  const redir = NextResponse.redirect(url);
+  if (dev) redir.headers.set("x-auth-debug", JSON.stringify({ path: pathname, isApi, needsAuth, isPublic, authed: false, action: "redirect-login" }));
+  return redir;
 }

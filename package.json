@@ -7,12 +7,14 @@
     "dev:https": "next dev --turbopack --experimental-https --experimental-https-key .cert/localhost-key.pem --experimental-https-cert .cert/localhost.pem",
     "build": "next build --turbopack",
     "start": "next start",
+    "start:standalone": "node .next/standalone/server.js",
     "start:https": "local-ssl-proxy --source 3443 --target 3000 --cert .cert/localhost.pem --key .cert/localhost-key.pem",
     "lint": "biome check",
     "format": "biome format --write",
     "prisma:generate": "prisma generate",
     "prisma:push": "prisma db push",
-    "seed": "node scripts/seed.cjs"
+    "seed": "node scripts/seed.cjs",
+    "scan:security": "node scripts/security-scan.cjs"
   },
   "dependencies": {
     "@hookform/resolvers": "^3.10.0",

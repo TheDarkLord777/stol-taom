@@ -4,6 +4,7 @@ import Image from "next/image";
 import { Suspense, useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import ClientOnly from "@/components/ClientOnly";
 
 function VerifyContent() {
   const params = useSearchParams();
@@ -63,39 +64,53 @@ function VerifyContent() {
               Kod tasdiqlash
             </h1>
           </div>
-          <div className="space-y-2 text-white text-center">
-            <p>
-              {phone
-                ? `${phone} raqamiga yuborilgan 6 xonali kodni kiriting`
-                : "6 xonali kodni kiriting"}
-            </p>
-          </div>
-          <div className="flex justify-center">
-            <Input
-              inputMode="numeric"
-              maxLength={6}
-              value={code}
-              onChange={(e) =>
-                setCode(e.target.value.replace(/[^0-9]/g, "").slice(0, 6))
-              }
-              placeholder="______"
-              className="h-14 w-full max-w-md bg-white/90 backdrop-blur-sm text-gray-600 placeholder:text-gray-400 text-center text-[24px] border-none shadow-lg placeholder-inika-24 tracking-[0.5em]"
-            />
-          </div>
-          {error && <p className="text-center text-red-200">{error}</p>}
-          <div className="flex justify-center pt-2">
-            <Button
-              onClick={onSubmit}
-              disabled={loading || cooldown > 0}
-              className="h-16 w-full max-w-xs bg-[#C8FF00] hover:bg-[#B8EF00] text-black text-2xl font-bold shadow-xl rounded-lg"
-            >
-              {cooldown > 0
-                ? `Qayta urinish: ${cooldown}s`
-                : loading
-                  ? "Yuborilmoqda..."
-                  : "Tasdiqlash"}
-            </Button>
-          </div>
+          <ClientOnly
+            fallback={
+              <div className="space-y-6">
+                <div className="h-6 w-[320px] bg-white/40 rounded mx-auto" />
+                <div className="flex justify-center">
+                  <div className="h-14 w-full max-w-md bg-white/50 backdrop-blur-sm rounded shadow-lg" />
+                </div>
+                <div className="flex justify-center pt-2">
+                  <div className="h-16 w-full max-w-xs bg-white/50 rounded-lg" />
+                </div>
+              </div>
+            }
+          >
+            <div className="space-y-2 text-white text-center">
+              <p>
+                {phone
+                  ? `${phone} raqamiga yuborilgan 6 xonali kodni kiriting`
+                  : "6 xonali kodni kiriting"}
+              </p>
+            </div>
+            <div className="flex justify-center">
+              <Input
+                inputMode="numeric"
+                maxLength={6}
+                value={code}
+                onChange={(e) =>
+                  setCode(e.target.value.replace(/[^0-9]/g, "").slice(0, 6))
+                }
+                placeholder="______"
+                className="h-14 w-full max-w-md bg-white/90 backdrop-blur-sm text-gray-600 placeholder:text-gray-400 text-center text-[24px] border-none shadow-lg placeholder-inika-24 tracking-[0.5em]"
+              />
+            </div>
+            {error && <p className="text-center text-red-200">{error}</p>}
+            <div className="flex justify-center pt-2">
+              <Button
+                onClick={onSubmit}
+                disabled={loading || cooldown > 0}
+                className="h-16 w-full max-w-xs bg-[#C8FF00] hover:bg-[#B8EF00] text-black text-2xl font-bold shadow-xl rounded-lg"
+              >
+                {cooldown > 0
+                  ? `Qayta urinish: ${cooldown}s`
+                  : loading
+                    ? "Yuborilmoqda..."
+                    : "Tasdiqlash"}
+              </Button>
+            </div>
+          </ClientOnly>
         </div>
       </div>
     </div>
