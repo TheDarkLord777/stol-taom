@@ -6,6 +6,7 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import ClientOnly from "@/components/ClientOnly";
+import CLSObserver from "@/components/CLSObserver";
 
 export default function Login() {
   const router = useRouter();
@@ -95,6 +96,7 @@ export default function Login() {
                 if (!loading) void onSubmit();
               }}
             >
+              <CLSObserver />
               {/* Phone Input */}
               <div className="flex justify-center">
                 <Input

@@ -75,6 +75,12 @@ export default function AuthSessionTimer({
         cache: "no-store",
         credentials: "same-origin",
       });
+      if (r.status === 404) {
+        // Treat as disabled: clear data and show muted state
+        setData(null);
+        setError("disabled");
+        return;
+      }
       if (!r.ok) throw new Error(`${r.status}`);
       const j = (await r.json()) as DebugResponse;
       setData(j);
@@ -132,7 +138,12 @@ export default function AuthSessionTimer({
             tone={!data.enableRedis ? "muted" : data.connected ? "ok" : "warn"}
           />
         )}
-        {error && <span className="text-xs text-red-400">{error}</span>}
+        {error && error !== "disabled" && (
+          <span className="text-xs text-red-400">{error}</span>
+        )}
+        {error === "disabled" && (
+          <span className="text-xs text-gray-400">Debug o‘chiq: AUTH_DEBUG_ENABLED=false</span>
+        )}
       </div>
     </div>
   );

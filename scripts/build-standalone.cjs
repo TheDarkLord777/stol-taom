@@ -19,18 +19,23 @@ let nextBin =
   process.platform === "win32"
     ? join(process.cwd(), "node_modules", ".bin", "next.cmd")
     : join(process.cwd(), "node_modules", ".bin", "next");
-if (existsSync(nextBin)) {
-  cmd = nextBin;
-  args = ["build"]; // Use standard build for reliable standalone output
-} else {
-  cmd = process.platform === "win32" ? "npx.cmd" : "npx";
-  args = ["next", "build"]; // No turbopack for standalone build
-}
-const build = spawnSync(cmd, args, { stdio: "inherit", env: process.env });
-
-if (build.status !== 0) {
-  console.error("[standalone] Build failed. Aborting.");
-  process.exit(build.status || 1);
+// Use npx to invoke next for better cross-platform behavior
+cmd = process.platform === "win32" ? "npx.cmd" : "npx";
+args = ["next", "build"];
+const { execSync } = require('node:child_process');
+try {
+  const cmdStr = `${cmd} ${args.map((a) => (a.includes(' ') ? `"${a}"` : a)).join(' ')}`;
+  const out = execSync(cmdStr, { env: process.env, stdio: 'pipe', encoding: 'utf8', maxBuffer: 1024 * 1024 * 5 });
+  if (out) console.log(out);
+} catch (err) {
+  console.error('[standalone] Build failed. Aborting.');
+  try {
+    console.error(err.stdout ? '--- stdout ---\n' + err.stdout : '');
+    console.error(err.stderr ? '--- stderr ---\n' + err.stderr : err.message || err);
+  } catch (e) {
+    console.error(err);
+  }
+  process.exit(1);
 }
 
 const root = process.cwd();
