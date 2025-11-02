@@ -1,0 +1,41 @@
+{
+  "editor.formatOnSave": true,
+  // Keep automated fixes lightweight in this repo; prefer explicit fixes during commits
+  "files.trimTrailingWhitespace": true,
+  "files.insertFinalNewline": true,
+  "files.exclude": {
+    "**/.next": true,
+    "**/node_modules": true,
+    "**/.turbo": true,
+    "**/.cache": true
+  },
+  "search.exclude": {
+    "**/.next": true,
+    "**/node_modules": true
+  },
+  "files.watcherExclude": {
+    "**/.next/**": true,
+    "**/node_modules/**": true
+  },
+  // Ignore unknown at-rules from Tailwind/PostCSS in the VS Code CSS validator
+  "css.lint.unknownAtRules": "ignore",
+  "less.lint.unknownAtRules": "ignore",
+  "scss.lint.unknownAtRules": "ignore",
+  "typescript.tsdk": "node_modules/typescript/lib",
+  "terminal.integrated.defaultProfile.windows": "PowerShell",
+  "terminal.integrated.profiles.windows": {
+    "PowerShell": {
+      "path": "C:\\Windows\\System32\\WindowsPowerShell\\v1.0\\powershell.exe"
+    }
+  },
+  "tailwindCSS.includeLanguages": {
+    "typescript": "javascript",
+    "typescriptreact": "javascript"
+  },
+  "tailwindCSS.validate": true,
+  "tailwindCSS.emmetCompletions": true,
+  "editor.rulers": [
+    80,
+    120
+  ]
+}

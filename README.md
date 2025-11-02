@@ -1,10 +1,15 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# stol-taom (frontend)
 
-## Getting Started
+This is a Next.js (App Router) frontend for the stol-taom project. It uses TypeScript, React 19, Tailwind CSS v4 and a small backend surface implemented in Next.js app routes.
 
-First, run the development server:
+Below are developer-focused instructions and notes for features introduced recently (standalone start, gated API docs, sync-deps workflow, auth debug helpers, CLS diagnostics).
 
-```bash
+## Quick start — development
+
+Install dependencies and run the dev server:
+
+```powershell
+npm install
 npm run dev
 # or
 yarn dev
