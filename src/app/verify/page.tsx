@@ -59,12 +59,12 @@ function VerifyContent() {
   }, [cooldown]);
 
   return (
-    <div className="relative min-h-screen w-full overflow-hidden">
+    <div className="relative min-h-[100dvh] w-full overflow-hidden">
       <div className="absolute inset-0 z-0">
         <Image src="/register.png" alt="bg" fill className="object-cover" />
         <div className="absolute inset-0 bg-black/20" />
       </div>
-      <div className="relative z-10 flex min-h-screen items-center justify-center px-4 py-12">
+      <div className="relative z-10 flex min-h-[100dvh] items-center justify-center px-4 md:py-12 py-6">
         <div className="w-full max-w-md space-y-6">
           <div className="flex justify-center">
             <h1 className="bg-[#7B9EFF] px-12 py-3 text-3xl font-bold text-white rounded-lg shadow-lg">
@@ -126,7 +126,7 @@ function VerifyContent() {
 
 export default function VerifyPage() {
   return (
-    <Suspense fallback={<div className="min-h-screen" />}>
+    <Suspense fallback={<div className="min-h-[100dvh]" />}>
       <VerifyContent />
     </Suspense>
   );

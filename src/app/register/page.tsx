@@ -68,7 +68,7 @@ export default function RegistrationPage() {
     return () => clearInterval(id);
   }, [cooldown]);
   return (
-    <div className="relative min-h-screen w-full overflow-hidden">
+    <div className="relative min-h-[100dvh] w-full overflow-hidden">
       {/* Background Image */}
       <div className="absolute inset-0 z-0">
         <Image
@@ -83,7 +83,7 @@ export default function RegistrationPage() {
       </div>
 
       {/* Content */}
-      <div className="relative z-10 flex min-h-screen items-center justify-center px-4 py-12">
+      <div className="relative z-10 flex min-h-[100dvh] items-center justify-center px-4 md:py-12 py-6">
         <div className="w-full max-w-md space-y-6">
           {/* Title */}
           <div className="flex justify-center">
@@ -127,6 +127,8 @@ export default function RegistrationPage() {
               <div className="flex justify-center">
                 <Input
                   type="text"
+                  name="name"
+                  autoComplete="name"
                   value={name}
                   onChange={(e) => setName(e.target.value)}
                   placeholder="Ismingizni kiriting"
@@ -138,6 +140,8 @@ export default function RegistrationPage() {
               <div className="flex justify-center">
                 <Input
                   type="tel"
+                  name="tel"
+                  autoComplete="tel"
                   value={phone}
                   onChange={(e) => setPhone(e.target.value)}
                   placeholder="Telefon raqamingiz kiriting"
@@ -149,6 +153,8 @@ export default function RegistrationPage() {
               <div className="flex justify-center">
                 <Input
                   type="password"
+                  name="new-password"
+                  autoComplete="new-password"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   placeholder="Parolni kiriting"

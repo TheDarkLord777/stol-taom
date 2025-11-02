@@ -46,7 +46,7 @@ export default function Login() {
     }
   }
   return (
-    <div className="relative min-h-screen w-full overflow-hidden">
+    <div className="relative min-h-[100dvh] w-full overflow-hidden">
       {/* Background Image */}
       <div className="absolute inset-0 z-0">
         <Image
@@ -61,7 +61,7 @@ export default function Login() {
       </div>
 
       {/* Content */}
-      <div className="relative z-10 flex min-h-screen items-center justify-center px-4 py-12">
+      <div className="relative z-10 flex min-h-[100dvh] items-center justify-center px-4 md:py-12 py-6">
         <div className="w-full max-w-md space-y-6">
           {/* Title */}
           <div className="flex justify-center">
