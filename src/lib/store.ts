@@ -4,6 +4,12 @@ export type TempRegistration = {
   name?: string;
   phone: string;
   passwordPlain: string; // will be hashed only after verification
+  // optional action for non-registration flows (e.g., 'profileUpdate')
+  action?: string;
+  // when action === 'profileUpdate', associate with user id
+  userId?: string;
+  // optional email for profile updates
+  email?: string;
   requestId: string;
   createdAt: number;
   cooldownUntil?: number; // timestamp ms
@@ -97,5 +103,26 @@ export const UserStore = {
   create(user: User) {
     usersByPhone.set(user.phone, user);
     return user;
+  },
+  updateById(id: string, patch: Partial<User>) {
+    // find the user by id
+    for (const [phone, user] of usersByPhone.entries()) {
+      if (user.id === id) {
+        const next: User = { ...user, ...patch };
+        // If phone changed, re-key the map
+        if (patch.phone && patch.phone !== phone) {
+          // prevent phone collision
+          if (usersByPhone.has(patch.phone)) {
+            throw new Error("phone_already_exists");
+          }
+          usersByPhone.delete(phone);
+          usersByPhone.set(next.phone, next);
+        } else {
+          usersByPhone.set(phone, next);
+        }
+        return next;
+      }
+    }
+    return null;
   },
 };

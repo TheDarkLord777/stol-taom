@@ -55,15 +55,14 @@ function Button(props: ButtonProps) {
     size,
   } = props as ButtonBaseProps;
   const children = (props as { children?: React.ReactNode }).children;
-  const href = "href" in props ? (props as any).href : undefined;
+  const href = "href" in props ? (props as { href?: string }).href : undefined;
+  const restProps = props as unknown as Record<string, unknown>;
+
+  const classes = cn(buttonVariants({ variant, size, className }));
 
   if (asChild) {
     return (
-      <Slot
-        data-slot="button"
-        className={cn(buttonVariants({ variant, size, className }))}
-        {...(props as any)}
-      >
+      <Slot data-slot="button" className={classes} {...restProps}>
         {children}
       </Slot>
     );
@@ -75,20 +74,27 @@ function Button(props: ButtonProps) {
         href={href}
         prefetch
         data-slot="button"
-        className={cn(buttonVariants({ variant, size, className }))}
-        {...((props as any) || {})}
+        className={classes}
+        {...restProps}
       >
         {children}
       </Link>
     );
   }
 
+  const buttonType =
+    ((props as React.ComponentProps<"button">).type as
+      | "button"
+      | "submit"
+      | "reset"
+      | undefined) ?? "button";
+
   return (
     <button
       data-slot="button"
-      className={cn(buttonVariants({ variant, size, className }))}
-      type={(props as any)?.type ?? "button"}
-      {...((props as any) || {})}
+      className={classes}
+      type={buttonType}
+      {...restProps}
     >
       {children}
     </button>

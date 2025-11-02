@@ -39,6 +39,25 @@ export default function ProfileClient() {
   const [me, setMe] = React.useState<MeResponse["user"] | null>(null);
   const [loadingMe, setLoadingMe] = React.useState(true);
   const [errorMe, setErrorMe] = React.useState<string | null>(null);
+  const [editing, setEditing] = React.useState(false);
+  const [editName, setEditName] = React.useState("");
+  const [editEmail, setEditEmail] = React.useState("");
+  const [editPhone, setEditPhone] = React.useState("");
+  const [saving, setSaving] = React.useState(false);
+  type ProfileUpdateRequest = {
+    name?: string;
+    email?: string;
+    phone?: string;
+  };
+  type ProfileUpdateResponse = {
+    success?: boolean;
+    requestId?: string;
+    phone?: string;
+    user?: { id: string; name?: string; phone?: string };
+    error?: string;
+    retryAfterSec?: number;
+    detail?: unknown;
+  };
 
   // Reservations state
   type Reservation = {
@@ -87,6 +106,14 @@ export default function ProfileClient() {
       active = false;
     };
   }, []);
+
+  React.useEffect(() => {
+    if (me) {
+      setEditName(me.name ?? "");
+      setEditEmail(me.email ?? "");
+      setEditPhone(me.phone ?? "");
+    }
+  }, [me]);
 
   const handleLogout = async () => {
     try {
@@ -166,7 +193,13 @@ export default function ProfileClient() {
                   >
                     Ism
                   </label>
-                  <Input id="me-name" value={me.name ?? ""} disabled readOnly />
+                  <Input
+                    id="me-name"
+                    value={editing ? editName : (me.name ?? "")}
+                    onChange={(e) => setEditName(e.target.value)}
+                    disabled={!editing}
+                    readOnly={!editing}
+                  />
                 </div>
                 <div>
                   <label
@@ -177,9 +210,10 @@ export default function ProfileClient() {
                   </label>
                   <Input
                     id="me-email"
-                    value={me.email ?? ""}
-                    disabled
-                    readOnly
+                    value={editing ? editEmail : (me.email ?? "")}
+                    onChange={(e) => setEditEmail(e.target.value)}
+                    disabled={!editing}
+                    readOnly={!editing}
                   />
                 </div>
                 <div>
@@ -191,9 +225,10 @@ export default function ProfileClient() {
                   </label>
                   <Input
                     id="me-phone"
-                    value={me.phone ?? ""}
-                    disabled
-                    readOnly
+                    value={editing ? editPhone : (me.phone ?? "")}
+                    onChange={(e) => setEditPhone(e.target.value)}
+                    disabled={!editing}
+                    readOnly={!editing}
                   />
                 </div>
                 <div>
@@ -227,9 +262,96 @@ export default function ProfileClient() {
                     readOnly
                   />
                 </div>
-                <div className="sm:col-span-2">
+                <div className="sm:col-span-2 flex items-center justify-between">
                   <div className="text-xs text-gray-400">
-                    Tahrirlash tez orada qo'shiladi
+                    Profildagi ma'lumotni tahrirlash
+                  </div>
+                  <div className="flex gap-2">
+                    {editing ? (
+                      <>
+                        <Button
+                          onClick={async () => {
+                            // Cancel
+                            setEditing(false);
+                            if (me) {
+                              setEditName(me.name ?? "");
+                              setEditEmail(me.email ?? "");
+                              setEditPhone(me.phone ?? "");
+                            }
+                          }}
+                          variant="outline"
+                        >
+                          Bekor qilish
+                        </Button>
+                        <Button
+                          onClick={async () => {
+                            // Save
+                            if (!me) return;
+                            setSaving(true);
+                            try {
+                              const payload: ProfileUpdateRequest = {
+                                name: editName,
+                                email: editEmail,
+                              };
+                              if (editPhone !== me.phone)
+                                payload.phone = editPhone;
+                              const res = await fetch("/api/profile/update", {
+                                method: "POST",
+                                headers: { "Content-Type": "application/json" },
+                                body: JSON.stringify(payload),
+                              });
+                              const data =
+                                (await res.json()) as ProfileUpdateResponse;
+                              if (!res.ok)
+                                throw new Error(data.error || "Xatolik");
+                              // If phone change initiated, redirect to verify
+                              if (data.requestId && data.phone) {
+                                const url = new URL(
+                                  `/verify`,
+                                  window.location.origin,
+                                );
+                                url.searchParams.set(
+                                  "phone",
+                                  String(data.phone),
+                                );
+                                url.searchParams.set(
+                                  "requestId",
+                                  String(data.requestId),
+                                );
+                                url.searchParams.set("from", "profile");
+                                window.location.href = url.toString();
+                                return;
+                              }
+                              // Otherwise, update local state
+                              setMe((prev) =>
+                                prev
+                                  ? {
+                                      ...prev,
+                                      name: editName,
+                                      email: editEmail,
+                                      phone: editPhone,
+                                    }
+                                  : prev,
+                              );
+                              setEditing(false);
+                            } catch (e: unknown) {
+                              const msg =
+                                e instanceof Error ? e.message : String(e);
+                              setErrorMe(msg);
+                            } finally {
+                              setSaving(false);
+                            }
+                          }}
+                          disabled={saving}
+                        >
+                          Saqlash
+                        </Button>
+                      </>
+                    ) : (
+                      <Button onClick={() => setEditing(true)}>
+                        Tahrirlash
+                      </Button>
+                    )}
                   </div>
                 </div>
               </form>
@@ -249,9 +371,9 @@ export default function ProfileClient() {
               <div className="flex gap-2">
                 <Button
                   onClick={handleLogout}
-                  className="bg-red-600 hover:bg-red-700"
+                  className="h-10 px-4 bg-red-600 hover:bg-red-700 text-white text-sm font-medium rounded-md shadow-sm"
                 >
-                  Logout (ushbu qurilma)
+                  Chiqish (ushbu qurilma)
                 </Button>
               </div>
             </div>

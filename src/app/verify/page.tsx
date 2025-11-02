@@ -37,7 +37,13 @@ function VerifyContent() {
         }
         throw new Error(data.error || "Tasdiqlashda xatolik");
       }
-      router.replace("/dashboard");
+      const fromParam = params.get("from") || "";
+      const redirectTo = fromParam
+        ? fromParam.startsWith("/")
+          ? fromParam
+          : `/${fromParam}`
+        : "/home";
+      router.replace(redirectTo);
     } catch (e: unknown) {
       const msg = e instanceof Error ? e.message : String(e);
       setError(msg);

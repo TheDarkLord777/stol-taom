@@ -204,7 +204,28 @@ export async function POST(req: NextRequest) {
       }
     }
 
-    // Create user if not exists
+    // If this temp is a profile update (phone change), apply phone to existing user
+    const t = temp as TempRegistration & { action?: string; userId?: string };
+    if (t.action === "profileUpdate" && t.userId) {
+      // Update user's phone
+      const updated = await userRepo.updateById(t.userId, {
+        phone: temp.phone,
+      });
+      // Clear temp and cookie
+      await tempRepo.deleteByRequestId(requestId);
+      const res = NextResponse.json({ success: true, updated: !!updated });
+      try {
+        res.cookies.set("reg_temp", "", {
+          httpOnly: true,
+          sameSite: "lax",
+          path: "/",
+          maxAge: 0,
+        });
+      } catch {}
+      return res;
+    }
+
+    // Create user if not exists (regular registration flow)
     const existing = await userRepo.getByPhone(temp.phone);
     if (existing) {
       // Already registered
