@@ -5,7 +5,7 @@ import { getRedis } from "./redis";
 
 const PREFIX = "auth:rt:"; // Key by JTI
 
-function isEnabled() {
+function _isEnabled() {
   return getRedis() !== null;
 }
 

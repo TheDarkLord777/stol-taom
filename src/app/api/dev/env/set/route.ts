@@ -1,5 +1,6 @@
-import { NextRequest, NextResponse } from "next/server";
-import { ALLOWED_ENV_FILES, writeEnvFile, readEnvFile } from "@/lib/envFiles";
+import type { NextRequest } from "next/server";
+import { NextResponse } from "next/server";
+import { ALLOWED_ENV_FILES, readEnvFile, writeEnvFile } from "@/lib/envFiles";
 
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
@@ -24,10 +25,8 @@ export async function POST(req: NextRequest) {
     await writeEnvFile(file, updates);
     const { map } = await readEnvFile(file);
     return NextResponse.json({ file, values: map });
-  } catch (e: any) {
-    return NextResponse.json(
-      { error: String(e?.message || e) },
-      { status: 500 },
-    );
+  } catch (e: unknown) {
+    const msg = e instanceof Error ? e.message : String(e);
+    return NextResponse.json({ error: String(msg) }, { status: 500 });
   }
 }

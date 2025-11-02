@@ -23,12 +23,11 @@
  *       401:
  *         description: Not authenticated
  */
-import { NextRequest, NextResponse } from "next/server";
+import type { NextRequest } from "next/server";
+import { NextResponse } from "next/server";
 import {
-  ACCESS_TTL_SEC,
   ACCESS_TOKEN_NAME,
-  REFRESH_TTL_SEC,
-  REFRESH_TOKEN_NAME,
+  ACCESS_TTL_SEC,
   getUserFromRequest,
   refreshAccessToken,
 } from "@/lib/jwtAuth";
@@ -72,9 +71,10 @@ export async function GET(req: NextRequest) {
       return res;
     }
     return NextResponse.json({ authenticated: false }, { status: 401 });
-  } catch (e: any) {
+  } catch (e: unknown) {
+    const msg = e instanceof Error ? e.message : String(e);
     return NextResponse.json(
-      { authenticated: false, error: String(e?.message || e) },
+      { authenticated: false, error: String(msg) },
       { status: 401 },
     );
   }

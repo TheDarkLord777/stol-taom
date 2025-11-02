@@ -1,5 +1,5 @@
-import { TempStore, type TempRegistration } from "./store";
 import { getRedis } from "./redis";
+import { type TempRegistration, TempStore } from "./store";
 
 const TTL_SEC = 60 * 10; // 10 minutes
 

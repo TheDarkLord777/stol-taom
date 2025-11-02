@@ -1,6 +1,6 @@
+import crypto from "node:crypto";
 import { prisma } from "./prisma";
-import crypto from "crypto";
-import { UserStore, type User } from "./store";
+import { type User, UserStore } from "./store";
 
 export const userRepo = {
   async getByPhone(phone: string): Promise<User | null> {

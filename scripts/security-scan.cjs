@@ -14,8 +14,8 @@
   Exits with code 0 to avoid blocking CI by default. Prints a summary report.
 */
 
-const fs = require("fs");
-const path = require("path");
+const fs = require("node:fs");
+const path = require("node:path");
 
 const ROOT = process.cwd();
 const IGNORE_DIRS = new Set([
@@ -304,7 +304,7 @@ function main() {
   const groups = { high: [], medium: [], info: [] };
   for (const i of issues) groups[i.severity].push(i);
 
-  const pad = (s, n) => (s + " ".repeat(n)).slice(0, n);
+  const _pad = (s, n) => (s + " ".repeat(n)).slice(0, n);
 
   const printGroup = (name, arr) => {
     if (!arr.length) return;

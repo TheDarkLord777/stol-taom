@@ -1,11 +1,11 @@
 "use client";
 import Image from "next/image";
+import Link from "next/link";
+import { useRouter } from "next/navigation";
+import React, { useState } from "react";
+import ClientOnly from "@/components/ClientOnly";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import React, { useState } from "react";
-import { useRouter } from "next/navigation";
-import Link from "next/link";
-import ClientOnly from "@/components/ClientOnly";
 
 export default function RegistrationPage() {
   const router = useRouter();
@@ -19,7 +19,7 @@ export default function RegistrationPage() {
   function normalizePhone(input: string) {
     // ensure leading + and digits only
     let s = input.replace(/[^\d+]/g, "");
-    if (!s.startsWith("+")) s = "+" + s.replace(/^\+/, "");
+    if (!s.startsWith("+")) s = `+${s.replace(/^\+/, "")}`;
     return s;
   }
 
@@ -53,8 +53,9 @@ export default function RegistrationPage() {
       router.push(
         `/verify?phone=${encodeURIComponent(data.phone)}&requestId=${encodeURIComponent(data.requestId)}`,
       );
-    } catch (e: any) {
-      setError(e.message);
+    } catch (e: unknown) {
+      const msg = e instanceof Error ? e.message : String(e);
+      setError(msg);
     } finally {
       setLoading(false);
     }

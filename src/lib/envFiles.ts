@@ -1,5 +1,5 @@
-import fs from "fs/promises";
-import path from "path";
+import fs from "node:fs/promises";
+import path from "node:path";
 
 export const ALLOWED_ENV_FILES = [
   ".env.local",
@@ -56,7 +56,7 @@ export async function writeEnvFile(
   file: EnvFileName,
   updates: Record<string, string | boolean>,
 ) {
-  const { map, lines, eol } = await readEnvFile(file);
+  const { lines, eol } = await readEnvFile(file);
   // normalize update values to string
   const upd: Record<string, string> = {};
   for (const [k, v] of Object.entries(updates)) {

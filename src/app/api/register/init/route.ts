@@ -42,7 +42,8 @@
  *       5XX:
  *         description: Gateway or server error
  */
-import { NextRequest, NextResponse } from "next/server";
+import type { NextRequest } from "next/server";
+import { NextResponse } from "next/server";
 import { sendVerificationMessage } from "@/lib/telegramGateway";
 import { tempRepo } from "@/lib/tempRepo";
 
@@ -84,11 +85,13 @@ export async function POST(req: NextRequest) {
     }
 
     // 2) Send code directly
-    const sendRes: any = await sendVerificationMessage(phone);
+    const sendRes = (await sendVerificationMessage(phone)) as
+      | Record<string, unknown>
+      | undefined;
 
     // Handle gateway-declared errors
     if (sendRes && sendRes.ok === false) {
-      const err: string = String(sendRes.error || "gateway_error");
+      const err: string = String(sendRes.error ?? "gateway_error");
       const m = /FLOOD_WAIT_(\d+)/i.exec(err);
       if (m) {
         const retryAfterSec = Number(m[1] || 0);
@@ -155,13 +158,18 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    const requestId: string | undefined =
-      sendRes?.request_id ||
-      sendRes?.requestId ||
-      sendRes?.data?.request_id ||
-      sendRes?.data?.requestId ||
-      sendRes?.result?.request_id ||
-      sendRes?.result?.requestId;
+    const sendObj = sendRes as Record<string, unknown> | undefined;
+    const requestId: string | undefined = sendObj
+      ? String(
+          sendObj.request_id ??
+            sendObj.requestId ??
+            (sendObj.data as Record<string, unknown> | undefined)?.request_id ??
+            (sendObj.data as Record<string, unknown> | undefined)?.requestId ??
+            (sendObj.result as Record<string, unknown> | undefined)
+              ?.request_id ??
+            (sendObj.result as Record<string, unknown> | undefined)?.requestId,
+        )
+      : undefined;
     if (!requestId) {
       return NextResponse.json(
         { error: "Tasdiqlash kodini yuborib bo'lmadi", detail: sendRes },
@@ -196,9 +204,9 @@ export async function POST(req: NextRequest) {
       });
     } catch {}
     return res;
-  } catch (e: any) {
-    console.error("register/init error", e);
-    const detail = String(e?.message || e);
+  } catch (e: unknown) {
+    const detail = e instanceof Error ? e.message : String(e);
+    console.error("register/init error", detail);
     if (/TELEGRAM_GATEWAY_TOKEN/i.test(detail)) {
       return NextResponse.json(
         { error: "Gateway token o'rnatilmagan", detail },

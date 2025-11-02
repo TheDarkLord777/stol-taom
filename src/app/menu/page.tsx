@@ -1,7 +1,7 @@
 "use client";
+import Image from "next/image";
 import React from "react";
 import Combobox from "@/components/ui/combobox";
-import Image from "next/image";
 
 type Option = { value: string; label: string; logo?: string };
 

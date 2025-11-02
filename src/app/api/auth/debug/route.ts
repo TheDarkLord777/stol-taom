@@ -1,10 +1,11 @@
-import { NextRequest, NextResponse } from "next/server";
-import { getRedis } from "@/lib/redis";
+import type { NextRequest } from "next/server";
+import { NextResponse } from "next/server";
 import {
   ACCESS_TOKEN_NAME,
   REFRESH_TOKEN_NAME,
   verifyToken,
 } from "@/lib/jwtAuth";
+import { getRedis } from "@/lib/redis";
 
 export async function GET(req: NextRequest) {
   const enabled =
@@ -37,8 +38,9 @@ export async function GET(req: NextRequest) {
         expISO: exp ? new Date(exp * 1000).toISOString() : undefined,
         ttlSec,
       };
-    } catch (e: any) {
-      return { present: true, valid: false, error: String(e?.message || e) };
+    } catch (e: unknown) {
+      const msg = e instanceof Error ? e.message : String(e);
+      return { present: true, valid: false, error: String(msg) };
     }
   })();
 
@@ -52,13 +54,14 @@ export async function GET(req: NextRequest) {
         present: true,
         valid: true,
         typ: payload.typ || "refresh",
-        jti: (payload as any)?.jti,
+        jti: (payload as Record<string, unknown>)?.jti,
         exp,
         expISO: exp ? new Date(exp * 1000).toISOString() : undefined,
         ttlSec,
       };
-    } catch (e: any) {
-      return { present: true, valid: false, error: String(e?.message || e) };
+    } catch (e: unknown) {
+      const msg = e instanceof Error ? e.message : String(e);
+      return { present: true, valid: false, error: String(msg) };
     }
   })();
 
@@ -87,13 +90,14 @@ export async function GET(req: NextRequest) {
       redis: { keysCount: keys.length, keys: redisKeys },
       cookies: { access, refresh },
     });
-  } catch (e: any) {
+  } catch (e: unknown) {
+    const msg = e instanceof Error ? e.message : String(e);
     return NextResponse.json(
       {
         enabled: true,
         enableRedis: true,
         connected: false,
-        error: String(e?.message || e),
+        error: String(msg),
         cookies: { access, refresh },
       },
       { status: 500 },

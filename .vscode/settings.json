@@ -34,8 +34,5 @@
   },
   "tailwindCSS.validate": true,
   "tailwindCSS.emmetCompletions": true,
-  "editor.rulers": [
-    80,
-    120
-  ]
+  "editor.rulers": [80, 120]
 }

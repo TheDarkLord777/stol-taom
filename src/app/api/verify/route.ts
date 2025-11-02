@@ -1,5 +1,6 @@
 // app/api/verify/route.ts
-import { NextRequest, NextResponse } from "next/server";
+import type { NextRequest } from "next/server";
+import { NextResponse } from "next/server";
 
 const TELEGRAM_GATEWAY_URL =
   process.env.TELEGRAM_GATEWAY_URL || "https://gatewayapi.telegram.org";
@@ -7,7 +8,7 @@ const MOCK =
   (process.env.TELEGRAM_GATEWAY_MOCK || "").toLowerCase() === "true" ||
   process.env.TELEGRAM_GATEWAY_MOCK === "1";
 
-async function gatewayRequest(endpoint: string, body: any) {
+async function gatewayRequest(endpoint: string, body: Record<string, unknown>) {
   if (MOCK) {
     if (endpoint === "checkSendAbility") return { ok: true };
     if (endpoint === "sendVerificationMessage") return { ok: true };
@@ -48,7 +49,7 @@ export async function POST(req: NextRequest) {
       }
 
       case "sendCode": {
-        const payload: any = {
+        const payload: Record<string, unknown> = {
           phone_number: phone,
           code_length: 6,
           ttl: 300,

@@ -1,12 +1,12 @@
 {
-    "__meta": "This file is the source of truth for manually-managed dependencies. Edit `dependencies` and `devDependencies`, then run `npm run sync-deps` to merge into package.json. Do not add comments (JSON).",
-    "dependencies": {
-        "next": "15.5.4",
-        "react": "19.1.0",
-        "react-dom": "19.1.0"
-    },
-    "devDependencies": {
-        "@biomejs/biome": "2.2.0",
-        "typescript": "^5"
-    }
+  "__meta": "This file is the source of truth for manually-managed dependencies. Edit `dependencies` and `devDependencies`, then run `npm run sync-deps` to merge into package.json. Do not add comments (JSON).",
+  "dependencies": {
+    "next": "15.5.4",
+    "react": "19.1.0",
+    "react-dom": "19.1.0"
+  },
+  "devDependencies": {
+    "@biomejs/biome": "2.2.0",
+    "typescript": "^5"
+  }
 }

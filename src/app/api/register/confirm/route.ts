@@ -47,13 +47,14 @@
  *       5XX:
  *         description: Server error
  */
-import { NextRequest, NextResponse } from "next/server";
-import { checkVerificationStatus } from "@/lib/telegramGateway";
-import { TempStore } from "@/lib/store";
-import { userRepo } from "@/lib/userRepo";
-import { tempRepo } from "@/lib/tempRepo";
-import crypto from "crypto";
+import crypto from "node:crypto";
+import type { NextRequest } from "next/server";
+import { NextResponse } from "next/server";
 import { issueAndSetAuthCookies } from "@/lib/jwtAuth";
+import { type TempRegistration, TempStore } from "@/lib/store";
+import { checkVerificationStatus } from "@/lib/telegramGateway";
+import { tempRepo } from "@/lib/tempRepo";
+import { userRepo } from "@/lib/userRepo";
 
 function hashPassword(password: string) {
   // Use Node crypto scrypt as a light alternative; in real app, use bcrypt
@@ -62,7 +63,7 @@ function hashPassword(password: string) {
   return `${salt}:${hash}`;
 }
 
-function verifyPassword(password: string, stored: string) {
+function _verifyPassword(password: string, stored: string) {
   const [salt, hash] = stored.split(":");
   const verify = crypto.scryptSync(password, salt, 64).toString("hex");
   return crypto.timingSafeEqual(
@@ -100,7 +101,7 @@ export async function POST(req: NextRequest) {
               passwordPlain: parsed.passwordPlain,
               requestId: parsed.requestId,
               createdAt: parsed.createdAt || Date.now(),
-            } as any;
+            } as TempRegistration;
           }
         }
       } catch {}
@@ -112,13 +113,15 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    const verifyRes: any = await checkVerificationStatus(requestId, code);
+    const verifyRes = (await checkVerificationStatus(requestId, code)) as
+      | Record<string, unknown>
+      | undefined;
     if (
       verifyRes &&
       verifyRes.ok === false &&
       typeof verifyRes.error === "string"
     ) {
-      const m = /FLOOD_WAIT_(\d+)/i.exec(verifyRes.error);
+      const m = /FLOOD_WAIT_(\d+)/i.exec(String(verifyRes.error));
       if (m) {
         const retryAfterSec = Number(m[1] || 0);
         return NextResponse.json(
@@ -134,19 +137,40 @@ export async function POST(req: NextRequest) {
         );
       }
     }
+    const verifyObj = verifyRes as Record<string, unknown> | undefined;
+    let vStatusRaw: unknown;
+    if (verifyObj) {
+      vStatusRaw =
+        ((verifyObj.result as Record<string, unknown> | undefined)
+          ?.verification_status as Record<string, unknown> | undefined) ??
+        undefined;
+      vStatusRaw =
+        (
+          (verifyObj.result as Record<string, unknown> | undefined)
+            ?.verification_status as Record<string, unknown> | undefined
+        )?.status ??
+        (
+          (verifyObj.data as Record<string, unknown> | undefined)
+            ?.verification_status as Record<string, unknown> | undefined
+        )?.status ??
+        (verifyObj.verification_status as Record<string, unknown> | undefined)
+          ?.status ??
+        (verifyObj.status as unknown);
+    }
     const vStatus: string | undefined =
-      verifyRes?.result?.verification_status?.status ||
-      verifyRes?.data?.verification_status?.status ||
-      verifyRes?.verification_status?.status ||
-      verifyRes?.status;
+      vStatusRaw === undefined ? undefined : String(vStatusRaw);
     const VERIFIED_STATES = new Set(["code_valid", "verified", "success"]);
     const INVALID_STATES = new Set(["code_invalid", "invalid"]);
     const EXPIRED_STATES = new Set(["code_expired", "expired"]);
     const PENDING_STATES = new Set(["pending", "code_sent"]);
     const isVerified =
-      verifyRes?.verified === true ||
-      verifyRes?.data?.verified === true ||
-      verifyRes?.result?.status === "verified" ||
+      (verifyObj && verifyObj.verified === true) === true ||
+      (verifyObj &&
+        (verifyObj.data as Record<string, unknown> | undefined)?.verified ===
+          true) === true ||
+      ((verifyObj &&
+        (verifyObj.result as Record<string, unknown> | undefined)?.status ===
+          "verified") as boolean) ||
       VERIFIED_STATES.has(String(vStatus));
     if (!isVerified) {
       if (INVALID_STATES.has(String(vStatus))) {
@@ -220,10 +244,11 @@ export async function POST(req: NextRequest) {
       });
     } catch {}
     return res;
-  } catch (e: any) {
-    console.error("register/confirm error", e);
+  } catch (e: unknown) {
+    const msg = e instanceof Error ? e.message : String(e);
+    console.error("register/confirm error", msg);
     return NextResponse.json(
-      { error: "Ichki server xatosi", detail: String(e?.message || e) },
+      { error: "Ichki server xatosi", detail: String(msg) },
       { status: 500 },
     );
   }

@@ -1,5 +1,6 @@
-import { NextRequest, NextResponse } from "next/server";
-import { SignJWT, jwtVerify, JWTPayload } from "jose";
+import { type JWTPayload, jwtVerify, SignJWT } from "jose";
+import type { NextRequest } from "next/server";
+import { NextResponse } from "next/server";
 
 // Cookie names and TTLs
 export const ACCESS_TOKEN_NAME = "access_token";
@@ -35,19 +36,20 @@ function newJti() {
 
 async function getRefreshRepo() {
   // Avoid importing Node-only code in Edge (middleware)
-  if ((globalThis as any).EdgeRuntime) return null;
+  if ((globalThis as unknown as { EdgeRuntime?: boolean }).EdgeRuntime)
+    return null;
   try {
     const mod = await import("./refreshRepo");
-    return (mod as any).refreshRepo as {
-      store: (jti: string, userId: string, ttlSec: number) => Promise<any>;
+    return (mod as unknown as { refreshRepo?: unknown }).refreshRepo as {
+      store: (jti: string, userId: string, ttlSec: number) => Promise<unknown>;
       exists: (jti: string) => Promise<boolean>;
-      revoke: (jti: string) => Promise<any>;
+      revoke: (jti: string) => Promise<unknown>;
       rotate: (
         oldJti: string,
         newJti: string,
         userId: string,
         ttlSec: number,
-      ) => Promise<any>;
+      ) => Promise<unknown>;
     };
   } catch {
     return null;
@@ -130,11 +132,12 @@ export async function issueAndSetAuthCookies(
   // If Redis is enabled, persist refresh JTI
   try {
     const payload = await verifyToken(refresh);
-    if ((payload as any).jti && payload.sub) {
+    const payloadObj = payload as Record<string, unknown> | undefined;
+    if (payloadObj?.jti && payload.sub) {
       const repo = await getRefreshRepo();
       if (repo)
         await repo.store(
-          String((payload as any).jti),
+          String(payloadObj.jti),
           String(payload.sub),
           REFRESH_TTL_SEC,
         );
@@ -191,8 +194,11 @@ export async function refreshAccessToken(req: NextRequest, res?: NextResponse) {
     const payload = await verifyToken(refresh);
     if (!payload?.sub || !payload.phone) return null;
     // If Redis is enabled, require the JTI to exist. Rotate only if we can also set cookie on response
-    if (payload.typ === "refresh" && "jti" in payload) {
-      const jti = String((payload as any).jti || "");
+    if (
+      payload.typ === "refresh" &&
+      (payload as Record<string, unknown>)?.jti !== undefined
+    ) {
+      const jti = String((payload as Record<string, unknown>)?.jti || "");
       if (jti) {
         const repo = await getRefreshRepo();
         let ok = true;

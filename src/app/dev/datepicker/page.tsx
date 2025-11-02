@@ -1,7 +1,7 @@
 "use client";
 import * as React from "react";
-import { DatePicker, DateRangePicker } from "@/components/ui/datepicker";
 import type { DateRange } from "react-day-picker";
+import { DatePicker, DateRangePicker } from "@/components/ui/datepicker";
 
 export default function DevDatepickerPage() {
   const [date, setDate] = React.useState<Date | undefined>();

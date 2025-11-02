@@ -20,14 +20,12 @@ export default function Home() {
             <Link
               href="/login"
               className="bg-[#4E6441] text-white border border-[#060101] rounded-[12px] font-normal leading-none hover:bg-[#6B855A] transition-colors active:translate-y-[2px] select-none flex items-center justify-center text-center box-border min-w-[300px] h-[60px] px-[95px] text-[32px]"
-              role="button"
             >
               KIRISH
             </Link>
             <Link
               href="/register"
               className="bg-[#4E6441] text-white border border-[#060101] rounded-[12px] font-normal leading-none hover:bg-[#6B855A] transition-colors active:translate-y-[2px] select-none flex items-center justify-center text-center box-border min-w-[300px] h-[60px] px-[95px] text-[32px]"
-              role="button"
             >
               RO‘YHATDAN O‘TISH
             </Link>
@@ -38,14 +36,12 @@ export default function Home() {
             <Link
               href="/login"
               className="bg-[#4E6441] text-white border border-[#060101] rounded-[12px] font-normal leading-none hover:bg-[#6B855A] transition-colors active:translate-y-[2px] select-none flex items-center justify-center text-center box-border min-w-[180px] h-[48px] px-[20px] text-[18px]"
-              role="button"
             >
               KIRISH
             </Link>
             <Link
               href="/register"
               className="bg-[#4E6441] text-white border border-[#060101] rounded-[12px] font-normal leading-none hover:bg-[#6B855A] transition-colors active:translate-y-[2px] select-none flex items-center justify-center text-center box-border min-w-[180px] h-[48px] px-[20px] text-[18px] whitespace-nowrap"
-              role="button"
             >
               RO‘YHATDAN O‘TISH
             </Link>
@@ -56,14 +52,12 @@ export default function Home() {
             <Link
               href="/login"
               className="bg-[#4E6441] text-white border border-[#060101] rounded-[12px] font-normal leading-none hover:bg-[#6B855A] transition-colors active:translate-y-[2px] select-none flex items-center justify-center text-center box-border min-w-[140px] h-[42px] px-[16px] text-[16px]"
-              role="button"
             >
               KIRISH
             </Link>
             <Link
               href="/register"
               className="bg-[#4E6441] text-white border border-[#060101] rounded-[12px] font-normal leading-none hover:bg-[#6B855A] transition-colors active:translate-y-[2px] select-none flex items-center justify-center text-center box-border min-w-[140px] h-[42px] px-[16px] text-[16px] whitespace-nowrap"
-              role="button"
             >
               RO‘YHATDAN O‘TISH
             </Link>

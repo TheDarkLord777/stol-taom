@@ -1,8 +1,8 @@
 "use client";
-import * as React from "react";
 import * as Tabs from "@radix-ui/react-tabs";
-import { Button } from "@/components/ui/button";
+import * as React from "react";
 import AuthSessionTimer from "@/components/AuthSessionTimer";
+import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 
 type MeResponse = {
@@ -41,7 +41,17 @@ export default function ProfileClient() {
   const [errorMe, setErrorMe] = React.useState<string | null>(null);
 
   // Reservations state
-  const [reservations, setReservations] = React.useState<any[] | null>(null);
+  type Reservation = {
+    id?: string;
+    restaurant?: { name?: string } | null;
+    date?: string | null;
+    createdAt?: number | null;
+    status?: string | null;
+    title?: string | null;
+  };
+  const [reservations, setReservations] = React.useState<Reservation[] | null>(
+    null,
+  );
   const [loadingRes, setLoadingRes] = React.useState(false);
 
   React.useEffect(() => {
@@ -89,10 +99,16 @@ export default function ProfileClient() {
     setLoadingRes(true);
     fetch("/api/reservations")
       .then((r) => (r.ok ? r.json() : Promise.reject(r)))
-      .then((d: any) => {
-        setReservations(
-          Array.isArray(d?.items) ? d.items : Array.isArray(d) ? d : [],
-        );
+      .then((d: unknown) => {
+        const payload = d as { items?: Reservation[] } | Reservation[];
+        if (Array.isArray(payload)) {
+          setReservations(payload as Reservation[]);
+        } else {
+          const obj = payload as { items?: Reservation[] | undefined };
+          if (Array.isArray(obj.items))
+            setReservations(obj.items as Reservation[]);
+          else setReservations([]);
+        }
       })
       .catch(() => setReservations([]))
       .finally(() => setLoadingRes(false));
@@ -144,34 +160,65 @@ export default function ProfileClient() {
             ) : me ? (
               <form className="grid gap-4 sm:grid-cols-2">
                 <div className="sm:col-span-2">
-                  <label className="mb-1 block text-sm text-gray-300">
+                  <label
+                    htmlFor="me-name"
+                    className="mb-1 block text-sm text-gray-300"
+                  >
                     Ism
                   </label>
-                  <Input value={me.name ?? ""} disabled readOnly />
+                  <Input id="me-name" value={me.name ?? ""} disabled readOnly />
                 </div>
                 <div>
-                  <label className="mb-1 block text-sm text-gray-300">
+                  <label
+                    htmlFor="me-email"
+                    className="mb-1 block text-sm text-gray-300"
+                  >
                     Email
                   </label>
-                  <Input value={me.email ?? ""} disabled readOnly />
+                  <Input
+                    id="me-email"
+                    value={me.email ?? ""}
+                    disabled
+                    readOnly
+                  />
                 </div>
                 <div>
-                  <label className="mb-1 block text-sm text-gray-300">
+                  <label
+                    htmlFor="me-phone"
+                    className="mb-1 block text-sm text-gray-300"
+                  >
                     Telefon
                   </label>
-                  <Input value={me.phone ?? ""} disabled readOnly />
+                  <Input
+                    id="me-phone"
+                    value={me.phone ?? ""}
+                    disabled
+                    readOnly
+                  />
                 </div>
                 <div>
-                  <label className="mb-1 block text-sm text-gray-300">
+                  <label
+                    htmlFor="me-locale"
+                    className="mb-1 block text-sm text-gray-300"
+                  >
                     Til
                   </label>
-                  <Input value={me.locale ?? "uz"} disabled readOnly />
+                  <Input
+                    id="me-locale"
+                    value={me.locale ?? "uz"}
+                    disabled
+                    readOnly
+                  />
                 </div>
                 <div>
-                  <label className="mb-1 block text-sm text-gray-300">
+                  <label
+                    htmlFor="me-timezone"
+                    className="mb-1 block text-sm text-gray-300"
+                  >
                     Vaqt mintaqasi
                   </label>
                   <Input
+                    id="me-timezone"
                     value={
                       me.timezone ??
                       Intl.DateTimeFormat().resolvedOptions().timeZone

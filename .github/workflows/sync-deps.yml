@@ -1,0 +1,53 @@
+name: Sync deps (guarded)
+
+on:
+  push:
+    branches:
+      - main
+      - dev
+
+jobs:
+  sync-deps:
+    name: Sync deps and open PR if changed
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 18
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Run guarded prepare-install (SYNC_DEPS=1)
+        env:
+          SYNC_DEPS: '1'
+        run: |
+          echo "Running guarded prepare-install with SYNC_DEPS=1"
+          npm run prepare-install
+
+      - name: Install after sync
+        run: npm install
+
+      - name: Show diff (if any)
+        run: git --no-pager diff --name-only || true
+
+      - name: Create Pull Request if deps changed
+        uses: peter-evans/create-pull-request@v5
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          commit-message: chore(deps): sync deps from deps.dependencies.json
+          title: chore(deps): sync deps from deps.dependencies.json
+          body: |
+            This PR was created automatically by the guarded `sync-deps` workflow.
+
+            The workflow runs `npm run prepare-install` with `SYNC_DEPS=1`, then `npm install`.
+            Please review the dependency changes and merge if they look good.
+          base: main
+          branch: sync-deps/auto-${{ github.run_id }}

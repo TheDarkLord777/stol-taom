@@ -72,8 +72,9 @@ export default function DevEnvPage() {
       if (!res.ok) throw new Error(data?.error || "Save failed");
       setValues(data.values || {});
       setMessage("Saved. Note: server may require restart for some envs.");
-    } catch (e: any) {
-      setMessage(e?.message || "Save failed");
+    } catch (e: unknown) {
+      const msg = e instanceof Error ? e.message : String(e);
+      setMessage(msg || "Save failed");
     } finally {
       setSaving(false);
     }
@@ -87,8 +88,11 @@ export default function DevEnvPage() {
     <div suppressHydrationWarning className="p-6 space-y-6">
       <h1 className="text-2xl font-semibold">Dev Env Admin</h1>
       <div className="flex items-center gap-3">
-        <label className="text-sm font-medium">File:</label>
+        <label htmlFor="env-file" className="text-sm font-medium">
+          File:
+        </label>
         <select
+          id="env-file"
           className="border rounded px-2 py-1"
           value={file}
           onChange={(e) => setFile(e.target.value as KnownFile)}
@@ -157,6 +161,7 @@ export default function DevEnvPage() {
             onChange={(e) => setNewValue(e.target.value)}
           />
           <button
+            type="button"
             className="px-3 py-1.5 rounded bg-gray-900 text-white text-sm disabled:opacity-60"
             disabled={!newKey.trim()}
             onClick={() => {
@@ -178,6 +183,7 @@ export default function DevEnvPage() {
 
       <div className="flex items-center gap-3">
         <button
+          type="button"
           onClick={onSave}
           disabled={saving}
           className="px-4 py-2 rounded bg-black text-white disabled:opacity-60"

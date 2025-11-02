@@ -1,10 +1,10 @@
 // src/components/ui/calendar.tsx
 
 "use client";
-import * as React from "react";
-import { DayPicker } from "react-day-picker";
 import { uz } from "date-fns/locale";
+import * as React from "react";
 import type { DayPickerProps } from "react-day-picker";
+import { DayPicker } from "react-day-picker";
 
 type Props = DayPickerProps & { className?: string };
 

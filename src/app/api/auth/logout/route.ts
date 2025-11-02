@@ -21,8 +21,8 @@
 import { cookies } from "next/headers";
 import { NextResponse } from "next/server";
 import {
-  REFRESH_TOKEN_NAME,
   clearAuthCookies,
+  REFRESH_TOKEN_NAME,
   verifyToken,
 } from "@/lib/jwtAuth";
 
@@ -33,12 +33,19 @@ export async function POST() {
     const rt = cookieStore.get(REFRESH_TOKEN_NAME)?.value;
     if (rt) {
       const payload = await verifyToken(rt);
-      const jti = (payload as any)?.jti ? String((payload as any).jti) : "";
+      const jtiRaw = (payload as Record<string, unknown>)?.jti;
+      const jti = jtiRaw ? String(jtiRaw) : "";
       if (jti) {
         try {
           const mod = await import("@/lib/refreshRepo");
-          await (mod as any).refreshRepo.revoke(jti);
-        } catch {}
+          const repoMod = mod as {
+            refreshRepo?: { revoke?: (jti: string) => Promise<unknown> };
+          };
+          if (repoMod.refreshRepo?.revoke)
+            await repoMod.refreshRepo.revoke(jti);
+        } catch {
+          /* ignore */
+        }
       }
     }
   } catch {

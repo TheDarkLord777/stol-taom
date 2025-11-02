@@ -1,9 +1,9 @@
 "use client";
+import Image from "next/image";
 import React from "react";
+import type { DateRange } from "react-day-picker";
 import Combobox from "@/components/ui/combobox";
 import { DatePicker, DateRangePicker } from "@/components/ui/datepicker";
-import type { DateRange } from "react-day-picker";
-import Image from "next/image";
 
 type Option = { value: string; label: string; logo?: string };
 
@@ -65,8 +65,7 @@ export default function ReservationClient() {
       to.setDate(from.getDate() + 7);
       setRange({ from, to });
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [selected]);
+  }, [selected, date, range]);
 
   const selectedOption = React.useMemo(
     () => restaurants.find((r) => r.value === selected),

@@ -21,8 +21,8 @@ export const reservationRepo = {
     partySize?: number;
     note?: string;
   }): Promise<ReservationDTO> {
-    const row: any = await dbTry((p) =>
-      (p as any).reservation.create({
+    const row = await dbTry(() =>
+      prisma.reservation.create({
         data: {
           restaurantId: data.restaurantId,
           userId: data.userId ?? null,

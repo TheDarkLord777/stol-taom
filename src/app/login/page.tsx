@@ -1,12 +1,12 @@
 "use client";
 import Image from "next/image";
+import Link from "next/link";
+import { useRouter } from "next/navigation";
+import { useState } from "react";
+import CLSObserver from "@/components/CLSObserver";
+import ClientOnly from "@/components/ClientOnly";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { useState } from "react";
-import { useRouter } from "next/navigation";
-import Link from "next/link";
-import ClientOnly from "@/components/ClientOnly";
-import CLSObserver from "@/components/CLSObserver";
 
 export default function Login() {
   const router = useRouter();
@@ -17,7 +17,7 @@ export default function Login() {
 
   function normalizePhone(input: string) {
     let s = input.replace(/[^\d+]/g, "");
-    if (!s.startsWith("+")) s = "+" + s.replace(/^\+/, "");
+    if (!s.startsWith("+")) s = `+${s.replace(/^\+/, "")}`;
     return s;
   }
 
@@ -38,8 +38,9 @@ export default function Login() {
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || "Xatolik yuz berdi");
       router.replace("/home");
-    } catch (e: any) {
-      setError(e.message);
+    } catch (e: unknown) {
+      const msg = e instanceof Error ? e.message : String(e);
+      setError(msg);
     } finally {
       setLoading(false);
     }

@@ -10,7 +10,10 @@ export function getRedis(): Redis | null {
   if (client !== null) return client;
   const url = process.env.REDIS_URL || process.env.UPSTASH_REDIS_REST_URL; // prefer standard URL
   const password = process.env.REDIS_PASSWORD;
-  if (!url) return (client = null);
+  if (!url) {
+    client = null;
+    return null;
+  }
   try {
     client = new Redis(url, password ? { password } : {});
     return client;

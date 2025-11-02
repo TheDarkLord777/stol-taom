@@ -65,7 +65,6 @@ export default function AuthSessionTimer({
   const enabled =
     (process.env.NEXT_PUBLIC_AUTH_DEBUG || "").toLowerCase() === "true" ||
     process.env.NEXT_PUBLIC_AUTH_DEBUG === "1";
-  if (!enabled) return null;
   const [data, setData] = React.useState<DebugResponse | null>(null);
   const [error, setError] = React.useState<string | null>(null);
 
@@ -85,12 +84,14 @@ export default function AuthSessionTimer({
       const j = (await r.json()) as DebugResponse;
       setData(j);
       setError(null);
-    } catch (e: any) {
-      setError(e?.message || "xatolik");
+    } catch (e: unknown) {
+      const msg = e instanceof Error ? e.message : String(e);
+      setError(msg || "xatolik");
     }
   }, []);
 
   React.useEffect(() => {
+    if (!enabled) return;
     let active = true;
     fetchDebug();
     const id = setInterval(() => {
@@ -101,8 +102,9 @@ export default function AuthSessionTimer({
       active = false;
       clearInterval(id);
     };
-  }, [fetchDebug]);
+  }, [fetchDebug, enabled]);
 
+  if (!enabled) return null;
   const aTtl = data?.cookies?.access?.ttlSec;
   const rTtl = data?.cookies?.refresh?.ttlSec;
 
@@ -142,7 +144,9 @@ export default function AuthSessionTimer({
           <span className="text-xs text-red-400">{error}</span>
         )}
         {error === "disabled" && (
-          <span className="text-xs text-gray-400">Debug o‘chiq: AUTH_DEBUG_ENABLED=false</span>
+          <span className="text-xs text-gray-400">
+            Debug o‘chiq: AUTH_DEBUG_ENABLED=false
+          </span>
         )}
       </div>
     </div>

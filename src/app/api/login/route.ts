@@ -40,11 +40,13 @@
  *       5XX:
  *         description: Server error
  */
-import { NextRequest, NextResponse } from "next/server";
-import { userRepo } from "@/lib/userRepo";
-import crypto from "crypto";
+
+import crypto from "node:crypto";
 import bcrypt from "bcryptjs";
+import type { NextRequest } from "next/server";
+import { NextResponse } from "next/server";
 import { issueAndSetAuthCookies } from "@/lib/jwtAuth";
+import { userRepo } from "@/lib/userRepo";
 
 function verifyPassword(password: string, stored: string) {
   try {
@@ -109,10 +111,11 @@ export async function POST(req: NextRequest) {
       name: user.name,
     });
     return res;
-  } catch (e: any) {
-    console.error("login error", e);
+  } catch (e: unknown) {
+    const msg = e instanceof Error ? e.message : String(e);
+    console.error("login error", msg);
     return NextResponse.json(
-      { error: "Ichki server xatosi", detail: String(e?.message || e) },
+      { error: "Ichki server xatosi", detail: String(msg) },
       { status: 500 },
     );
   }

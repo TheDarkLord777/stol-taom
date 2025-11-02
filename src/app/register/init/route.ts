@@ -1,6 +1,7 @@
 // app/api/register/init/route.ts
-import { NextRequest, NextResponse } from "next/server";
 import { hash } from "bcryptjs";
+import type { NextRequest } from "next/server";
+import { NextResponse } from "next/server";
 
 // 🔒 Parolni hashlash uchun rounds
 const SALT_ROUNDS = 10;
@@ -23,7 +24,10 @@ const TELEGRAM_GATEWAY_MOCK =
   (process.env.TELEGRAM_GATEWAY_MOCK || "").toLowerCase() === "true" ||
   process.env.TELEGRAM_GATEWAY_MOCK === "1";
 
-async function gatewayPost(endpoint: string, body: any) {
+async function gatewayPost(
+  endpoint: string,
+  body: Record<string, unknown> | undefined,
+) {
   // Mock rejim: lokal dev uchun backendga haqiqiy chaqiriqsiz ishlash
   if (TELEGRAM_GATEWAY_MOCK) {
     if (endpoint === "checkSendAbility") {
@@ -124,8 +128,12 @@ export async function POST(req: NextRequest) {
 
     // ✅ Muvaffaqiyatli javob
     return NextResponse.json({ phone, requestId });
-  } catch (error: any) {
-    console.error("Register init error:", error);
-    return NextResponse.json({ error: "Server xatosi" }, { status: 500 });
+  } catch (error: unknown) {
+    const msg = error instanceof Error ? error.message : String(error);
+    console.error("Register init error:", msg);
+    return NextResponse.json(
+      { error: "Server xatosi", detail: msg },
+      { status: 500 },
+    );
   }
 }

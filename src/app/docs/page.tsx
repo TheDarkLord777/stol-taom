@@ -14,7 +14,10 @@ export default function ApiDocsPage() {
         url="/api/openapi"
         docExpansion="list"
         defaultModelsExpandDepth={1}
-        requestInterceptor={(req: any) => {
+        requestInterceptor={(req: {
+          credentials?: string;
+          [k: string]: unknown;
+        }) => {
           req.credentials = "include";
           return req;
         }}

@@ -1,11 +1,11 @@
 "use client";
-import * as React from "react";
 import * as Popover from "@radix-ui/react-popover";
 import { format, startOfDay } from "date-fns";
 import { uz } from "date-fns/locale";
-import { Calendar } from "@/components/ui/calendar";
-import { Button } from "@/components/ui/button";
+import * as React from "react";
 import type { DateRange } from "react-day-picker";
+import { Button } from "@/components/ui/button";
+import { Calendar } from "@/components/ui/calendar";
 
 type CommonProps = {
   fromDate?: Date;
@@ -70,6 +70,7 @@ export function DatePicker({
             strokeLinecap="round"
             strokeLinejoin="round"
           >
+            <title>Calendar</title>
             <rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect>
             <line x1="16" y1="2" x2="16" y2="6"></line>
             <line x1="8" y1="2" x2="8" y2="6"></line>
@@ -179,6 +180,7 @@ export function DateRangePicker({
             strokeLinecap="round"
             strokeLinejoin="round"
           >
+            <title>Calendar</title>
             <rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect>
             <line x1="16" y1="2" x2="16" y2="6"></line>
             <line x1="8" y1="2" x2="8" y2="6"></line>

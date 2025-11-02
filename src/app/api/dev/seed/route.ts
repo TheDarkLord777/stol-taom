@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
-import { restaurantRepo } from "@/lib/restaurantRepo";
 import { menuRepo } from "@/lib/menuRepo";
+import { restaurantRepo } from "@/lib/restaurantRepo";
 
 export const dynamic = "force-dynamic";
 

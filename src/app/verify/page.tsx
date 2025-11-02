@@ -1,10 +1,10 @@
 "use client";
-import { useRouter, useSearchParams } from "next/navigation";
 import Image from "next/image";
+import { useRouter, useSearchParams } from "next/navigation";
 import { Suspense, useEffect, useState } from "react";
+import ClientOnly from "@/components/ClientOnly";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import ClientOnly from "@/components/ClientOnly";
 
 function VerifyContent() {
   const params = useSearchParams();
@@ -38,8 +38,9 @@ function VerifyContent() {
         throw new Error(data.error || "Tasdiqlashda xatolik");
       }
       router.replace("/dashboard");
-    } catch (e: any) {
-      setError(e.message);
+    } catch (e: unknown) {
+      const msg = e instanceof Error ? e.message : String(e);
+      setError(msg);
     } finally {
       setLoading(false);
     }

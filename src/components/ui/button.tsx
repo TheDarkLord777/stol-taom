@@ -1,7 +1,7 @@
-import * as React from "react";
-import Link from "next/link";
 import { Slot } from "@radix-ui/react-slot";
 import { cva, type VariantProps } from "class-variance-authority";
+import Link from "next/link";
+import type * as React from "react";
 
 import { cn } from "@/lib/utils";
 
@@ -51,19 +51,18 @@ function Button(props: ButtonProps) {
   const {
     className,
     asChild = false,
-    children,
-    href,
     variant,
     size,
-    ...domProps
-  } = props as any;
+  } = props as ButtonBaseProps;
+  const children = (props as { children?: React.ReactNode }).children;
+  const href = "href" in props ? (props as any).href : undefined;
 
   if (asChild) {
     return (
       <Slot
         data-slot="button"
         className={cn(buttonVariants({ variant, size, className }))}
-        {...domProps}
+        {...(props as any)}
       >
         {children}
       </Slot>
@@ -77,7 +76,7 @@ function Button(props: ButtonProps) {
         prefetch
         data-slot="button"
         className={cn(buttonVariants({ variant, size, className }))}
-        {...domProps}
+        {...((props as any) || {})}
       >
         {children}
       </Link>
@@ -88,8 +87,8 @@ function Button(props: ButtonProps) {
     <button
       data-slot="button"
       className={cn(buttonVariants({ variant, size, className }))}
-      type="button"
-      {...domProps}
+      type={(props as any)?.type ?? "button"}
+      {...((props as any) || {})}
     >
       {children}
     </button>

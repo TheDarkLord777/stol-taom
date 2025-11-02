@@ -2,8 +2,9 @@ import type { PrismaClient } from "@prisma/client";
 import { getPrisma, resetPrisma } from "./prisma";
 
 function isTransientPrismaError(e: unknown): boolean {
-  const msg = String((e as any)?.message || e || "");
-  const code = (e as any)?.code as string | undefined;
+  const eObj = e as Record<string, unknown> | undefined;
+  const msg = String(eObj?.message ?? e ?? "");
+  const code = eObj?.code as string | undefined;
   // Common transient cases: connection closed/reset/timeout/unreachable
   if (
     code === "P1001" ||

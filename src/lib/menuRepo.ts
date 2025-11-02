@@ -11,10 +11,18 @@ export type MenuItemDTO = {
 
 export const menuRepo = {
   async list(): Promise<MenuItemDTO[]> {
-    const rows = await dbTry((p) =>
-      (p as any).menuItem.findMany({ orderBy: { name: "asc" } }),
+    const rows = await dbTry(() =>
+      prisma.menuItem.findMany({ orderBy: { name: "asc" } }),
     );
-    return (rows as any[]).map((m) => ({
+    return (
+      rows as {
+        id: string;
+        name: string;
+        slug: string;
+        logoUrl?: string | null;
+        createdAt: Date;
+      }[]
+    ).map((m) => ({
       id: m.id,
       name: m.name,
       slug: m.slug,
@@ -27,8 +35,8 @@ export const menuRepo = {
     slug: string;
     logoUrl?: string;
   }): Promise<MenuItemDTO> {
-    const row: any = await dbTry((p) =>
-      (p as any).menuItem.upsert({
+    const row = await dbTry(() =>
+      prisma.menuItem.upsert({
         where: { slug: data.slug },
         update: { name: data.name, logoUrl: data.logoUrl ?? null },
         create: {

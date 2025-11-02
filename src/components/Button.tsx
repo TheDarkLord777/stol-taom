@@ -1,5 +1,4 @@
 "use client";
-import React from "react";
 import Link from "next/link";
 
 interface ButtonProps {
@@ -22,7 +21,6 @@ const Button = ({ text, className, onClick, href }: ButtonProps) => {
         href={href}
         prefetch
         className={`${baseClasses} ${className ?? fallbackSizing}`}
-        role="button"
       >
         {text}
       </Link>

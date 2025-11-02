@@ -14,9 +14,9 @@ function getToken() {
   return token;
 }
 
-async function gatewayRequest<T = any>(
+async function gatewayRequest<T = unknown>(
   endpoint: string,
-  body: Record<string, any>,
+  body: Record<string, unknown>,
 ): Promise<T> {
   if (MOCK) {
     // Simple mock behaviors for local development
@@ -24,23 +24,26 @@ async function gatewayRequest<T = any>(
       return {
         ok: true,
         request_id: `${Date.now()}_${Math.random().toString(36).slice(2, 8)}`,
-      } as any;
+      } as unknown as T;
     }
     if (endpoint === "sendVerificationMessage") {
+      const reqBody = body as Record<string, unknown>;
       return {
         ok: true,
         request_id:
-          body.request_id ||
+          (reqBody as Record<string, unknown>).request_id ??
           `${Date.now()}_${Math.random().toString(36).slice(2, 8)}`,
-      } as any;
+      } as unknown as T;
     }
     if (endpoint === "checkVerificationStatus") {
-      const verified = body.code === "123456" || body.code === "000000";
+      const reqBody = body as Record<string, unknown>;
+      const code = String(reqBody.code ?? "");
+      const verified = code === "123456" || code === "000000";
       return {
         ok: verified,
         verified,
         status: verified ? "verified" : "invalid",
-      } as any;
+      } as unknown as T;
     }
   }
   const token = getToken();
@@ -69,8 +72,12 @@ export async function sendVerificationMessage(
   phone: string,
   requestId?: string,
 ) {
-  const payload: any = { phone_number: phone, code_length: 6, ttl: 300 };
-  if (requestId) payload.request_id = requestId;
+  const payload: Record<string, unknown> = {
+    phone_number: phone,
+    code_length: 6,
+    ttl: 300,
+  };
+  if (requestId) (payload as Record<string, unknown>).request_id = requestId;
   return gatewayRequest("sendVerificationMessage", payload);
 }
 

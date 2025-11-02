@@ -43,7 +43,6 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body
-        suppressHydrationWarning
         className={`${inika.className} ${inika.variable} ${geistSans.variable} ${geistMono.variable} antialiased ${themeClass}`}
       >
         {process.env.NODE_ENV !== "production" ? (

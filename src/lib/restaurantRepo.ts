@@ -10,10 +10,17 @@ export type RestaurantDTO = {
 
 export const restaurantRepo = {
   async list(): Promise<RestaurantDTO[]> {
-    const rows = await dbTry((p) =>
-      (p as any).restaurant.findMany({ orderBy: { name: "asc" } }),
+    const rows = await dbTry(() =>
+      prisma.restaurant.findMany({ orderBy: { name: "asc" } }),
     );
-    return (rows as any[]).map((r) => ({
+    return (
+      rows as {
+        id: string;
+        name: string;
+        logoUrl?: string | null;
+        createdAt: Date;
+      }[]
+    ).map((r) => ({
       id: r.id,
       name: r.name,
       logoUrl: r.logoUrl ?? undefined,
@@ -25,8 +32,8 @@ export const restaurantRepo = {
     logoUrl?: string;
   }): Promise<RestaurantDTO> {
     const slugName = data.name.trim();
-    const row: any = await dbTry((p) =>
-      (p as any).restaurant.upsert({
+    const row = await dbTry(() =>
+      prisma.restaurant.upsert({
         where: { name: slugName },
         update: { logoUrl: data.logoUrl ?? null },
         create: { name: slugName, logoUrl: data.logoUrl ?? null },

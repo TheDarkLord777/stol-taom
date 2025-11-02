@@ -1,4 +1,5 @@
-import { NextRequest, NextResponse } from "next/server";
+import type { NextRequest } from "next/server";
+import { NextResponse } from "next/server";
 import { ALLOWED_ENV_FILES, readEnvFile } from "@/lib/envFiles";
 
 export const dynamic = "force-dynamic";
@@ -21,10 +22,8 @@ export async function GET(req: NextRequest) {
   try {
     const { map } = await readEnvFile(file);
     return NextResponse.json({ file, values: map });
-  } catch (e: any) {
-    return NextResponse.json(
-      { error: String(e?.message || e) },
-      { status: 500 },
-    );
+  } catch (e: unknown) {
+    const msg = e instanceof Error ? e.message : String(e);
+    return NextResponse.json({ error: String(msg) }, { status: 500 });
   }
 }

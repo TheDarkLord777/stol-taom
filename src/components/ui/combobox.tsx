@@ -1,7 +1,7 @@
 "use client";
-import * as React from "react";
 import * as Popover from "@radix-ui/react-popover";
 import { Command } from "cmdk";
+import * as React from "react";
 import { Button } from "@/components/ui/button";
 
 export type ComboOption = { value: string; label: string };
@@ -44,14 +44,17 @@ export function Combobox(props: ComboboxProps) {
     [options, value],
   );
   const [query, setQuery] = React.useState("");
+  const inputRef = React.useRef<HTMLInputElement | null>(null);
+  const listRef = React.useRef<HTMLDivElement | null>(null);
+  const itemRefs = React.useRef<Array<HTMLDivElement | null>>([]);
+  const [activeIndex, setActiveIndex] = React.useState<number>(-1);
 
   // Keep input query in sync when selecting
   React.useEffect(() => {
     if (props.mode === "input") {
       setQuery(selected?.label ?? "");
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [selected?.value]);
+  }, [selected?.label, props.mode]);
 
   const filtered = React.useMemo(() => {
     const source = props.mode === "input" ? query : query;
@@ -62,6 +65,47 @@ export function Combobox(props: ComboboxProps) {
         o.label.toLowerCase().includes(q) || o.value.toLowerCase().includes(q),
     );
   }, [options, query, props.mode]);
+
+  // Stable keys for loading skeletons (avoid using raw index as key)
+  const loadingKeys = React.useMemo(
+    () =>
+      Array.from({ length: Math.max(0, loadingCount) }).map(
+        (_, i) => `loading-${i}`,
+      ),
+    [loadingCount],
+  );
+
+  // Reset highlighted item when query or open state changes
+  React.useEffect(() => {
+    if (!open) {
+      setActiveIndex(-1);
+      return;
+    }
+    // Default to first item when list opens with results
+    setActiveIndex((idx) => {
+      const next =
+        filtered.length > 0
+          ? Math.min(Math.max(idx, 0), filtered.length - 1)
+          : -1;
+      return next;
+    });
+  }, [open, filtered.length]);
+
+  // Ensure active item is visible
+  React.useEffect(() => {
+    if (activeIndex < 0) return;
+    const el = itemRefs.current[activeIndex];
+    const listEl = listRef.current;
+    if (el && listEl) {
+      const elTop = el.offsetTop;
+      const elBottom = elTop + el.offsetHeight;
+      const viewTop = listEl.scrollTop;
+      const viewBottom = viewTop + listEl.clientHeight;
+      if (elTop < viewTop) listEl.scrollTop = elTop;
+      else if (elBottom > viewBottom)
+        listEl.scrollTop = elBottom - listEl.clientHeight;
+    }
+  }, [activeIndex]);
 
   // Button trigger mode (default)
   if (props.mode !== "input") {
@@ -94,6 +138,7 @@ export function Combobox(props: ComboboxProps) {
               strokeLinecap="round"
               strokeLinejoin="round"
             >
+              <title>Toggle</title>
               <polyline points="6 9 12 15 18 9"></polyline>
             </svg>
           </Button>
@@ -115,9 +160,9 @@ export function Combobox(props: ComboboxProps) {
             <Command.List className="max-h-60 overflow-auto py-1">
               {loading ? (
                 <div className="px-3 py-2">
-                  {Array.from({ length: loadingCount }).map((_, i) => (
+                  {loadingKeys.map((k) => (
                     <div
-                      key={i}
+                      key={k}
                       className="mb-2 h-5 w-full rounded bg-gray-200 shimmer last:mb-0"
                     />
                   ))}
@@ -153,43 +198,6 @@ export function Combobox(props: ComboboxProps) {
   // Input trigger mode
   const { inputPlaceholder = "Qidirish uchun yozing…", inputClassName } =
     props as InputModeProps;
-  const inputRef = React.useRef<HTMLInputElement | null>(null);
-  const listRef = React.useRef<HTMLDivElement | null>(null);
-  const itemRefs = React.useRef<Array<HTMLDivElement | null>>([]);
-  const [activeIndex, setActiveIndex] = React.useState<number>(-1);
-
-  // Reset highlighted item when query or open state changes
-  React.useEffect(() => {
-    if (!open) {
-      setActiveIndex(-1);
-      return;
-    }
-    // Default to first item when list opens with results
-    setActiveIndex((idx) => {
-      const next =
-        filtered.length > 0
-          ? Math.min(Math.max(idx, 0), filtered.length - 1)
-          : -1;
-      return next;
-    });
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [query, open, filtered.length]);
-
-  // Ensure active item is visible
-  React.useEffect(() => {
-    if (activeIndex < 0) return;
-    const el = itemRefs.current[activeIndex];
-    const listEl = listRef.current;
-    if (el && listEl) {
-      const elTop = el.offsetTop;
-      const elBottom = elTop + el.offsetHeight;
-      const viewTop = listEl.scrollTop;
-      const viewBottom = viewTop + listEl.clientHeight;
-      if (elTop < viewTop) listEl.scrollTop = elTop;
-      else if (elBottom > viewBottom)
-        listEl.scrollTop = elBottom - listEl.clientHeight;
-    }
-  }, [activeIndex]);
 
   return (
     <Popover.Root open={open} onOpenChange={setOpen}>
@@ -271,9 +279,9 @@ export function Combobox(props: ComboboxProps) {
           >
             {loading ? (
               <div className="px-3 py-2">
-                {Array.from({ length: loadingCount }).map((_, i) => (
+                {loadingKeys.map((k) => (
                   <div
-                    key={i}
+                    key={k}
                     className="mb-2 h-5 w-full rounded bg-gray-200 shimmer last:mb-0"
                   />
                 ))}

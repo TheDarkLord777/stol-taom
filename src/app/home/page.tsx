@@ -13,10 +13,7 @@ export default function Dashboard() {
   // Responsiv chap padding: mobil ~20px (pl-5), desktop ~40px (md:pl-10)
 
   return (
-    <div
-      suppressHydrationWarning
-      className="relative min-h-screen w-full overflow-hidden"
-    >
+    <div className="relative min-h-screen w-full overflow-hidden">
       {/* Background Image */}
       <div className="absolute inset-0 z-0">
         <Image
@@ -38,7 +35,7 @@ export default function Dashboard() {
               <Button
                 key={a.label}
                 href={a.href}
-                className="h-14 w-full max-w-xs bg-[#C8FF00] hover:bg-[#B8EF00] text-black text-xl font-bold shadow-xl rounded-lg justify-start text-left pl-5 md:pl-15"
+                className="h-14 w-full max-w-xs bg-[#C8FF00] hover:bg-[#B8EF00] text-black text-xl font-bold shadow-xl rounded-lg flex justify-start items-center leading-none text-left pl-5 md:pl-10"
               >
                 {a.label}
               </Button>
