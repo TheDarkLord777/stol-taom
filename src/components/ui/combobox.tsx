@@ -10,6 +10,7 @@ type BaseProps = {
   options: ComboOption[];
   value?: string;
   onChange?: (value: string) => void;
+  onQueryChange?: (q: string) => void;
   emptyText?: string;
   loading?: boolean;
   loadingCount?: number;
@@ -152,7 +153,11 @@ export function Combobox(props: ComboboxProps) {
               <Command.Input
                 autoFocus
                 value={query}
-                onValueChange={setQuery}
+                onValueChange={(v) => {
+                  setQuery(v);
+                  // notify parent of query changes
+                  (props as BaseProps).onQueryChange?.(v);
+                }}
                 placeholder="Qidirish…"
                 className="w-full bg-transparent text-sm outline-none placeholder:text-gray-400"
               />
@@ -180,6 +185,7 @@ export function Combobox(props: ComboboxProps) {
                         onChange?.(opt.value);
                         setOpen(false);
                         setQuery("");
+                        (props as BaseProps).onQueryChange?.("");
                       }}
                       className="cursor-pointer select-none px-3 py-2 text-sm aria-selected:bg-gray-100 aria-selected:text-gray-900"
                     >
@@ -229,6 +235,7 @@ export function Combobox(props: ComboboxProps) {
                   const opt = filtered[activeIndex];
                   onChange?.(opt.value);
                   setQuery(opt.label);
+                  (props as BaseProps).onQueryChange?.(opt.label);
                   setOpen(false);
                 }
               } else if (e.key === "Escape") {
@@ -247,6 +254,7 @@ export function Combobox(props: ComboboxProps) {
               onClick={() => {
                 setQuery("");
                 onChange?.("");
+                (props as BaseProps).onQueryChange?.("");
                 inputRef.current?.focus();
               }}
               aria-label="Tozalash"
@@ -305,6 +313,7 @@ export function Combobox(props: ComboboxProps) {
                     onSelect={() => {
                       onChange?.(opt.value);
                       setQuery(opt.label);
+                      (props as BaseProps).onQueryChange?.(opt.label);
                       setOpen(false);
                     }}
                     className={

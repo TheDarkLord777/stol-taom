@@ -1,42 +1,43 @@
 "use client";
-import Image from "next/image";
 import React from "react";
-import Combobox from "@/components/ui/combobox";
+import MenuGrid, { type MenuItem } from "@/components/MenuGrid";
+import ExplorerClient from "./ExplorerClient";
 
-type Option = { value: string; label: string; logo?: string };
-
-export default function Page() {
-  const [selected, setSelected] = React.useState<string | undefined>();
-  const [meals, setMeals] = React.useState<Option[]>([]);
+export default function MenuPage() {
+  const [query, setQuery] = React.useState("");
+  const [items, setItems] = React.useState<MenuItem[] | null>(null);
   const [loading, setLoading] = React.useState(true);
+
   React.useEffect(() => {
     let mounted = true;
-    const MIN_SKELETON_MS = 600; // minimum shimmer visibility
-    const start = Date.now();
+    setLoading(true);
     fetch("/api/menu")
       .then((r) => r.json())
       .then((d) => {
         if (!mounted) return;
-        const items = (d.items || []) as Array<{
+        const list = (d.items || []) as Array<{
           id: string;
           name: string;
-          slug: string;
+          slug?: string;
           logoUrl?: string;
+          createdAt?: number;
         }>;
-        const opts: Option[] = items.map((it) => ({
-          value: it.id,
-          label: it.name,
-          logo: it.logoUrl,
+        const mapped: MenuItem[] = list.map((it) => ({
+          id: it.id,
+          name: it.name,
+          slug: it.slug,
+          logoUrl: it.logoUrl,
+          createdAt: it.createdAt,
         }));
-        setMeals(opts);
+        setItems(mapped);
       })
-      .catch(() => {})
+      .catch(() => {
+        if (!mounted) return;
+        setItems([]);
+      })
       .finally(() => {
         if (!mounted) return;
-        const elapsed = Date.now() - start;
-        const remain = Math.max(0, MIN_SKELETON_MS - elapsed);
-        if (remain === 0) setLoading(false);
-        else setTimeout(() => mounted && setLoading(false), remain);
+        setLoading(false);
       });
     return () => {
       mounted = false;
@@ -44,40 +45,24 @@ export default function Page() {
   }, []);
 
   return (
-    <div className="max-w-3xl mx-auto p-6 space-y-8">
-      <div className="relative h-40 w-full overflow-hidden rounded-md">
-        <Image
-          src="/dashboard.png"
-          alt="Food background"
-          fill
-          className="object-cover"
-          priority
-        />
-        <div className="absolute inset-0 bg-black/10" />
-      </div>
-      <div>
-        <Combobox
-          mode="input"
-          options={meals}
-          value={selected}
-          onChange={setSelected}
-          inputPlaceholder="Taom nomini kiriting"
-          loading={loading}
-        />
-      </div>
-
-      {selected && (
-        <div className="flex items-center gap-2 text-sm text-gray-700">
-          <Image
-            src={meals.find((r) => r.value === selected)?.logo || ""}
-            alt="Logo"
-            width={50}
-            height={50}
-            className="rounded"
-          />
-          <span>{meals.find((r) => r.value === selected)?.label}</span>
-        </div>
-      )}
-    </div>
+    <main className="mx-auto max-w-6xl p-6">
+      <h1 className="mb-6 text-2xl font-bold">Menyu</h1>
+      {/* Show the previous explorer/search UI first so it's visible at the top */}
+      <ExplorerClient
+        onQueryChange={setQuery}
+        items={items?.map((it) => ({
+          value: it.id,
+          label: it.name,
+          logo: it.logoUrl,
+        }))}
+        loading={loading}
+      />
+      <MenuGrid
+        items={items ?? undefined}
+        query={query}
+        loading={loading}
+        columns={3}
+      />
+    </main>
   );
 }
