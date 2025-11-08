@@ -41,7 +41,7 @@ export function Combobox(props: ComboboxProps) {
   } = props as BaseProps & { loading?: boolean; loadingCount?: number };
   const [open, setOpen] = React.useState(false);
   const selected = React.useMemo(
-    () => options.find((o) => o.value === value) || null,
+    () => options.find((o) => o.value === value) || (value ? { value, label: value } : null),
     [options, value],
   );
   const [query, setQuery] = React.useState("");
@@ -50,12 +50,12 @@ export function Combobox(props: ComboboxProps) {
   const itemRefs = React.useRef<Array<HTMLDivElement | null>>([]);
   const [activeIndex, setActiveIndex] = React.useState<number>(-1);
 
-  // Keep input query in sync when selecting
+  // Keep input query in sync when selecting or when value changes
   React.useEffect(() => {
     if (props.mode === "input") {
-      setQuery(selected?.label ?? "");
+      setQuery(selected?.label ?? value ?? "");
     }
-  }, [selected?.label, props.mode]);
+  }, [selected?.label, props.mode, value]);
 
   const filtered = React.useMemo(() => {
     const source = props.mode === "input" ? query : query;
@@ -185,7 +185,7 @@ export function Combobox(props: ComboboxProps) {
                         onChange?.(opt.value);
                         setOpen(false);
                         setQuery("");
-                        (props as BaseProps).onQueryChange?.("");
+                        // Don't call onQueryChange when selecting from dropdown
                       }}
                       className="cursor-pointer select-none px-3 py-2 text-sm aria-selected:bg-gray-100 aria-selected:text-gray-900"
                     >
@@ -235,7 +235,7 @@ export function Combobox(props: ComboboxProps) {
                   const opt = filtered[activeIndex];
                   onChange?.(opt.value);
                   setQuery(opt.label);
-                  (props as BaseProps).onQueryChange?.(opt.label);
+                  // Don't call onQueryChange when selecting from dropdown
                   setOpen(false);
                 }
               } else if (e.key === "Escape") {
@@ -313,7 +313,7 @@ export function Combobox(props: ComboboxProps) {
                     onSelect={() => {
                       onChange?.(opt.value);
                       setQuery(opt.label);
-                      (props as BaseProps).onQueryChange?.(opt.label);
+                      // Don't call onQueryChange when selecting from dropdown
                       setOpen(false);
                     }}
                     className={

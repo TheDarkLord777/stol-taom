@@ -1,5 +1,6 @@
 "use client";
 import React from "react";
+import Combobox from "@/components/ui/combobox";
 
 type Ingredient = { id: string; name: string; mandatory: boolean; selected?: boolean };
 type Item = { id: string; name: string; slug: string; logoUrl?: string; createdAt: number; ingredients: Ingredient[]; restaurantIds: string[] };
@@ -12,6 +13,71 @@ export default function IngredientsAdminClient({ initialItems, initialRestaurant
     const [localIngredients, setLocalIngredients] = React.useState<Ingredient[]>([]);
     const [localRestaurantIds, setLocalRestaurantIds] = React.useState<string[]>([]);
     const [saving, setSaving] = React.useState(false);
+
+    // Basic ingredient options for combobox suggestions. You can extend or fetch these from a server.
+    const basicIngredientOptions = React.useMemo(() => {
+        const list = [
+            // meats & proteins
+            "Mol go'shti",
+            "Go'sht",
+            "Tovuq go'shti",
+            "Ot go'shti",
+            "Qo'y go'shti",
+            "Katta Gosht",
+            "Gosht",
+            "Qazi",
+
+            // staples
+            "Un",
+            "Guruch",
+            "Xamir",
+            "Tuxum",
+            "Suv",
+            "Sariyog'",
+
+            // vegetables
+            "Piyoz",
+            "Sabzi",
+            "Kartoshka",
+            "Pomidor",
+            "Kokat",
+
+            // liquids / fats / seasoning
+            "Yog'",
+            "Tuz",
+            "Sirka",
+            "Bulon",
+
+            // legumes & extras
+            "Noxat",
+
+            // spices
+            "Zira",
+            "Ziravor",
+            "Murch",
+            "Qora murch",
+            "Shirin murch",
+            "Paprika",
+            "Koriander",
+            "Lavrov yaprogi",
+            "Sarimsoq",
+            "Chisnok",
+
+            // regional / other
+            "Droj",
+            "Ot go'shti",
+        ];
+        // dedupe preserving order
+        const seen = new Set<string>();
+        const uniq = list.filter((s) => {
+            const k = s.toLowerCase();
+            if (seen.has(k)) return false;
+            seen.add(k);
+            return true;
+        });
+        // Use the original name as both value and label to match saved ingredient names
+        return uniq.map((v) => ({ value: v, label: v }));
+    }, []);
 
     const openEdit = (item: Item) => {
         setEditing(item);
@@ -172,7 +238,23 @@ export default function IngredientsAdminClient({ initialItems, initialRestaurant
                                     {localIngredients.map((ing) => (
                                         <div key={ing.id} className="flex items-center gap-2">
                                             <input type="checkbox" checked={!!ing.mandatory} onChange={() => toggleIngredientMandatory(ing.id)} className="mr-2" />
-                                            <input value={ing.name} onChange={(e) => updateIngredientName(ing.id, e.target.value)} className="flex-1 rounded border px-2 py-1" placeholder="Ingredient name" />
+                                            <div className="flex-1">
+                                                <Combobox
+                                                    mode="input"
+                                                    options={basicIngredientOptions}
+                                                    value={ing.name}
+                                                    onChange={(v) => {
+                                                        // v is the selected option's value (which is now the label)
+                                                        updateIngredientName(ing.id, v);
+                                                    }}
+                                                    onQueryChange={(q) => {
+                                                        // Update ingredient name when user types freely
+                                                        // This allows free-form text input for custom ingredient names
+                                                        updateIngredientName(ing.id, q);
+                                                    }}
+                                                    inputPlaceholder="Ingredient name"
+                                                />
+                                            </div>
                                             <button className="text-red-600 text-sm ml-2" onClick={() => removeIngredient(ing.id)}>Remove</button>
                                         </div>
                                     ))}
@@ -201,3 +283,4 @@ export default function IngredientsAdminClient({ initialItems, initialRestaurant
         </div>
     );
 }
+
