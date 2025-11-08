@@ -43,14 +43,6 @@ export default function MenuGrid({
   const [fetched, setFetched] = React.useState<MenuItem[] | null>(null);
   const [internalLoading, setInternalLoading] = React.useState<boolean>(false);
 
-  const loadingKeys = React.useMemo(
-    () =>
-      Array.from({ length: Math.max(0, loadingCount) }).map(
-        (_, i) => `loading-${i}`,
-      ),
-    [loadingCount],
-  );
-
   React.useEffect(() => {
     if (!fetchUrl) return;
     let mounted = true;
@@ -59,9 +51,8 @@ export default function MenuGrid({
       .then((r) => r.json())
       .then((d) => {
         if (!mounted) return;
-        // Accept either { items: [...] } or an array response
         const list = Array.isArray(d) ? d : (d.items ?? []);
-        setFetched(list as MenuItem[]);
+        setFetched(list); // Batch fetch all items at once
       })
       .catch(() => {
         if (!mounted) return;
@@ -75,19 +66,9 @@ export default function MenuGrid({
       mounted = false;
     };
   }, [fetchUrl]);
+
   const colsClass = React.useMemo(() => {
-    switch (columns) {
-      case 1:
-        return "grid-cols-1";
-      case 2:
-        return "sm:grid-cols-2 md:grid-cols-2";
-      case 3:
-        return "sm:grid-cols-2 md:grid-cols-3";
-      case 4:
-        return "sm:grid-cols-2 md:grid-cols-4";
-      default:
-        return "sm:grid-cols-2 md:grid-cols-3";
-    }
+    return `sm:grid-cols-1 md:grid-cols-${columns}`; // Simplified responsive logic
   }, [columns]);
 
   // decide which items to render: explicit prop has priority, otherwise fetched
@@ -100,6 +81,56 @@ export default function MenuGrid({
     // Use substring matching so typing any part of the name will match
     return sourceItems.filter((s) => s.name.toLowerCase().includes(q));
   }, [sourceItems, query]);
+
+  const combinedItems = React.useMemo(() => {
+    return visibleItems.map((it, idx) => (
+      <div
+        key={it.id}
+        role="button"
+        tabIndex={0}
+        className="flex flex-col overflow-hidden rounded-lg border bg-linear-to-br from-gray-50 to-gray-100 shadow-md hover:shadow-lg hover:scale-105 transition-transform duration-200 cursor-pointer text-left"
+        onClick={() => openDetail(it)}
+        onKeyDown={(e) => {
+          if (e.key === "Enter" || e.key === " ") openDetail(it);
+        }}
+      >
+        <div className="relative w-full bg-gray-100/5">
+          {it.imageUrl || it.logoUrl ? (
+            <div className="relative h-56 md:h-64 w-full">
+              <Image
+                src={(it.imageUrl ?? it.logoUrl) as string}
+                alt={it.name}
+                fill
+                priority={idx === 0}
+                className="object-cover rounded-t-lg"
+                sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw"
+              />
+            </div>
+          ) : (
+            <div className="h-56 md:h-64 w-full bg-white/3 flex items-center justify-center text-sm text-gray-400">
+              Rasm yo'q
+            </div>
+          )}
+        </div>
+
+        <div className="p-4 flex flex-col gap-2">
+          <h3 className="text-base font-semibold text-gray-800">{it.name}</h3>
+          {it.description ? (
+            <p className="text-sm text-gray-600 line-clamp-3">{it.description}</p>
+          ) : null}
+          <div className="mt-2 flex items-center justify-between">
+            <div className="text-sm text-gray-500">{it.price ?? ""}</div>
+            <button
+              type="button"
+              className="rounded-md bg-linear-to-r from-blue-500 to-blue-600 px-3 py-1 text-sm text-white hover:from-blue-600 hover:to-blue-700"
+            >
+              Buy
+            </button>
+          </div>
+        </div>
+      </div>
+    ));
+  }, [visibleItems]);
 
   // open detail modal for an item
   const openDetail = (it: MenuItem) => {
@@ -140,84 +171,23 @@ export default function MenuGrid({
 
   return (
     <>
-      <div className={`grid gap-6 ${colsClass}`}>
-        {isLoading
-          ? loadingKeys.map((k) => (
-              <article
-                key={k}
-                className="flex flex-col overflow-hidden rounded-lg border bg-white/5 shadow-sm"
-              >
-                <div className="relative w-full bg-gray-100/5">
-                  <div className="h-56 md:h-64 w-full bg-gray-200 shimmer" />
-                </div>
-                <div className="p-4 flex flex-col gap-2">
-                  <div className="h-4 w-1/2 rounded bg-gray-200 shimmer" />
-                  <div className="h-3 w-full rounded bg-gray-200 shimmer" />
-                  <div className="mt-2 flex items-center justify-between">
-                    <div className="h-3 w-20 rounded bg-gray-200 shimmer" />
-                    <div className="h-8 w-20 rounded bg-gray-200 shimmer" />
-                  </div>
-                </div>
-              </article>
-            ))
-          : visibleItems.map((it, idx) => (
-              <div
-                key={it.id}
-                role="button"
-                tabIndex={0}
-                className="flex flex-col overflow-hidden rounded-lg border bg-white/5 shadow-sm cursor-pointer text-left"
-                onClick={() => openDetail(it)}
-                onKeyDown={(e) => {
-                  if (e.key === "Enter" || e.key === " ") openDetail(it);
-                }}
-              >
-                <div className="relative w-full bg-gray-100/5">
-                  {it.imageUrl || it.logoUrl ? (
-                    // Keep a consistent aspect ratio so layout doesn't shift
-                    <div className="relative h-56 md:h-64 w-full">
-                      <Image
-                        src={(it.imageUrl ?? it.logoUrl) as string}
-                        alt={it.name}
-                        fill
-                        priority={idx === 0}
-                        className="object-cover"
-                        sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw"
-                      />
-                    </div>
-                  ) : (
-                    <div className="h-56 md:h-64 w-full bg-white/3 flex items-center justify-center text-sm text-gray-400">
-                      Rasm yo'q
-                    </div>
-                  )}
-                </div>
-
-                <div className="p-4 flex flex-col gap-2">
-                  <h3 className="text-base font-semibold">{it.name}</h3>
-                  {it.description ? (
-                    <p className="text-sm text-gray-300 line-clamp-3">
-                      {it.description}
-                    </p>
-                  ) : null}
-                  <div className="mt-2 flex items-center justify-between">
-                    <div className="text-sm text-gray-400">
-                      {it.price ?? ""}
-                    </div>
-                    <button
-                      type="button"
-                      className="rounded-md bg-primary px-3 py-1 text-sm text-primary-foreground hover:bg-primary/90"
-                    >
-                      Buy
-                    </button>
-                  </div>
-                </div>
-              </div>
-            ))}
-      </div>
-
+      {isLoading && (
+        <div className="grid gap-6 grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4">
+          {Array.from({ length: 8 }).map((_, index) => (
+            <div
+              key={index}
+              className="h-40 bg-gray-200 shimmer rounded-lg"
+            ></div>
+          ))}
+        </div>
+      )}
+      {!isLoading && (
+        <div className={`grid gap-6 ${colsClass}`}>{combinedItems}</div>
+      )}
       {/* Detail modal (fullscreen) */}
       {selected ? (
         <div
-          className="fixed inset-0 z-50 flex items-center justify-center bg-black/60"
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm"
           onClick={closeDetail}
           onKeyDown={(e) => {
             if (e.key === "Escape" || e.key === "Enter") closeDetail();
@@ -226,7 +196,7 @@ export default function MenuGrid({
           role="dialog"
         >
           <div
-            className="relative mx-4 max-w-4xl transform overflow-hidden rounded bg-white shadow-lg transition-all duration-300 ease-out"
+            className="relative mx-4 max-w-4xl transform overflow-hidden rounded-lg bg-white shadow-xl transition-all duration-300 ease-out scale-95"
             onClick={(e) => e.stopPropagation()}
             onKeyDown={(e) => e.stopPropagation()}
             role="document"
@@ -235,7 +205,7 @@ export default function MenuGrid({
               type="button"
               onClick={closeDetail}
               aria-label="Close"
-              className="absolute right-3 top-3 z-10 rounded bg-white/80 px-2 py-1 text-sm shadow hover:bg-white"
+              className="absolute right-3 top-3 z-10 rounded bg-white/80 px-2 py-1 text-sm shadow hover:bg-gray-200"
             >
               ✕
             </button>
@@ -247,7 +217,7 @@ export default function MenuGrid({
                     src={(selected.imageUrl ?? selected.logoUrl) as string}
                     alt={selected.name}
                     fill
-                    className="object-cover"
+                    className="object-cover rounded-t-lg"
                   />
                 ) : (
                   <div className="h-full w-full flex items-center justify-center text-gray-500">
@@ -256,7 +226,7 @@ export default function MenuGrid({
                 )}
               </div>
               <div className="p-6">
-                <h2 className="mb-2 text-2xl font-bold">{selected.name}</h2>
+                <h2 className="mb-2 text-2xl font-bold text-gray-800">{selected.name}</h2>
                 <div className="mb-4 text-sm text-gray-600">
                   {detailLoading ? (
                     <span>Yuklanmoqda…</span>
@@ -267,7 +237,7 @@ export default function MenuGrid({
                   )}
                 </div>
 
-                <h3 className="mb-2 text-lg font-semibold">
+                <h3 className="mb-2 text-lg font-semibold text-gray-700">
                   Qaysi restoranlarda bor
                 </h3>
                 <div className="space-y-2">
