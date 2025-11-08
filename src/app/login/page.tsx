@@ -2,7 +2,7 @@
 import Image from "next/image";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import CLSObserver from "@/components/CLSObserver";
 import ClientOnly from "@/components/ClientOnly";
 import { Button } from "@/components/ui/button";
@@ -34,11 +34,18 @@ export default function Login() {
       const res = await fetch("/api/login", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
+        // Ensure same-site cookies set by the API are accepted by the browser
+        // (fetch defaults to 'same-origin' but being explicit avoids edge cases).
+        credentials: "same-origin",
         body: JSON.stringify({ phone: p, password }),
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || "Xatolik yuz berdi");
-      router.replace("/home");
+      // Use a full navigation to ensure cookies are available to middleware
+      // and server-rendered routes immediately after login. Using router.replace
+      // can also work, but forcing a reload avoids edge cases where cookies
+      // aren't yet visible to SSR-route checks.
+      window.location.href = "/home";
     } catch (e: unknown) {
       const msg = e instanceof Error ? e.message : String(e);
       setError(msg);
@@ -46,6 +53,28 @@ export default function Login() {
       setLoading(false);
     }
   }
+
+  // Client-side smooth redirect: if the user already has a valid session,
+  // redirect them to /home without a full reload. This complements the
+  // middleware/server-side redirect so UX is snappier in SPA flow.
+  useEffect(() => {
+    let mounted = true;
+    (async () => {
+      try {
+        const res = await fetch("/api/auth/me", { credentials: "same-origin" });
+        if (!mounted) return;
+        if (res.ok) {
+          // Use replace to avoid leaving /login in history
+          router.replace("/home");
+        }
+      } catch {
+        // ignore network errors; user will see login form
+      }
+    })();
+    return () => {
+      mounted = false;
+    };
+  }, [router]);
   return (
     <div className="relative min-h-dvh w-full overflow-hidden">
       {/* Background Image */}

@@ -15,6 +15,13 @@ What changed since this file was added
 - Dev-only admin UI and APIs are gated by `process.env.NODE_ENV !== 'production'` and explicit flags such as `AUTH_DEBUG_ENABLED` and `NEXT_PUBLIC_AUTH_DEBUG`. There is an optional `DEV_ADMIN_ENABLED` pattern used when you want to enable dev UI in a standalone run.
 - Utility scripts added: `scripts/sync-deps.cjs` + `deps.dependencies.json` to help manage large dependency lists outside `package.json` if desired.
 - Debug/UI helpers added: `AuthSessionTimer` (polls `/api/auth/debug`) and `CLSObserver` (logs layout-shift entries) to help debug auth/UX issues locally.
+- New menu explorer UI: a restored Combobox-based explorer (`src/app/menu/ExplorerClient.tsx`) now sits above a responsive `MenuGrid` (`src/components/MenuGrid.tsx`). The page-level `src/app/menu/page.tsx` fetches `/api/menu` once and passes `items`/`loading` into both components to avoid duplicate network calls.
+- `MenuGrid` responsibilities: fetch fallback (via `fetchUrl`), client-side substring filtering (accepts `query` prop), shimmer/loading skeletons, larger image area for cards, accepts `logoUrl`/`imageUrl`, and a fullscreen detail modal that fetches `/api/menu/:id` when opened.
+- Combobox updates: `src/components/ui/combobox.tsx` now exposes `onQueryChange` so parents can react to live typing and filter the grid (uses substring `includes` matching by default).
+- Modal & accessibility: the menu detail modal supports keyboard close (Escape), overlay click to close, and has role attributes. The modal expects a detail API at `/api/menu/[id]`; add that route or return useful fallback data server-side.
+- next/image usage: many images use `fill`; add `sizes` when using `fill` and mark above-the-fold LCP images with `priority` to avoid dev-console warnings and improve performance.
+- Auth/middleware changes: `src/lib/jwtAuth.ts` now centralizes auth rules (AuthControl). Middleware routes through `src/middleware.ts` call `authGuard(req)` and will now redirect authenticated requests to `/home` when they hit `/` or `/login`. Refresh rotation logic remains in `refreshAccessToken(req, res)` and `issueAndSetAuthCookies`.
+- Login flow: the login page (`src/app/login/page.tsx`) now sends `credentials: 'same-origin'` with the fetch to ensure cookie acceptance, performs a full navigation (`window.location.href = '/home'`) after success to guarantee SSR/middleware sees cookies, and also includes a client-side `useEffect` check that calls `/api/auth/me` and runs `router.replace('/home')` for a smooth SPA-like redirect if already authenticated.
 
 Coding style
 - Follow existing patterns: PascalCase for React components, camelCase for variables and functions, UPPER_SNAKE for env names.
@@ -34,9 +41,10 @@ Next.js & React guidance
   - Prefer server components for data fetching and heavy logic when possible.
 
 Auth & env patterns (critical)
-- Auth helpers live in `src/lib/jwtAuth.ts`. Use `signAccessToken`, `refreshAccessToken`, and `issueAndSetAuthCookies` consistently when issuing tokens.
-- Cookie flags (Secure, httpOnly, SameSite) are derived from `process.env.COOKIE_SECURE`. For local dev ensure `COOKIE_SECURE=false` so cookies are sent over HTTP.
-- Dev-only admin/debug endpoints are disabled in production. To enable a dev page in standalone, prefer an explicit opt-in env like `DEV_ADMIN_ENABLED=true` rather than switching NODE_ENV.
+- Auth helpers live in `src/lib/jwtAuth.ts`. Use `signAccessToken`, `refreshAccessToken`, `issueAndSetAuthCookies`, and `getUserFromRequest` consistently when issuing tokens and checking sessions.
+- Cookie flags (Secure, httpOnly, SameSite) are derived from `process.env.COOKIE_SECURE`. For local dev ensure `COOKIE_SECURE=false` so cookies are sent over HTTP; otherwise secure cookies won't be set over plain HTTP and middleware will not see them.
+- Middleware and routing: `src/middleware.ts` calls `authGuard(req)` which enforces `AuthControl`. The guard now redirects `/` and `/login` to `/home` for authenticated users (via access token or successful refresh). When testing, use browser devtools Network tab to confirm `Set-Cookie` headers and cookie flags.
+- Client fetches that rely on Set-Cookie must use `credentials: 'same-origin'` (or appropriate cross-site credentials) so the browser accepts cookies set by the server.
 
 Dev & standalone workflows
 - Dev: run `npm run dev` to use Turbopack; all dev APIs (under `/dev`) are available.
@@ -64,6 +72,8 @@ Practical tips and gotchas
 - When rotating refresh JTIs with Redis, only rotate (delete old/add new) if you can also set the new refresh cookie for the client in the same response — otherwise the client will retain an invalidated refresh token and get logged out on next request. Use the helper `refreshAccessToken(req, res)` that accepts an optional response to set cookies.
 - For quick token expiry testing, use `ACCESS_TTL_SECONDS` and `REFRESH_TTL_SECONDS` in `.env.local`.
 - If you add dev-only UI, gate it behind `AUTH_DEBUG_ENABLED` or `DEV_ADMIN_ENABLED` so production remains safe.
+- Menu UI notes: `MenuGrid` supports being passed `items` and `loading` from a parent to avoid duplicated fetches; prefer fetching once in the page and passing down. The grid also accepts `fetchUrl` when used standalone. The detail modal expects `/api/menu/[id]` — implement that API to provide restaurants and full description for a better UX.
+- next/image notes: when using `fill`, always provide a `sizes` prop to suppress console warnings and improve layout/CPU; mark images that are LCP candidates with `priority`.
 
 Commit & PR guidance
 - Keep PRs small and focused. Describe intent, list changed files, and include manual verification steps.

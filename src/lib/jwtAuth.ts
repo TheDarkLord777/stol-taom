@@ -375,6 +375,48 @@ export async function authGuard(req: NextRequest): Promise<NextResponse> {
       );
     return pass;
   }
+
+  // If user navigates to the configured login page while already authenticated,
+  // send them to /home. This mirrors the landing-page behavior so users who
+  // accidentally visit /login while logged in are redirected.
+  if (!isApi && normalizePath(pathname) === normalizePath(AuthControl.loginPath)) {
+    const userAlready = await getUserFromRequest(req);
+    if (userAlready) {
+      const url = req.nextUrl.clone();
+      url.pathname = "/home";
+      url.search = "";
+      const redir = NextResponse.redirect(url);
+      if (dev)
+        redir.headers.set(
+          "x-auth-debug",
+          JSON.stringify({ path: pathname, login: true, authed: true, action: "redirect-home-from-login", via: "access" }),
+        );
+      return redir;
+    }
+
+    // Try to refresh and redirect if refresh token is valid
+    const url2 = req.nextUrl.clone();
+    url2.pathname = "/home";
+    url2.search = "";
+    const redir2 = NextResponse.redirect(url2);
+    const refreshed = await refreshAccessToken(req, redir2);
+    if (refreshed?.user) {
+      if (dev)
+        redir2.headers.set(
+          "x-auth-debug",
+          JSON.stringify({ path: pathname, login: true, authed: true, action: "redirect-home-from-login", via: "refresh" }),
+        );
+      return redir2;
+    }
+
+    const passLogin = NextResponse.next();
+    if (dev)
+      passLogin.headers.set(
+        "x-auth-debug",
+        JSON.stringify({ path: pathname, login: true, authed: false, action: "show-login" }),
+      );
+    return passLogin;
+  }
   const isPublic = matchPath(pathname, AuthControl.publicPages);
   const needsAuth = isApi
     ? matchPath(pathname, AuthControl.protectedApi)

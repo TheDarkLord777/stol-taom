@@ -160,10 +160,11 @@ export default function MenuGrid({
                             </div>
                         </article>
                     ))
-                    : visibleItems.map((it) => (
-                        <button
+                    : visibleItems.map((it, idx) => (
+                        <div
                             key={it.id}
-                            type="button"
+                            role="button"
+                            tabIndex={0}
                             className="flex flex-col overflow-hidden rounded-lg border bg-white/5 shadow-sm cursor-pointer text-left"
                             onClick={() => openDetail(it)}
                             onKeyDown={(e) => {
@@ -178,6 +179,7 @@ export default function MenuGrid({
                                             src={(it.imageUrl ?? it.logoUrl) as string}
                                             alt={it.name}
                                             fill
+                                            priority={idx === 0}
                                             className="object-cover"
                                             sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw"
                                         />
@@ -208,7 +210,7 @@ export default function MenuGrid({
                                     </button>
                                 </div>
                             </div>
-                        </button>
+                        </div>
                     ))}
             </div>
 
