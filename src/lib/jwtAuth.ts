@@ -379,7 +379,10 @@ export async function authGuard(req: NextRequest): Promise<NextResponse> {
   // If user navigates to the configured login page while already authenticated,
   // send them to /home. This mirrors the landing-page behavior so users who
   // accidentally visit /login while logged in are redirected.
-  if (!isApi && normalizePath(pathname) === normalizePath(AuthControl.loginPath)) {
+  if (
+    !isApi &&
+    normalizePath(pathname) === normalizePath(AuthControl.loginPath)
+  ) {
     const userAlready = await getUserFromRequest(req);
     if (userAlready) {
       const url = req.nextUrl.clone();
@@ -389,7 +392,13 @@ export async function authGuard(req: NextRequest): Promise<NextResponse> {
       if (dev)
         redir.headers.set(
           "x-auth-debug",
-          JSON.stringify({ path: pathname, login: true, authed: true, action: "redirect-home-from-login", via: "access" }),
+          JSON.stringify({
+            path: pathname,
+            login: true,
+            authed: true,
+            action: "redirect-home-from-login",
+            via: "access",
+          }),
         );
       return redir;
     }
@@ -404,7 +413,13 @@ export async function authGuard(req: NextRequest): Promise<NextResponse> {
       if (dev)
         redir2.headers.set(
           "x-auth-debug",
-          JSON.stringify({ path: pathname, login: true, authed: true, action: "redirect-home-from-login", via: "refresh" }),
+          JSON.stringify({
+            path: pathname,
+            login: true,
+            authed: true,
+            action: "redirect-home-from-login",
+            via: "refresh",
+          }),
         );
       return redir2;
     }
@@ -413,7 +428,12 @@ export async function authGuard(req: NextRequest): Promise<NextResponse> {
     if (dev)
       passLogin.headers.set(
         "x-auth-debug",
-        JSON.stringify({ path: pathname, login: true, authed: false, action: "show-login" }),
+        JSON.stringify({
+          path: pathname,
+          login: true,
+          authed: false,
+          action: "show-login",
+        }),
       );
     return passLogin;
   }
