@@ -39,6 +39,7 @@ export default function MenuGrid({
   const [detail, setDetail] = React.useState<{
     restaurants?: Array<{ id: string; name: string }>;
     description?: string;
+    ingredients?: Array<{ id: string; name: string; mandatory: boolean; selected?: boolean }>;
   } | null>(null);
   const [fetched, setFetched] = React.useState<MenuItem[] | null>(null);
   const [internalLoading, setInternalLoading] = React.useState<boolean>(false);
@@ -137,18 +138,18 @@ export default function MenuGrid({
     setSelected(it);
     setDetail(null);
     setDetailLoading(true);
-    // try fetching a detail route; if not present, we'll show fallback
-    fetch(`/api/menu/${it.id}`)
-      .then((r) => {
-        if (!r.ok) throw new Error("no-detail");
-        return r.json();
+
+    // fetch detail and ingredients in parallel and merge
+    const detailP = fetch(`/api/menu/${it.id}`).then((r) => (r.ok ? r.json() : null)).catch(() => null);
+    const ingP = fetch(`/api/menu/${it.id}/ingredients`).then((r) => (r.ok ? r.json() : null)).catch(() => null);
+
+    Promise.all([detailP, ingP])
+      .then(([d, ing]) => {
+        const base = d ?? { description: undefined, restaurants: [] };
+        const ingredients = Array.isArray(ing?.ingredients) ? ing.ingredients.map((x: any) => ({ id: String(x.id), name: x.name, mandatory: Boolean(x.mandatory), selected: Boolean(x.mandatory) })) : [];
+        setDetail({ ...base, ingredients });
       })
-      .then((d) => {
-        setDetail(d);
-      })
-      .catch(() => {
-        setDetail(null);
-      })
+      .catch(() => setDetail(null))
       .finally(() => setDetailLoading(false));
   };
 
@@ -168,6 +169,58 @@ export default function MenuGrid({
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
   }, [selected, closeDetail]);
+
+  const handleIngredientChange = (id: string) => {
+    setDetail((prevDetail) => {
+      if (!prevDetail || !prevDetail.ingredients) return prevDetail;
+      return {
+        ...prevDetail,
+        ingredients: prevDetail.ingredients.map((ingredient) =>
+          ingredient.id === id ? { ...ingredient, selected: !ingredient.selected } : ingredient
+        ),
+      };
+    });
+  };
+
+  const addIngredient = () => {
+    setDetail((prev) => {
+      if (!prev) return prev;
+      const nextId = `new-${Date.now()}`;
+      const next = { id: nextId, name: "", mandatory: false, selected: false };
+      return { ...prev, ingredients: [...(prev.ingredients ?? []), next] };
+    });
+  };
+
+  const removeIngredient = (id: string) => {
+    setDetail((prev) => {
+      if (!prev || !prev.ingredients) return prev;
+      return { ...prev, ingredients: prev.ingredients.filter((i) => i.id !== id) };
+    });
+  };
+
+  const [saving, setSaving] = React.useState(false);
+  const saveIngredients = async () => {
+    if (!selected) return;
+    if (!detail) return;
+    setSaving(true);
+    try {
+      const payload = (detail.ingredients ?? []).map((i) => ({ name: i.name, mandatory: Boolean(i.mandatory) }));
+      const res = await fetch(`/api/menu/${selected.id}/ingredients`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ ingredients: payload }),
+      });
+      if (!res.ok) throw new Error("save-failed");
+      const data = await res.json();
+      // normalize ids from server
+      setDetail((prev) => (prev ? { ...prev, ingredients: (data.ingredients ?? []).map((x: any) => ({ id: String(x.id), name: x.name, mandatory: Boolean(x.mandatory), selected: Boolean(x.mandatory) })) } : prev));
+    } catch (e) {
+      console.error("Failed saving ingredients", e);
+      // optionally show toast
+    } finally {
+      setSaving(false);
+    }
+  };
 
   return (
     <>
@@ -252,6 +305,34 @@ export default function MenuGrid({
                   ) : (
                     <div className="text-sm text-gray-500">
                       Bu ovqat qaysi restoranlarda borligi haqida ma'lumot yo'q.
+                    </div>
+                  )}
+                </div>
+
+                {/* Ingredients Section */}
+                <h3 className="mt-4 mb-2 text-lg font-semibold text-gray-700">Ingredientlar</h3>
+                <div className="space-y-2">
+                  {detailLoading ? (
+                    <div className="h-3 w-40 rounded bg-gray-200 shimmer" />
+                  ) : detail?.ingredients && detail.ingredients.length > 0 ? (
+                    detail.ingredients.map((ingredient) => (
+                      <div key={ingredient.id} className="flex items-center">
+                        <input
+                          type="checkbox"
+                          id={`ingredient-${ingredient.id}`}
+                          disabled={ingredient.mandatory}
+                          checked={ingredient.selected || ingredient.mandatory}
+                          onChange={() => handleIngredientChange(ingredient.id)}
+                          className="mr-2"
+                        />
+                        <label htmlFor={`ingredient-${ingredient.id}`} className="text-gray-700">
+                          {ingredient.name}
+                        </label>
+                      </div>
+                    ))
+                  ) : (
+                    <div className="text-sm text-gray-500">
+                      Ingredientlar mavjud emas.
                     </div>
                   )}
                 </div>

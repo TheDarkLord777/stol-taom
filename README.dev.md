@@ -62,3 +62,33 @@ Troubleshooting
 - If package.json becomes smaller than expected, look for a recent `package.json.bak.*` file in the repo root and restore.
 - Run `node .\scripts\sync-deps.cjs --help` for usage information.
 
+Dev admin: Ingredients & Restaurants
+-----------------------------------
+
+This project now includes a small dev/admin UI for managing menu-item ingredients and restaurant assignments.
+
+- Page: `/dev/ingredients` (server component loads data via Prisma and passes to a client admin UI)
+- API endpoints used by the admin UI:
+	- `GET /api/menu/{id}/ingredients` — returns ingredients for a menu item
+	- `POST /api/menu/{id}/ingredients` — replace ingredients for a menu item (body: `{ ingredients: [{ name, mandatory }] }`)
+	- `POST /api/menu/{id}/restaurants` — replace restaurant assignments for a menu item (body: `{ restaurantIds: ["id1","id2"] }`)
+
+How to use:
+
+1. Run the Prisma migrations (if you haven't already):
+
+```powershell
+npx prisma migrate dev --name add-ingredients
+npx prisma migrate dev --name add-menuitem-restaurants
+npx prisma generate
+```
+
+2. Start the dev server and open http://localhost:3000/dev/ingredients
+
+3. Edit ingredients and restaurant assignments in the modal; Save will call the API endpoints and update the database.
+
+Notes:
+
+- The admin page is intended for development only (it's under `/dev`). Make sure it's not exposed in production unless explicitly enabled.
+- The endpoints currently perform replace semantics: POST replaces all existing ingredients/assignments for the menu item. If you need partial updates, we can extend the API.
+

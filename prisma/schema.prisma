@@ -27,6 +27,7 @@ model Restaurant {
   updatedAt DateTime @updatedAt
   // Relations
   reservations Reservation[]
+  menuItems MenuItemOnRestaurant[]
 }
 
 model MenuItem {
@@ -36,6 +37,21 @@ model MenuItem {
   logoUrl   String?
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+  // Relations
+  ingredients Ingredient[]
+  restaurants MenuItemOnRestaurant[]
+}
+
+model Ingredient {
+  id         String   @id @default(cuid())
+  name       String
+  mandatory  Boolean  @default(false)
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  // relation to menu item
+  menuItemId String
+  menuItem   MenuItem @relation(fields: [menuItemId], references: [id])
 }
 
 model Reservation {
@@ -49,4 +65,16 @@ model Reservation {
   partySize     Int?
   note          String?
   createdAt     DateTime @default(now())
+}
+
+model MenuItemOnRestaurant {
+  id           String   @id @default(cuid())
+  menuItemId   String
+  restaurantId String
+  createdAt    DateTime @default(now())
+
+  menuItem     MenuItem   @relation(fields: [menuItemId], references: [id])
+  restaurant   Restaurant @relation(fields: [restaurantId], references: [id])
+
+  @@unique([menuItemId, restaurantId])
 }

@@ -49,7 +49,7 @@ export default function ExplorerClient({
         }));
         setMeals(opts);
       })
-      .catch(() => {})
+      .catch(() => { })
       .finally(() => {
         if (!mounted) return;
         const elapsed = Date.now() - start;
@@ -99,7 +99,7 @@ export default function ExplorerClient({
             height={50}
             className="rounded"
           />
-          <span>{meals.find((r) => r.value === selected)?.label}</span>
+          {meals.find((r) => r.value === selected)?.label}
         </div>
       )}
     </div>
