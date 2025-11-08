@@ -24,6 +24,10 @@ const TELEGRAM_GATEWAY_MOCK =
   (process.env.TELEGRAM_GATEWAY_MOCK || "").toLowerCase() === "true" ||
   process.env.TELEGRAM_GATEWAY_MOCK === "1";
 
+// If we're running in non-production and no token is provided, default to mock
+const TELEGRAM_GATEWAY_TOKEN = process.env.TELEGRAM_GATEWAY_TOKEN;
+const USE_MOCK_FALLBACK = !TELEGRAM_GATEWAY_TOKEN && process.env.NODE_ENV !== "production";
+
 async function gatewayPost(
   endpoint: string,
   body: Record<string, unknown> | undefined,
@@ -42,8 +46,22 @@ async function gatewayPost(
       return { ok: true, result: { sent: true } };
     }
   }
-  const token = process.env.TELEGRAM_GATEWAY_TOKEN;
+  const token = TELEGRAM_GATEWAY_TOKEN;
   if (!token) {
+    if (USE_MOCK_FALLBACK) {
+      // Fall back to mock responses in dev when token is not configured
+      if (endpoint === "checkSendAbility") {
+        return {
+          ok: true,
+          result: {
+            request_id: `${Date.now()}_${Math.random().toString(36).slice(2, 8)}`,
+          },
+        };
+      }
+      if (endpoint === "sendVerificationMessage") {
+        return { ok: true, result: { sent: true } };
+      }
+    }
     // Runtime’da token yo‘q — foydalanuvchiga tushunarli xabar qaytaramiz
     throw new Error("TELEGRAM_GATEWAY_TOKEN not set in environment");
   }

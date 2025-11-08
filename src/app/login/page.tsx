@@ -2,7 +2,7 @@
 import Image from "next/image";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useState, useEffect } from "react";
+import { useEffect, useState } from "react";
 import CLSObserver from "@/components/CLSObserver";
 import ClientOnly from "@/components/ClientOnly";
 import { Button } from "@/components/ui/button";
@@ -10,6 +10,7 @@ import { Input } from "@/components/ui/input";
 
 export default function Login() {
   const router = useRouter();
+
   const [phone, setPhone] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
@@ -22,9 +23,23 @@ export default function Login() {
     return s;
   }
 
+  function normalizeForPrefix(v: string) {
+    const PHONE_PREFIX = "+998";
+    let s = v.trim();
+    if (!s) return "";
+    s = s.replace(/[^\d+]/g, "");
+    if (s.startsWith("+")) {
+      // keep other country codes intact
+      s = `+${s.slice(1).replace(/\+/g, "")}`;
+      return s;
+    }
+    if (s.startsWith("998")) return `+${s}`;
+    return `${PHONE_PREFIX}${s}`;
+  }
+
   async function onSubmit() {
     setError(null);
-    const p = normalizePhone(phone);
+    const p = normalizePhone(normalizeForPrefix(phone));
     if (!/^\+\d{10,15}$/.test(p)) {
       setError("Telefon raqam noto'g'ri formatda");
       return;
@@ -130,30 +145,31 @@ export default function Login() {
               <CLSObserver />
               {/* Phone Input */}
               <div className="flex justify-center">
-                <Input
-                  type="tel"
-                  name="username"
-                  autoComplete="tel"
-                  inputMode="tel"
-                  value={phone}
-                  onChange={(e) => setPhone(e.target.value)}
-                  onFocus={(e) => {
-                    // Prefill +998 on focus if the field is empty to save typing the country code
-                    if (!phone || phone.trim() === "") {
-                      setPhone("+998");
-                      // place caret at end after value is set — run on next tick so DOM reflects new value
-                      setTimeout(() => {
-                        try {
-                          e.currentTarget.selectionStart = e.currentTarget.selectionEnd = e.currentTarget.value.length;
-                        } catch {
-                          /* ignore */
-                        }
-                      }, 0);
-                    }
-                  }}
-                  placeholder="Telefon raqamingiz kiriting"
-                  className="h-14 w-full max-w-md bg-white/90 backdrop-blur-sm text-gray-600 placeholder:text-gray-400 text-center text-lg border-none shadow-lg placeholder-inika-24"
-                />
+                <div className="relative w-full max-w-md">
+                  <Input
+                    type="tel"
+                    name="username"
+                    autoComplete="tel"
+                    inputMode="tel"
+                    value={phone}
+                    onChange={(e) => {
+                      // allow a single leading + and digits
+                      let v = e.target.value;
+                      v = v.replace(/[^\d+]/g, "");
+                      // remove stray pluses not at start
+                      if (v.indexOf("+") > 0) v = v.replace(/\+/g, "");
+                      // ensure only one leading plus
+                      if ((v.match(/\+/g) || []).length > 1) v = v.replace(/\+/g, "+");
+                      setPhone(v);
+                    }}
+                    onBlur={(e) => {
+                      const norm = normalizeForPrefix(e.currentTarget.value);
+                      setPhone(norm);
+                    }}
+                    placeholder="Telefon raqamingiz kiriting"
+                    className="h-14 w-full bg-white/90 backdrop-blur-sm text-gray-600 placeholder:text-gray-400 text-center text-lg border-none shadow-lg placeholder-inika-24"
+                  />
+                </div>
               </div>
 
               {/* Password Input */}

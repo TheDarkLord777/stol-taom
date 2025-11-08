@@ -53,19 +53,24 @@ function isValidPhone(phone: string) {
 
 export async function POST(req: NextRequest) {
   try {
+    console.log("[Register] Starting registration request");
     const { name, phone, password } = (await req.json()) as {
       name?: string;
       phone?: string;
       password?: string;
     };
 
+    console.log("[Register] Validating input", { name, phone, hasPassword: !!password });
+
     if (!phone || !isValidPhone(phone)) {
+      console.warn("[Register] Invalid phone format:", phone);
       return NextResponse.json(
         { error: "Telefon raqam noto'g'ri formatda" },
         { status: 400 },
       );
     }
     if (!password || password.length < 6) {
+      console.warn("[Register] Invalid password length");
       return NextResponse.json(
         { error: "Parol kamida 6 ta belgidan iborat bo'lishi kerak" },
         { status: 400 },
@@ -161,14 +166,14 @@ export async function POST(req: NextRequest) {
     const sendObj = sendRes as Record<string, unknown> | undefined;
     const requestId: string | undefined = sendObj
       ? String(
-          sendObj.request_id ??
-            sendObj.requestId ??
-            (sendObj.data as Record<string, unknown> | undefined)?.request_id ??
-            (sendObj.data as Record<string, unknown> | undefined)?.requestId ??
-            (sendObj.result as Record<string, unknown> | undefined)
-              ?.request_id ??
-            (sendObj.result as Record<string, unknown> | undefined)?.requestId,
-        )
+        sendObj.request_id ??
+        sendObj.requestId ??
+        (sendObj.data as Record<string, unknown> | undefined)?.request_id ??
+        (sendObj.data as Record<string, unknown> | undefined)?.requestId ??
+        (sendObj.result as Record<string, unknown> | undefined)
+          ?.request_id ??
+        (sendObj.result as Record<string, unknown> | undefined)?.requestId,
+      )
       : undefined;
     if (!requestId) {
       return NextResponse.json(
@@ -202,7 +207,7 @@ export async function POST(req: NextRequest) {
         path: "/",
         maxAge: 60 * 10, // 10 minutes
       });
-    } catch {}
+    } catch { }
     return res;
   } catch (e: unknown) {
     const detail = e instanceof Error ? e.message : String(e);

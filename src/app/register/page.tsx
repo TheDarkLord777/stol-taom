@@ -10,6 +10,7 @@ import { Input } from "@/components/ui/input";
 export default function RegistrationPage() {
   const router = useRouter();
   const [name, setName] = useState("");
+  const PHONE_PREFIX = "+998";
   const [phone, setPhone] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
@@ -17,19 +18,55 @@ export default function RegistrationPage() {
   const [error, setError] = useState<string | null>(null);
   const [cooldown, setCooldown] = useState<number>(0);
 
-  function normalizePhone(input: string) {
-    // ensure leading + and digits only
+  function normalizePhone(input: string): string {
+    // Remove all non-digit characters except +
     let s = input.replace(/[^\d+]/g, "");
-    if (!s.startsWith("+")) s = `+${s.replace(/^\+/, "")}`;
-    return s;
+
+    // Ensure only one + at the start if present
+    s = s.replace(/\+/g, "");
+    if (!s) return "";
+
+    // If the number doesn't start with 998, add it
+    if (!s.startsWith("998")) {
+      // Remove leading zeros
+      s = s.replace(/^0+/, "");
+      s = "998" + s;
+    }
+
+    // Add + prefix
+    return "+" + s;
   }
 
-  async function onSubmit() {
+  function normalizeForPrefix(v: string): string {
+    if (!v) return "";
+
+    // First normalize to basic format
+    const normalized = normalizePhone(v);
+    if (!normalized) return "";
+
+    // If already correctly formatted with +998, return as is
+    if (/^\+998\d{9}$/.test(normalized)) {
+      return normalized;
+    }
+
+    // Remove the + if present
+    const digitsOnly = normalized.replace(/\+/g, "");
+
+    // Remove leading zeros
+    const withoutLeadingZeros = digitsOnly.replace(/^0+/, "");
+
+    // Add +998 prefix if not present
+    return withoutLeadingZeros.startsWith("998")
+      ? "+" + withoutLeadingZeros
+      : PHONE_PREFIX + withoutLeadingZeros;
+  } async function onSubmit() {
     setError(null);
     if (cooldown > 0) return;
-    const p = normalizePhone(phone);
-    if (!/^\+\d{10,15}$/.test(p)) {
-      setError("Telefon raqam noto'g'ri formatda");
+    const p = normalizePhone(normalizeForPrefix(phone));
+
+    // More specific validation for Uzbekistan numbers
+    if (!/^\+998\d{9}$/.test(p)) {
+      setError("Telefon raqam noto'g'ri formatda. Misol: +998901234567");
       return;
     }
     if (password.length < 6) {
@@ -139,29 +176,27 @@ export default function RegistrationPage() {
 
               {/* Phone Input */}
               <div className="flex justify-center">
-                <Input
-                  type="tel"
-                  name="tel"
-                  autoComplete="tel"
-                  value={phone}
-                  onChange={(e) => setPhone(e.target.value)}
-                  onFocus={(e) => {
-                    // Prefill +998 on focus if the field is empty to save typing the country code
-                    if (!phone || phone.trim() === "") {
-                      setPhone("+998");
-                      // place caret at end after value is set — run on next tick so DOM reflects new value
-                      setTimeout(() => {
-                        try {
-                          e.currentTarget.selectionStart = e.currentTarget.selectionEnd = e.currentTarget.value.length;
-                        } catch {
-                          /* ignore */
-                        }
-                      }, 0);
-                    }
-                  }}
-                  placeholder="Telefon raqamingiz kiriting"
-                  className="h-14 w-full max-w-md bg-white/90 backdrop-blur-sm text-gray-600 placeholder:text-gray-400 text-center text-[24px] border-none shadow-lg placeholder-inika-24"
-                />
+                <div className="relative w-full max-w-md">
+                  <Input
+                    type="tel"
+                    name="tel"
+                    autoComplete="tel"
+                    value={phone}
+                    onChange={(e) => {
+                      let v = e.target.value;
+                      v = v.replace(/[^\d+]/g, "");
+                      if (v.indexOf("+") > 0) v = v.replace(/\+/g, "");
+                      if ((v.match(/\+/g) || []).length > 1) v = v.replace(/\+/g, "+");
+                      setPhone(v);
+                    }}
+                    onBlur={(e) => {
+                      const norm = normalizeForPrefix(e.currentTarget.value);
+                      setPhone(norm);
+                    }}
+                    placeholder="Telefon raqamingiz kiriting"
+                    className="h-14 w-full bg-white/90 backdrop-blur-sm text-gray-600 placeholder:text-gray-400 text-center text-[24px] border-none shadow-lg placeholder-inika-24"
+                  />
+                </div>
               </div>
 
               {/* Password Input */}
