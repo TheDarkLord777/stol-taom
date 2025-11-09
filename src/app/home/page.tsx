@@ -6,7 +6,7 @@ export default function Dashboard() {
   const actions = [
     { label: "🍔 Menyu", href: "/menu" },
     { label: "🍽️ Joy band qilish", href: "/reservation" },
-    { label: "📅 Buyurtma berish", href: "/orders" },
+    { label: "📅 Buyurtmalarim", href: "/orders" },
     { label: "️⚙️ Profil", href: "/profile" },
   ];
 

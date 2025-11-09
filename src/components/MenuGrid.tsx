@@ -206,6 +206,8 @@ export default function MenuGrid({
   };
 
   const [saving, setSaving] = React.useState(false);
+  // track adding state per menu item id so button shows spinner while request is in-flight
+  const [addingMap, setAddingMap] = React.useState<Record<string, boolean>>({});
   const router = useRouter();
   const saveIngredients = async () => {
     if (!selected) return;
@@ -385,8 +387,11 @@ export default function MenuGrid({
                   <div>
                     <button
                       type="button"
-                      className="rounded-md bg-emerald-500 px-4 py-2 text-white font-semibold"
+                      className="rounded-md bg-emerald-500 px-4 py-2 text-white font-semibold inline-flex items-center"
                       onClick={async () => {
+                        if (!selected) return;
+                        // mark adding for this menu item
+                        setAddingMap((m) => ({ ...m, [selected.id]: true }));
                         const payload = {
                           menuItemId: selected.id,
                           name: selected.name,
@@ -429,10 +434,25 @@ export default function MenuGrid({
                             // if even enqueue fails, as absolute last resort write to local cart
                             try { addToCart(payload as any); closeDetail(); } catch { }
                           }
+                        } finally {
+                          // clear adding state for this item
+                          if (selected) setAddingMap((m) => ({ ...m, [selected.id]: false }));
                         }
                       }}
+                      disabled={selected ? Boolean(addingMap[selected.id]) : false}
+                      aria-busy={selected ? Boolean(addingMap[selected.id]) : false}
                     >
-                      Savatga qo'shish
+                      {selected && addingMap[selected.id] ? (
+                        <>
+                          <svg className="animate-spin -ml-1 mr-2 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                            <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                            <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z"></path>
+                          </svg>
+                          Qo'shilmoqda...
+                        </>
+                      ) : (
+                        'Savatga qo\'shish'
+                      )}
                     </button>
                   </div>
                 </div>

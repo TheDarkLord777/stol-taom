@@ -72,21 +72,94 @@ export default function OrdersPage() {
       {items && items.length > 0 && (
         <div className="space-y-4">
           {items.map((it) => (
-            <div key={it.id} className="p-4 bg-white/80 rounded shadow">
-              <div className="flex justify-between items-start">
-                <div>
-                  <div className="font-semibold text-lg">{it.name}</div>
-                  <div className="text-sm text-gray-600">Soni: {it.quantity}</div>
-                  {it.ingredients && it.ingredients.length > 0 && (
-                    <div className="text-sm text-gray-700 mt-2">
-                      Tarkibi: {it.ingredients.map((ing) => ing.name).join(", ")}
-                    </div>
-                  )}
+            <div key={it.id} className="p-4 bg-white/80 rounded shadow flex items-center justify-between">
+              <div>
+                <div className="font-semibold text-lg">{it.name}</div>
+                {it.ingredients && it.ingredients.length > 0 && (
+                  <div className="text-sm text-gray-700 mt-2">Tarkibi: {it.ingredients.map((ing) => ing.name).join(", ")}</div>
+                )}
+                {it.addedAt && <div className="text-xs text-gray-500 mt-1">{new Date(it.addedAt).toLocaleString()}</div>}
+              </div>
+
+              <div className="flex items-center gap-3">
+                <div className="flex items-center gap-2 bg-white rounded px-2 py-1">
+                  <button
+                    className="px-2 py-1 rounded bg-gray-100"
+                    onClick={async () => {
+                      const newQty = Math.max(0, it.quantity - 1);
+                      try {
+                        const res = await fetch("/api/cart/update", {
+                          method: "PATCH",
+                          headers: { "Content-Type": "application/json" },
+                          credentials: "same-origin",
+                          body: JSON.stringify({ id: it.id, quantity: newQty }),
+                        });
+                        if (!res.ok) throw new Error("update-failed");
+                        const data = await res.json().catch(() => ({}));
+                        if (data.removed) {
+                          setItems((prev) => (prev ? prev.filter((x) => x.id !== it.id) : prev));
+                        } else if (data.item) {
+                          setItems((prev) => (prev ? prev.map((x) => (x.id === it.id ? { ...x, quantity: data.item.quantity } : x)) : prev));
+                        }
+                      } catch (e) {
+                        // fallback: refetch
+                        await fetchCart();
+                      }
+                    }}
+                  >
+                    -
+                  </button>
+
+                  <div className="px-3 font-medium">{it.quantity}</div>
+
+                  <button
+                    className="px-2 py-1 rounded bg-gray-100"
+                    onClick={async () => {
+                      const newQty = it.quantity + 1;
+                      try {
+                        const res = await fetch("/api/cart/update", {
+                          method: "PATCH",
+                          headers: { "Content-Type": "application/json" },
+                          credentials: "same-origin",
+                          body: JSON.stringify({ id: it.id, quantity: newQty }),
+                        });
+                        if (!res.ok) throw new Error("update-failed");
+                        const data = await res.json().catch(() => ({}));
+                        if (data.item) {
+                          setItems((prev) => (prev ? prev.map((x) => (x.id === it.id ? { ...x, quantity: data.item.quantity } : x)) : prev));
+                        }
+                      } catch (e) {
+                        await fetchCart();
+                      }
+                    }}
+                  >
+                    +
+                  </button>
                 </div>
-                <div className="text-right">
+
+                <div className="text-right mr-2">
                   <div className="font-bold">{it.price ? `${it.price} so'm` : "-"}</div>
-                  {it.addedAt && <div className="text-xs text-gray-500">{new Date(it.addedAt).toLocaleString()}</div>}
                 </div>
+
+                <button
+                  className="px-3 py-1 rounded bg-red-500 text-white"
+                  onClick={async () => {
+                    try {
+                      const res = await fetch("/api/cart/remove", {
+                        method: "DELETE",
+                        headers: { "Content-Type": "application/json" },
+                        credentials: "same-origin",
+                        body: JSON.stringify({ id: it.id }),
+                      });
+                      if (!res.ok) throw new Error("remove-failed");
+                      setItems((prev) => (prev ? prev.filter((x) => x.id !== it.id) : prev));
+                    } catch (e) {
+                      await fetchCart();
+                    }
+                  }}
+                >
+                  O'chirish
+                </button>
               </div>
             </div>
           ))}
