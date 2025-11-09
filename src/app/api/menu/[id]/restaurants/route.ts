@@ -44,17 +44,25 @@ function extractMenuIdFromUrl(urlStr: string) {
 export async function POST(req: NextRequest) {
     const id = extractMenuIdFromUrl(req.url);
     if (!id) return NextResponse.json({ error: "Missing menu id" }, { status: 400 });
+    // Prevent destructive operations from being callable in production by default.
+    // Allow when running in non-production (dev) or when DEV_ADMIN_ENABLED=true.
+    const devAdminEnabled = process.env.NODE_ENV !== 'production' || process.env.DEV_ADMIN_ENABLED === 'true';
+    if (!devAdminEnabled) {
+        return NextResponse.json({ error: 'Dev admin disabled in production' }, { status: 403 });
+    }
 
     try {
         const body = (await req.json()) as { restaurantIds?: string[] };
         if (!body.restaurantIds) return NextResponse.json({ error: "Missing restaurantIds" }, { status: 400 });
 
+        const restaurantIds = body.restaurantIds;
+
         const prisma = getPrisma();
 
         await prisma.$transaction(async (tx) => {
             await tx.menuItemOnRestaurant.deleteMany({ where: { menuItemId: id } });
-            if (body.restaurantIds.length > 0) {
-                const data = body.restaurantIds.map((rid) => ({ menuItemId: id, restaurantId: rid }));
+            if (restaurantIds.length > 0) {
+                const data = restaurantIds.map((rid) => ({ menuItemId: id, restaurantId: rid }));
                 await tx.menuItemOnRestaurant.createMany({ data });
             }
         });

@@ -1,11 +1,19 @@
 import { getPrisma } from '@/lib/prisma';
 import React from 'react';
 import IngredientsAdminClient from './IngredientsAdminClient';
+import { notFound } from 'next/navigation';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
 
 export default async function Page() {
+    // Gate this dev page: allow in non-production OR when explicitly enabled via DEV_ADMIN_ENABLED
+    const devAdminEnabled = process.env.NODE_ENV !== 'production' || process.env.DEV_ADMIN_ENABLED === 'true';
+    if (!devAdminEnabled) {
+        // Hide the page in production unless explicitly enabled
+        notFound();
+    }
+
     // Dev-only: fetch data via Prisma directly on the server
     const prisma = getPrisma();
 

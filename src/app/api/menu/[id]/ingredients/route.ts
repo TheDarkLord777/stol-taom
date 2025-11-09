@@ -84,6 +84,13 @@ export async function POST(req: NextRequest) {
     const id = extractMenuIdFromUrl(req.url);
     if (!id) return NextResponse.json({ error: "Missing menu id" }, { status: 400 });
 
+    // Prevent destructive operations from being callable in production by default.
+    // Allow when running in non-production (dev) or when DEV_ADMIN_ENABLED=true.
+    const devAdminEnabled = process.env.NODE_ENV !== 'production' || process.env.DEV_ADMIN_ENABLED === 'true';
+    if (!devAdminEnabled) {
+        return NextResponse.json({ error: 'Dev admin disabled in production' }, { status: 403 });
+    }
+
     try {
         const body = (await req.json()) as {
             ingredients?: Array<{ id?: string; name: string; mandatory?: boolean }>;
@@ -99,10 +106,12 @@ export async function POST(req: NextRequest) {
             return NextResponse.json({ error: "Missing ingredients in body" }, { status: 400 });
         }
 
+        const ingredients = body.ingredients;
+
         // Replace existing ingredients for the menu item with the provided list
         await prisma.$transaction(async (tx) => {
             await tx.ingredient.deleteMany({ where: { menuItemId: id } });
-            const createData = body.ingredients.map((ing) => ({
+            const createData = ingredients.map((ing) => ({
                 name: ing.name,
                 mandatory: Boolean(ing.mandatory),
                 menuItemId: id,

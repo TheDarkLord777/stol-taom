@@ -92,3 +92,28 @@ Notes:
 - The admin page is intended for development only (it's under `/dev`). Make sure it's not exposed in production unless explicitly enabled.
 - The endpoints currently perform replace semantics: POST replaces all existing ingredients/assignments for the menu item. If you need partial updates, we can extend the API.
 
+Developer cheatsheet
+-------------------
+
+To keep new work consistent with the repository conventions, follow the short cheatsheet below and see `docs/DEVELOPER_GUIDE.md` for full examples.
+
+- Put server API routes under `src/app/api/.../route.ts`. Add `@swagger` JSDoc blocks to include them in `/api/openapi` used by Swagger UI.
+- Put pages under `src/app/...`. Use server components by default. For client components that use hooks/DOM, add `"use client"` at the top.
+- Use `src/components/ui/*` primitives (Radix + cmdk) when possible (e.g., `Combobox`).
+- Use `src/lib/prisma.ts` `getPrisma()` in server code only (API routes / server components).
+- After changing `prisma/schema.prisma` run:
+
+```powershell
+npx prisma migrate dev --name <change-description>
+npx prisma generate
+```
+
+- Format & lint before commit:
+
+```powershell
+npm run format
+npm run lint
+```
+
+Full conventions, snippets and step-by-step examples are in `docs/DEVELOPER_GUIDE.md` (new file). Follow that guide when you add components, API routes, or run migrations.
+
