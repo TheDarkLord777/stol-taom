@@ -1,6 +1,8 @@
 "use client";
 import Image from "next/image";
 import * as React from "react";
+import { useRouter } from "next/navigation";
+import { addToCart, enqueueAndTrySync } from "@/lib/cart";
 
 export type MenuItem = {
   id: string;
@@ -40,6 +42,7 @@ export default function MenuGrid({
     restaurants?: Array<{ id: string; name: string }>;
     description?: string;
     ingredients?: Array<{ id: string; name: string; mandatory: boolean; selected?: boolean }>;
+    quantity?: number;
   } | null>(null);
   const [fetched, setFetched] = React.useState<MenuItem[] | null>(null);
   const [internalLoading, setInternalLoading] = React.useState<boolean>(false);
@@ -124,8 +127,12 @@ export default function MenuGrid({
             <button
               type="button"
               className="rounded-md bg-linear-to-r from-blue-500 to-blue-600 px-3 py-1 text-sm text-white hover:from-blue-600 hover:to-blue-700"
+              onClick={(e) => {
+                e.stopPropagation();
+                openDetail(it);
+              }}
             >
-              Buy
+              Sotib olish
             </button>
           </div>
         </div>
@@ -199,6 +206,7 @@ export default function MenuGrid({
   };
 
   const [saving, setSaving] = React.useState(false);
+  const router = useRouter();
   const saveIngredients = async () => {
     if (!selected) return;
     if (!detail) return;
@@ -335,6 +343,96 @@ export default function MenuGrid({
                       Ingredientlar mavjud emas.
                     </div>
                   )}
+                </div>
+                {/* Quantity & Add to cart */}
+                <div className="mt-6 flex items-center justify-between">
+                  <div className="flex items-center gap-3">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setDetail((prev) => {
+                          if (!prev) return prev;
+                          return { ...prev, quantity: Math.max(1, (prev.quantity ?? 1) - 1) } as any;
+                        });
+                      }}
+                      className="h-10 w-10 rounded border bg-white"
+                    >
+                      -
+                    </button>
+                    <input
+                      type="number"
+                      min={1}
+                      value={(detail?.quantity ?? 1)}
+                      onChange={(e) => {
+                        const v = Math.max(1, Number(e.target.value || 1));
+                        setDetail((prev) => (prev ? { ...prev, quantity: v } : prev));
+                      }}
+                      className="w-16 text-center rounded border px-2 py-1"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setDetail((prev) => {
+                          if (!prev) return prev;
+                          return { ...prev, quantity: (prev.quantity ?? 1) + 1 } as any;
+                        });
+                      }}
+                      className="h-10 w-10 rounded border bg-white"
+                    >
+                      +
+                    </button>
+                  </div>
+                  <div>
+                    <button
+                      type="button"
+                      className="rounded-md bg-emerald-500 px-4 py-2 text-white font-semibold"
+                      onClick={async () => {
+                        const payload = {
+                          menuItemId: selected.id,
+                          name: selected.name,
+                          price: selected.price,
+                          ingredients: (detail?.ingredients ?? [])
+                            .filter((i) => !!i.selected)
+                            .map((i) => ({ id: i.id, name: i.name })),
+                          quantity: detail?.quantity ?? 1,
+                        };
+
+                        try {
+                          const res = await fetch('/api/cart/add', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            credentials: 'same-origin',
+                            body: JSON.stringify(payload),
+                          });
+                          if (res.status === 401) {
+                            // user is not authenticated or token expired -> redirect to login
+                            // do NOT add to cart locally to avoid losing intent
+                            router.push('/login');
+                            return;
+                          }
+                          if (!res.ok) {
+                            const data = await res.json().catch(() => ({}));
+                            throw new Error(data?.error || 'Failed adding to cart');
+                          }
+                          const data = await res.json();
+                          console.log('Added to server cart', data);
+                          closeDetail();
+                        } catch (e) {
+                          console.error('Add to cart error', e);
+                          // network or other error -> fallback to offline queue
+                          try {
+                            await enqueueAndTrySync(payload as any);
+                            closeDetail();
+                          } catch {
+                            // if even enqueue fails, as absolute last resort write to local cart
+                            try { addToCart(payload as any); closeDetail(); } catch { }
+                          }
+                        }
+                      }}
+                    >
+                      Savatga qo'shish
+                    </button>
+                  </div>
                 </div>
               </div>
             </div>

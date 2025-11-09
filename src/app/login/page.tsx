@@ -7,6 +7,7 @@ import CLSObserver from "@/components/CLSObserver";
 import ClientOnly from "@/components/ClientOnly";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { useId } from "react";
 
 export default function Login() {
   const router = useRouter();
@@ -16,6 +17,16 @@ export default function Login() {
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  // Forgot password modal state
+  const [showForgot, setShowForgot] = useState(false);
+  const [forgotPhone, setForgotPhone] = useState("");
+  const [forgotRequestId, setForgotRequestId] = useState<string | null>(null);
+  const [forgotCode, setForgotCode] = useState("");
+  const [forgotNewPassword, setForgotNewPassword] = useState("");
+  const [forgotMessage, setForgotMessage] = useState<string | null>(null);
+  const [forgotLoading, setForgotLoading] = useState(false);
+  const [forgotMessageType, setForgotMessageType] = useState<"success" | "error" | null>(null);
+  const forgotId = useId();
 
   function normalizePhone(input: string) {
     let s = input.replace(/[^\d+]/g, "");
@@ -90,6 +101,73 @@ export default function Login() {
       mounted = false;
     };
   }, [router]);
+
+  // Helper to send forgot request (used by button and Enter key)
+  const sendForgotRequest = async () => {
+    setForgotMessage(null);
+    setForgotMessageType(null);
+    setForgotLoading(true);
+    try {
+      const p = forgotPhone.trim().replace(/[^\d+]/g, "");
+      const body = { phone: p.startsWith("+") ? p : `+${p}` };
+      const res = await fetch("/api/auth/forgot/request", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        credentials: "same-origin",
+        body: JSON.stringify(body),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "Xatolik");
+      if (data.registered === false) {
+        setForgotMessage("Ro'yxatdan o'tmagan telefon raqami");
+        setForgotMessageType("error");
+      } else {
+        if (data.requestId) setForgotRequestId(String(data.requestId));
+        setForgotMessage("Kod yuborildi. Iltimos telefoningizni tekshiring.");
+        setForgotMessageType("success");
+      }
+    } catch (e: unknown) {
+      const m = e instanceof Error ? e.message : String(e);
+      setForgotMessage(m);
+      setForgotMessageType("error");
+    } finally {
+      setForgotLoading(false);
+    }
+  };
+
+  // Helper to verify forgot code and set new password (used by button and Enter key)
+  const verifyForgot = async () => {
+    if (!forgotRequestId) return;
+    setForgotLoading(true);
+    setForgotMessage(null);
+    try {
+      const res = await fetch("/api/auth/forgot/verify", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        credentials: "same-origin",
+        body: JSON.stringify({ requestId: forgotRequestId, code: forgotCode, newPassword: forgotNewPassword }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "Xatolik");
+      setForgotMessage("Parol muvaffaqiyatli o'zgartirildi. Endi kirishingiz mumkin.");
+      setForgotMessageType("success");
+      // reset modal state after success
+      setTimeout(() => {
+        setShowForgot(false);
+        setForgotRequestId(null);
+        setForgotCode("");
+        setForgotNewPassword("");
+        setForgotMessage(null);
+        setForgotMessageType(null);
+      }, 1500);
+    } catch (e: unknown) {
+      const m = e instanceof Error ? e.message : String(e);
+      setForgotMessage(m);
+      setForgotMessageType("error");
+    } finally {
+      setForgotLoading(false);
+    }
+  };
   return (
     <div className="relative min-h-dvh w-full overflow-hidden">
       {/* Background Image */}
@@ -259,11 +337,78 @@ export default function Login() {
                     Ro'yhatdan o'tish &rarr;
                   </Link>
                 </div>
+                <div className="flex justify-end">
+                  <button
+                    type="button"
+                    onClick={() => setShowForgot(true)}
+                    className="inline-flex items-center gap-2 rounded-lg bg-white/10 px-4 py-2 text-white hover:bg-white/20 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/60 shadow-md"
+                  >
+                    Parolni unutdingizmi?
+                  </button>
+                </div>
               </div>
             </form>
           </ClientOnly>
         </div>
       </div>
+
+      {showForgot && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4">
+          <div className="w-full max-w-md rounded bg-white p-6">
+            <h2 className="text-xl font-semibold mb-4">Parolni tiklash</h2>
+            {forgotMessage ? (
+              <div className={`mb-4 ${forgotMessageType === "error" ? "text-red-600" : "text-green-700"}`}>
+                {forgotMessage}
+              </div>
+            ) : null}
+
+            {!forgotRequestId ? (
+              // Step 1: send request
+              <div className="space-y-3">
+                <label className="block text-sm">Telefon raqam</label>
+                <Input
+                  type="tel"
+                  value={forgotPhone}
+                  onChange={(e) => setForgotPhone(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter") {
+                      void sendForgotRequest();
+                    }
+                  }}
+                  placeholder="+998901234567"
+                />
+                <div className="flex gap-2 justify-end">
+                  <Button type="button" onClick={() => setShowForgot(false)} className="bg-gray-200 text-black">Bekor</Button>
+                  <Button type="button" onClick={() => void sendForgotRequest()} disabled={forgotLoading}>
+                    {forgotLoading ? "Yuborilmoqda..." : "Kod yuborish"}
+                  </Button>
+                </div>
+              </div>
+            ) : (
+              // Step 2: verify code + set new password
+              <div className="space-y-3">
+                <label className="block text-sm">Kod</label>
+                <Input
+                  value={forgotCode}
+                  onChange={(e) => setForgotCode(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter" && !forgotLoading) {
+                      void verifyForgot();
+                    }
+                  }}
+                  placeholder="6 xonali kod"
+                />
+                <label className="block text-sm">Yangi parol</label>
+                <Input type="password" value={forgotNewPassword} onChange={(e) => setForgotNewPassword(e.target.value)} placeholder="Yangi parol" />
+                <div className="flex gap-2 justify-end">
+                  <Button type="button" onClick={() => { setForgotRequestId(null); setForgotCode(""); setForgotNewPassword(""); setForgotMessage(null); }} className="bg-gray-200 text-black">Ortga</Button>
+                  <Button type="button" onClick={() => void verifyForgot()} disabled={forgotLoading}>Tasdiqlash</Button>
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
     </div>
   );
 }

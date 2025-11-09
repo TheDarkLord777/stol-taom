@@ -125,6 +125,27 @@ npx prisma generate
 - Keep dev-only pages under `src/app/dev` and gate production behavior with env flags.
 
 ## Where to ask if unsure
+
+## Migration note: Cart idempotency (developer steps)
+
+If you've just added `clientItemId` to the `CartItem` model (for idempotent client-side adds), follow these steps locally on Windows:
+
+1. Stop the dev server (e.g., close the terminal running `npm run dev`).
+2. Create and apply a migration and regenerate the client:
+
+```powershell
+npx prisma migrate dev --name add_cart_clientid
+npx prisma generate
+```
+
+3. Restart the dev server: `npm run dev`.
+
+Notes:
+- On Windows you may see EPERM file rename errors from the Prisma engine if the dev server is running. Stopping the server typically resolves this.
+- After the migration, remove any temporary `as any` Prisma client casts in server code and run `npm run build` to confirm types are correct.
+- The server `POST /api/cart/add` now accepts a `clientId` in the request body and will avoid creating duplicate items for the same cart when present.
+
+If you want, I can run these steps for you now (I will need you to stop the dev server if it's running).
 - Check `src/components/ui` for reusable patterns.
 - Look at `src/lib/*` for repo patterns (menuRepo, restaurantRepo).
 

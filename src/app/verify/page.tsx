@@ -93,12 +93,19 @@ function VerifyContent() {
             </div>
             <div className="flex justify-center">
               <Input
+                autoFocus
                 inputMode="numeric"
                 maxLength={6}
                 value={code}
                 onChange={(e) =>
                   setCode(e.target.value.replace(/[^0-9]/g, "").slice(0, 6))
                 }
+                onKeyDown={(e) => {
+                  if (e.key === "Enter" && !loading && code.length === 6) {
+                    // trigger the same submit flow as the button
+                    void onSubmit();
+                  }
+                }}
                 placeholder="______"
                 className="h-14 w-full max-w-md bg-white/90 backdrop-blur-sm text-gray-600 placeholder:text-gray-400 text-center text-[24px] border-none shadow-lg placeholder-inika-24 tracking-[0.5em]"
               />
