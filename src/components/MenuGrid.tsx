@@ -392,7 +392,9 @@ export default function MenuGrid({
                           name: selected.name,
                           price: selected.price,
                           ingredients: (detail?.ingredients ?? [])
-                            .filter((i) => !!i.selected)
+                            // include ingredients that are either selected by the user
+                            // or mandatory (always included)
+                            .filter((i) => Boolean(i.selected) || Boolean(i.mandatory))
                             .map((i) => ({ id: i.id, name: i.name })),
                           quantity: detail?.quantity ?? 1,
                         };
