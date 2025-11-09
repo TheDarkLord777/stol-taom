@@ -18,6 +18,8 @@ export default function OrdersPage() {
   const [items, setItems] = useState<CartItem[] | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
+  // track per-item removal state to show spinner while deleting
+  const [removingMap, setRemovingMap] = useState<Record<string, boolean>>({});
 
   const fetchCart = async () => {
     setLoading(true);
@@ -142,8 +144,13 @@ export default function OrdersPage() {
                 </div>
 
                 <button
-                  className="px-3 py-1 rounded bg-red-500 text-white"
+                  className={
+                    `px-3 py-1 rounded text-white transition-colors duration-150 focus:outline-none ` +
+                    (removingMap[it.id] ? "bg-red-600 opacity-80 cursor-wait" : "bg-red-500 hover:bg-red-600")
+                  }
                   onClick={async () => {
+                    // mark as removing
+                    setRemovingMap((m) => ({ ...m, [it.id]: true }));
                     try {
                       const res = await fetch("/api/cart/remove", {
                         method: "DELETE",
@@ -155,10 +162,24 @@ export default function OrdersPage() {
                       setItems((prev) => (prev ? prev.filter((x) => x.id !== it.id) : prev));
                     } catch (e) {
                       await fetchCart();
+                    } finally {
+                      setRemovingMap((m) => ({ ...m, [it.id]: false }));
                     }
                   }}
+                  disabled={Boolean(removingMap[it.id])}
+                  aria-busy={Boolean(removingMap[it.id])}
                 >
-                  O'chirish
+                  {removingMap[it.id] ? (
+                    <span className="inline-flex items-center gap-2">
+                      <svg className="animate-spin -ml-1 mr-1 h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z"></path>
+                      </svg>
+                      O'chirilmoqda...
+                    </span>
+                  ) : (
+                    "O'chirish"
+                  )}
                 </button>
               </div>
             </div>
