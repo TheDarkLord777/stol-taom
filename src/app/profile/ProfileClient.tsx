@@ -128,6 +128,12 @@ export default function ProfileClient() {
           >
             Security
           </Tabs.Trigger>
+          <Tabs.Trigger
+            value="premium"
+            className={`rounded px-3 py-1 text-sm ${tab === "premium" ? "bg-white/10" : "hover:bg-white/5"}`}
+          >
+            Premium
+          </Tabs.Trigger>
           {/* Reservations moved to /orders */}
         </Tabs.List>
 
@@ -332,6 +338,30 @@ export default function ProfileClient() {
                   className="h-10 px-4 bg-red-600 hover:bg-red-700 text-white text-sm font-medium rounded-md shadow-sm"
                 >
                   Chiqish (ushbu qurilma)
+                </Button>
+              </div>
+            </div>
+          </Section>
+        </Tabs.Content>
+
+        <Tabs.Content value="premium" className="space-y-4">
+          <Section title="Premium obuna">
+            <div className="space-y-3 text-sm text-gray-300">
+              <p>Premium foydalanuvchilar quyidagi imkoniyatlarga ega bo'ladi:</p>
+              <ul className="list-disc pl-5 space-y-1">
+                <li>Tezroq buyurtma va bron ustuvorligi</li>
+                <li>Maxsus chegirmalar va aksiyalar</li>
+                <li>Qo'shimcha qo'llab-quvvatlash</li>
+              </ul>
+              <div className="pt-2">
+                <Button
+                  onClick={async () => {
+                    // Placeholder action; integrate real checkout when available
+                    alert("Premium olish tez orada mavjud bo'ladi.");
+                  }}
+                  className="bg-[#C8FF00] hover:bg-[#B8EF00] text-black font-semibold"
+                >
+                  Premium olish
                 </Button>
               </div>
             </div>
