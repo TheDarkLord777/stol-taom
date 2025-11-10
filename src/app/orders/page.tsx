@@ -16,6 +16,7 @@ type CartItem = {
 
 export default function OrdersPage() {
   const [items, setItems] = useState<CartItem[] | null>(null);
+  const [reservations, setReservations] = useState<any[] | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   // track per-item removal state to show spinner while deleting
@@ -25,7 +26,7 @@ export default function OrdersPage() {
     setLoading(true);
     setError(null);
     try {
-      const res = await fetch("/api/cart", { credentials: "same-origin" });
+      const res = await fetch("/api/orders", { credentials: "same-origin" });
       if (res.status === 401) {
         setItems([]);
         setError("Siz tizimga kirmagansiz. Iltimos ");
@@ -35,6 +36,7 @@ export default function OrdersPage() {
       const data = await res.json();
       if (!res.ok) throw new Error(data?.error || "Server error");
       setItems(data.items ?? []);
+      setReservations(data.reservations ?? []);
     } catch (e: unknown) {
       const m = e instanceof Error ? e.message : String(e);
       setError(m);
@@ -45,6 +47,17 @@ export default function OrdersPage() {
 
   useEffect(() => {
     void fetchCart();
+    // listen for cross-tab order updates
+    let bc: BroadcastChannel | null = null;
+    try {
+      bc = new BroadcastChannel("orders");
+      bc.addEventListener("message", (ev) => {
+        if (ev.data && ev.data.type === "orders:update") void fetchCart();
+      });
+    } catch { }
+    return () => {
+      if (bc) bc.close();
+    };
   }, []);
 
   return (
@@ -71,6 +84,7 @@ export default function OrdersPage() {
         <div className="text-center text-gray-600">Savat bo'sh. / Hech qanday element qo'shilmagan.</div>
       )}
 
+      {/* Orders section */}
       {items && items.length > 0 && (
         <div className="space-y-4">
           {items.map((it) => (
@@ -184,6 +198,25 @@ export default function OrdersPage() {
               </div>
             </div>
           ))}
+        </div>
+      )}
+
+      {/* Reservations section */}
+      {reservations && reservations.length > 0 && (
+        <div className="mt-8">
+          <h2 className="text-xl font-semibold mb-3">Bronlar</h2>
+          <div className="space-y-3">
+            {reservations.map((r) => (
+              <div key={r.id} className="p-3 bg-white/80 rounded shadow flex justify-between items-center">
+                <div>
+                  <div className="font-medium">{r.restaurantId ? `Restoran: ${r.restaurantId}` : "Bron"}</div>
+                  <div className="text-sm text-gray-600">Sana: {r.fromDate ? new Date(r.fromDate).toLocaleString() : "—"}</div>
+                  {r.partySize && <div className="text-sm text-gray-600">Odamlar: {r.partySize}</div>}
+                </div>
+                <div className="text-sm text-gray-500">{r.createdAt ? new Date(r.createdAt).toLocaleString() : ""}</div>
+              </div>
+            ))}
+          </div>
         </div>
       )}
     </div>

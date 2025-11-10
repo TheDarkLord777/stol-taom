@@ -20,12 +20,16 @@ type ButtonModeProps = BaseProps & {
   mode?: "button";
   placeholder?: string;
   buttonClassName?: string;
+  // If true (default), selecting an option triggers onQueryChange with the label
+  notifyOnSelect?: boolean;
 };
 
 type InputModeProps = BaseProps & {
   mode: "input";
   inputPlaceholder?: string;
   inputClassName?: string;
+  // If true (default), selecting an option triggers onQueryChange with the label
+  notifyOnSelect?: boolean;
 };
 
 type ComboboxProps = ButtonModeProps | InputModeProps;
@@ -110,7 +114,7 @@ export function Combobox(props: ComboboxProps) {
 
   // Button trigger mode (default)
   if (props.mode !== "input") {
-    const { placeholder = "Tanlang…", buttonClassName } =
+    const { placeholder = "Tanlang…", buttonClassName, notifyOnSelect = true } =
       props as ButtonModeProps;
     return (
       <Popover.Root open={open} onOpenChange={setOpen}>
@@ -185,7 +189,7 @@ export function Combobox(props: ComboboxProps) {
                         onChange?.(opt.value);
                         setOpen(false);
                         setQuery("");
-                        // Don't call onQueryChange when selecting from dropdown
+                        if (notifyOnSelect) (props as BaseProps).onQueryChange?.("");
                       }}
                       className="cursor-pointer select-none px-3 py-2 text-sm aria-selected:bg-gray-100 aria-selected:text-gray-900"
                     >
@@ -202,7 +206,7 @@ export function Combobox(props: ComboboxProps) {
   }
 
   // Input trigger mode
-  const { inputPlaceholder = "Qidirish uchun yozing…", inputClassName } =
+  const { inputPlaceholder = "Qidirish uchun yozing…", inputClassName, notifyOnSelect = true } =
     props as InputModeProps;
 
   return (
@@ -235,7 +239,7 @@ export function Combobox(props: ComboboxProps) {
                   const opt = filtered[activeIndex];
                   onChange?.(opt.value);
                   setQuery(opt.label);
-                  // Don't call onQueryChange when selecting from dropdown
+                  if (notifyOnSelect) (props as BaseProps).onQueryChange?.(opt.label);
                   setOpen(false);
                 }
               } else if (e.key === "Escape") {
@@ -313,7 +317,7 @@ export function Combobox(props: ComboboxProps) {
                     onSelect={() => {
                       onChange?.(opt.value);
                       setQuery(opt.label);
-                      // Don't call onQueryChange when selecting from dropdown
+                      if (notifyOnSelect) (props as BaseProps).onQueryChange?.(opt.label);
                       setOpen(false);
                     }}
                     className={

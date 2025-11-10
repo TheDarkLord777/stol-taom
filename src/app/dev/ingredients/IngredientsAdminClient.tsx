@@ -243,6 +243,7 @@ export default function IngredientsAdminClient({ initialItems, initialRestaurant
                                                     mode="input"
                                                     options={basicIngredientOptions}
                                                     value={ing.name}
+                                                    notifyOnSelect={false}
                                                     onChange={(v) => {
                                                         // v is the selected option's value (which is now the label)
                                                         updateIngredientName(ing.id, v);

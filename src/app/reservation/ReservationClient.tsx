@@ -40,7 +40,7 @@ export default function ReservationClient() {
         }));
         setRestaurants(opts);
       })
-      .catch(() => {})
+      .catch(() => { })
       .finally(() => {
         if (!mounted) return;
         const elapsed = Date.now() - start;
@@ -134,8 +134,7 @@ export default function ReservationClient() {
               toDate={inOneYear}
             />
             <div className="text-sm text-gray-600">
-              {range?.from ? range.from.toDateString() : "—"} —{" "}
-              {range?.to ? range.to.toDateString() : "—"}
+              {range?.from ? range.from.toDateString() : "—"} — {range?.to ? range.to.toDateString() : "—"}
             </div>
           </section>
         </>

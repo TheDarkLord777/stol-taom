@@ -423,12 +423,26 @@ export default function MenuGrid({
                           }
                           const data = await res.json();
                           console.log('Added to server cart', data);
+                          // notify other tabs/pages to refresh orders
+                          try {
+                            const bc = new BroadcastChannel('orders');
+                            bc.postMessage({ type: 'orders:update' });
+                            bc.close();
+                          } catch { }
                           closeDetail();
                         } catch (e) {
                           console.error('Add to cart error', e);
                           // network or other error -> fallback to offline queue
                           try {
-                            await enqueueAndTrySync(payload as any);
+                            const r = await enqueueAndTrySync(payload as any);
+                            // if enqueue synced immediately (we managed to reach server), notify others
+                            if (r?.synced) {
+                              try {
+                                const bc = new BroadcastChannel('orders');
+                                bc.postMessage({ type: 'orders:update' });
+                                bc.close();
+                              } catch { }
+                            }
                             closeDetail();
                           } catch {
                             // if even enqueue fails, as absolute last resort write to local cart

@@ -59,20 +59,6 @@ export default function ProfileClient() {
     detail?: unknown;
   };
 
-  // Reservations state
-  type Reservation = {
-    id?: string;
-    restaurant?: { name?: string } | null;
-    date?: string | null;
-    createdAt?: number | null;
-    status?: string | null;
-    title?: string | null;
-  };
-  const [reservations, setReservations] = React.useState<Reservation[] | null>(
-    null,
-  );
-  const [loadingRes, setLoadingRes] = React.useState(false);
-
   React.useEffect(() => {
     let active = true;
     setLoadingMe(true);
@@ -118,34 +104,11 @@ export default function ProfileClient() {
   const handleLogout = async () => {
     try {
       await fetch("/api/auth/logout", { method: "POST" });
-    } catch {}
+    } catch { }
     window.location.href = "/login";
   };
 
-  const loadReservations = React.useCallback(() => {
-    setLoadingRes(true);
-    fetch("/api/reservations")
-      .then((r) => (r.ok ? r.json() : Promise.reject(r)))
-      .then((d: unknown) => {
-        const payload = d as { items?: Reservation[] } | Reservation[];
-        if (Array.isArray(payload)) {
-          setReservations(payload as Reservation[]);
-        } else {
-          const obj = payload as { items?: Reservation[] | undefined };
-          if (Array.isArray(obj.items))
-            setReservations(obj.items as Reservation[]);
-          else setReservations([]);
-        }
-      })
-      .catch(() => setReservations([]))
-      .finally(() => setLoadingRes(false));
-  }, []);
 
-  React.useEffect(() => {
-    if (tab === "reservations" && reservations == null) {
-      loadReservations();
-    }
-  }, [tab, reservations, loadReservations]);
 
   return (
     <div className="mx-auto max-w-4xl p-6">
@@ -165,12 +128,7 @@ export default function ProfileClient() {
           >
             Security
           </Tabs.Trigger>
-          <Tabs.Trigger
-            value="reservations"
-            className={`rounded px-3 py-1 text-sm ${tab === "reservations" ? "bg-white/10" : "hover:bg-white/5"}`}
-          >
-            Reservations
-          </Tabs.Trigger>
+          {/* Reservations moved to /orders */}
         </Tabs.List>
 
         <Tabs.Content value="account" className="space-y-4">
@@ -326,11 +284,11 @@ export default function ProfileClient() {
                               setMe((prev) =>
                                 prev
                                   ? {
-                                      ...prev,
-                                      name: editName,
-                                      email: editEmail,
-                                      phone: editPhone,
-                                    }
+                                    ...prev,
+                                    name: editName,
+                                    email: editEmail,
+                                    phone: editPhone,
+                                  }
                                   : prev,
                               );
                               setEditing(false);
@@ -380,52 +338,7 @@ export default function ProfileClient() {
           </Section>
         </Tabs.Content>
 
-        <Tabs.Content value="reservations" className="space-y-4">
-          <Section title="Bronlar">
-            {loadingRes && !reservations ? (
-              <div className="space-y-2">
-                <div className="h-10 w-full animate-pulse rounded bg-white/10" />
-                <div className="h-10 w-full animate-pulse rounded bg-white/10" />
-                <div className="h-10 w-full animate-pulse rounded bg-white/10" />
-              </div>
-            ) : !reservations || reservations.length === 0 ? (
-              <div className="text-sm text-gray-400">Hozircha bronlar yo'q</div>
-            ) : (
-              <ul className="divide-y divide-white/10">
-                {reservations.map((r, idx) => (
-                  <li key={r.id ?? idx} className="py-3 text-sm">
-                    <div className="flex items-center justify-between gap-4">
-                      <div>
-                        <div className="font-medium">
-                          {r.restaurant?.name ?? r.title ?? "Bron"}
-                        </div>
-                        <div className="text-gray-400">
-                          {r.date
-                            ? new Date(r.date).toLocaleString()
-                            : r.createdAt
-                              ? new Date(r.createdAt).toLocaleString()
-                              : "Sana mavjud emas"}
-                        </div>
-                      </div>
-                      <div className="text-xs text-gray-400">
-                        {r.status ?? ""}
-                      </div>
-                    </div>
-                  </li>
-                ))}
-              </ul>
-            )}
-            <div className="mt-3">
-              <Button
-                variant="secondary"
-                onClick={loadReservations}
-                disabled={loadingRes}
-              >
-                {loadingRes ? "Yuklanmoqda..." : "Yangilash"}
-              </Button>
-            </div>
-          </Section>
-        </Tabs.Content>
+        {/* Reservations moved to /orders */}
       </Tabs.Root>
     </div>
   );
