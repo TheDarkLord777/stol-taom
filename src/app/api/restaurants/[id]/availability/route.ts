@@ -19,8 +19,8 @@ export const dynamic = "force-dynamic";
  *  - Each restaurant has a simple capacity model: 5 tables per size (2,4,6,8).
  *  - Existing reservations overlapping [from, to] reduce availability based on their partySize -> mapped to closest size bucket.
  */
-export async function GET(req: NextRequest, { params }: { params: { id: string } }) {
-  const restaurantId = params.id;
+export async function GET(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
+  const { id: restaurantId } = await params;
   const url = new URL(req.url);
   const fromStr = url.searchParams.get("from");
   const toStr = url.searchParams.get("to");
