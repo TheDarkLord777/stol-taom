@@ -43,7 +43,7 @@ export async function GET(req: NextRequest) {
         const cart = await prisma.cart.findFirst({ where: { userId: user.id }, include: { items: true } });
         const rawItems = (cart?.items ?? []);
         // enrich with menu item media (logoUrl) for thumbnails
-        const menuIds: string[] = Array.from(new Set(rawItems.map((it: any) => it.menuItemId))).filter(Boolean);
+        const menuIds: string[] = Array.from(new Set(rawItems.map((it: any) => it.menuItemId as string))).filter((id): id is string => typeof id === 'string' && id !== '');
         const menuMap: Record<string, { logoUrl?: string | null }> = {};
         if (menuIds.length > 0) {
             const menuRows = await prisma.menuItem.findMany({
