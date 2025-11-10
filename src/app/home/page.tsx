@@ -1,6 +1,9 @@
+// app/dashboard/page.tsx (yoki app/page.tsx)
+
 "use client";
-import Image from "next/image";
+
 import { Button } from "@/components/ui/button";
+import Galaxy from "@/components/ui/Galaxy"; // Galaxy komponentini import qilish
 
 export default function Dashboard() {
   const actions = [
@@ -10,21 +13,12 @@ export default function Dashboard() {
     { label: "️⚙️ Profil", href: "/profile" },
   ];
 
-  // Responsiv chap padding: mobil ~20px (pl-5), desktop ~40px (md:pl-10)
-
   return (
-    <div className="relative min-h-screen w-full overflow-hidden">
-      {/* Background Image */}
+    <div className="relative min-h-screen w-full overflow-hidden bg-black">
+      {/* Galaxy background */}
       <div className="absolute inset-0 z-0">
-        <Image
-          src="/dashboard.png"
-          alt="Food background"
-          fill
-          className="object-cover"
-          priority
-        />
-        {/* Overlay for better text readability */}
-        <div className="absolute inset-0 bg-black/20" />
+      <Galaxy mouseRepulsion={true} mouseInteraction={true} />
+
       </div>
 
       {/* Content */}

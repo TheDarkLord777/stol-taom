@@ -19,6 +19,7 @@ export default function ReservationClient() {
   const [chosenSize, setChosenSize] = React.useState<number | null>(null);
   const [submitLoading, setSubmitLoading] = React.useState(false);
   const [error, setError] = React.useState<string | null>(null);
+  const [success, setSuccess] = React.useState<string | null>(null);
   const today = React.useMemo(() => new Date(), []);
   const inOneYear = React.useMemo(() => {
     const d = new Date();
@@ -114,6 +115,7 @@ export default function ReservationClient() {
     if (!from || !chosenSize) return;
     setSubmitLoading(true);
     setError(null);
+    setSuccess(null);
     try {
       const res = await fetch("/api/reservations", {
         method: "POST",
@@ -128,6 +130,7 @@ export default function ReservationClient() {
       });
       const data = await res.json().catch(() => ({}));
       if (!res.ok) throw new Error(data?.error || "Server error");
+      setSuccess("Buyurtma qabul qilindi! Bron muvaffaqiyatli yaratildi.");
       // notify orders page to refresh
       try {
         const bc = new BroadcastChannel("orders");
@@ -238,9 +241,18 @@ export default function ReservationClient() {
                     </button>
                   );
                 })}
-              </div>
+      </div>
             ) : null}
-            {error ? <div className="text-sm text-red-600">{error}</div> : null}
+            {error ? (
+              <div className="mt-2 rounded border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">
+                {error}
+      </div>
+          ) : null}
+            {success ? (
+              <div className="mt-2 rounded border border-green-200 bg-green-50 px-3 py-2 text-sm text-green-700">
+                {success}
+        </div>
+            ) : null}
           </section>
 
           <div className="pt-2">
@@ -248,10 +260,37 @@ export default function ReservationClient() {
               onClick={submitReservation}
               disabled={!canSubmit || submitLoading}
               className="bg-[#C8FF00] hover:bg-[#B8EF00] text-black font-semibold"
+              aria-busy={submitLoading}
             >
-              {submitLoading ? "Yuborilmoqda…" : "Joy band qilish"}
+              {submitLoading ? (
+                <span className="inline-flex items-center gap-2">
+                  <svg
+                    className="animate-spin -ml-1 mr-1 h-4 w-4 text-black"
+                    xmlns="http://www.w3.org/2000/svg"
+                    fill="none"
+                    viewBox="0 0 24 24"
+                  >
+                    <circle
+                      className="opacity-25"
+                      cx="12"
+                      cy="12"
+                      r="10"
+                      stroke="currentColor"
+                      strokeWidth="4"
+                    ></circle>
+                    <path
+                      className="opacity-75"
+                      fill="currentColor"
+                      d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z"
+                    ></path>
+                  </svg>
+                  Yuborilmoqda…
+                </span>
+              ) : (
+                "Joy band qilish"
+              )}
             </Button>
-          </div>
+            </div>
         </>
       ) : null}
     </div>

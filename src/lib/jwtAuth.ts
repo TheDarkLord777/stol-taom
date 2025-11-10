@@ -473,9 +473,16 @@ export async function authGuard(req: NextRequest): Promise<NextResponse> {
   }
 
   // Try refresh token to mint new access
-  const res = NextResponse.next();
-  const refreshed = await refreshAccessToken(req, res);
-  if (refreshed?.user) return res;
+  if (isApi) {
+    const res = NextResponse.next();
+    const refreshed = await refreshAccessToken(req, res);
+    if (refreshed?.user) return res;
+  } else {
+    const url = req.nextUrl.clone();
+    const res = NextResponse.redirect(url);
+    const refreshed = await refreshAccessToken(req, res);
+    if (refreshed?.user) return res;
+  }
 
   // Unauthenticated
   if (isApi) {

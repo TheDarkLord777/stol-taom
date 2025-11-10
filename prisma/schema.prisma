@@ -28,6 +28,7 @@ model Restaurant {
   // Relations
   reservations Reservation[]
   menuItems MenuItemOnRestaurant[]
+  capacity RestaurantCapacity?
 }
 
 model MenuItem {
@@ -77,6 +78,19 @@ model MenuItemOnRestaurant {
   restaurant   Restaurant @relation(fields: [restaurantId], references: [id])
 
   @@unique([menuItemId, restaurantId])
+}
+
+model RestaurantCapacity {
+  id            String     @id @default(cuid())
+  restaurantId  String     @unique
+  table2        Int        @default(5)
+  table4        Int        @default(5)
+  table6        Int        @default(5)
+  table8        Int        @default(5)
+  updatedAt     DateTime   @updatedAt
+  createdAt     DateTime   @default(now())
+
+  restaurant    Restaurant @relation(fields: [restaurantId], references: [id])
 }
 
 model Cart {

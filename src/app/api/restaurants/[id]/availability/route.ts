@@ -33,10 +33,20 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ id: 
     if (Number.isNaN(fromDate.getTime()) || Number.isNaN(toDate.getTime())) {
       return NextResponse.json({ error: "invalid from/to" }, { status: 400 });
     }
-    // Simple capacity model: per size capacities
-    const capacities: Record<string, number> = { "2": 5, "4": 5, "6": 5, "8": 5 };
-
     const prisma = getPrisma() as any;
+
+    // Per-restaurant capacity from DB (fallback to defaults if not set)
+    const capRow = await prisma.restaurantCapacity.findUnique({
+      where: { restaurantId },
+      select: { table2: true, table4: true, table6: true, table8: true },
+    });
+    const capacities: Record<string, number> = {
+      "2": capRow?.table2 ?? 5,
+      "4": capRow?.table4 ?? 5,
+      "6": capRow?.table6 ?? 5,
+      "8": capRow?.table8 ?? 5,
+    };
+
     // Find reservations overlapping [fromDate, toDate)
     const reservations = await prisma.reservation.findMany({
       where: {

@@ -12,6 +12,7 @@ type CartItem = {
   quantity: number;
   price?: number | null;
   addedAt?: string | null;
+  logoUrl?: string | null;
 };
 
 export default function OrdersPage() {
@@ -21,6 +22,9 @@ export default function OrdersPage() {
   const [loading, setLoading] = useState(false);
   // track per-item removal state to show spinner while deleting
   const [removingMap, setRemovingMap] = useState<Record<string, boolean>>({});
+  const [selectedMap, setSelectedMap] = useState<Record<string, boolean>>({});
+  const [selectedResMap, setSelectedResMap] = useState<Record<string, boolean>>({});
+  const [removingResMap, setRemovingResMap] = useState<Record<string, boolean>>({});
 
   const fetchCart = async () => {
     setLoading(true);
@@ -37,6 +41,7 @@ export default function OrdersPage() {
       if (!res.ok) throw new Error(data?.error || "Server error");
       setItems(data.items ?? []);
       setReservations(data.reservations ?? []);
+      setSelectedMap({});
     } catch (e: unknown) {
       const m = e instanceof Error ? e.message : String(e);
       setError(m);
@@ -87,14 +92,90 @@ export default function OrdersPage() {
       {/* Orders section */}
       {items && items.length > 0 && (
         <div className="space-y-4">
+          <div className="flex items-center justify-between">
+            <label className="flex items-center gap-2 text-sm">
+              <input
+                type="checkbox"
+                checked={items.every((x) => selectedMap[x.id])}
+                onChange={(e) => {
+                  const checked = e.target.checked;
+                  const next: Record<string, boolean> = {};
+                  for (const it of items) next[it.id] = checked;
+                  setSelectedMap(next);
+                }}
+              />
+              <span>Hammasini tanlash (faqat savat bo'limi)</span>
+            </label>
+            <div className="flex items-center gap-2">
+              <Button
+                variant="outline"
+                onClick={async () => {
+                  const ids = items.filter((x) => selectedMap[x.id]).map((x) => x.id);
+                  if (ids.length === 0) return;
+                  setRemovingMap((m) => {
+                    const next = { ...m };
+                    for (const id of ids) next[id] = true;
+                    return next;
+                  });
+                  try {
+                    for (const id of ids) {
+                      await fetch("/api/cart/remove", {
+                        method: "DELETE",
+                        headers: { "Content-Type": "application/json" },
+                        credentials: "same-origin",
+                        body: JSON.stringify({ id }),
+                      });
+                    }
+                  } finally {
+                    await fetchCart();
+                    setRemovingMap({});
+                  }
+                }}
+              >
+                Tanlanganlarni o'chirish
+              </Button>
+              <Button
+                onClick={() => {
+                  const ids = items.filter((x) => selectedMap[x.id]).map((x) => x.id);
+                  if (ids.length === 0) return;
+                  alert(`Yaqinda qo'shiladi: ${ids.length} ta element uchun to'lov.`);
+                }}
+                className="bg-emerald-600 hover:bg-emerald-700 text-white"
+              >
+                Tanlanganlarni to'lash
+              </Button>
+            </div>
+          </div>
           {items.map((it) => (
-            <div key={it.id} className="p-4 bg-white/80 rounded shadow flex items-center justify-between">
-              <div>
-                <div className="font-semibold text-lg">{it.name}</div>
-                {it.ingredients && it.ingredients.length > 0 && (
-                  <div className="text-sm text-gray-700 mt-2">Tarkibi: {it.ingredients.map((ing) => ing.name).join(", ")}</div>
-                )}
-                {it.addedAt && <div className="text-xs text-gray-500 mt-1">{new Date(it.addedAt).toLocaleString()}</div>}
+            <div key={it.id} className="p-4 bg-white/80 rounded shadow flex items-start gap-4">
+              <div className="flex items-start gap-3 flex-1 min-w-0">
+                <input
+                  type="checkbox"
+                  checked={Boolean(selectedMap[it.id])}
+                  onChange={(e) =>
+                    setSelectedMap((m) => ({ ...m, [it.id]: e.target.checked }))
+                  }
+                  className="mt-1 flex-shrink-0"
+                />
+                <div className="relative h-12 w-12 flex-shrink-0 overflow-hidden rounded bg-gray-100 flex items-center justify-center">
+                  {it.logoUrl ? (
+                    // eslint-disable-next-line @next/next/no-img-element
+                    <img
+                      src={it.logoUrl as string}
+                      alt={it.name}
+                      className="h-full w-full object-cover"
+                    />
+                  ) : (
+                    <span className="text-xs text-gray-500">No image</span>
+                  )}
+                </div>
+                <div className="flex-1 min-w-0">
+                  <div className="font-semibold text-lg">{it.name}</div>
+                  {it.ingredients && it.ingredients.length > 0 && (
+                    <div className="text-sm text-gray-700 mt-1">Tarkibi: {it.ingredients.map((ing) => ing.name).join(", ")}</div>
+                  )}
+                  {it.addedAt && <div className="text-xs text-gray-500 mt-1">{new Date(it.addedAt).toLocaleString()}</div>}
+                </div>
               </div>
 
               <div className="flex items-center gap-3">
@@ -157,6 +238,13 @@ export default function OrdersPage() {
                   <div className="font-bold">{it.price ? `${it.price} so'm` : "-"}</div>
                 </div>
 
+                <Button
+                  onClick={() => alert("Yaqinda qo'shiladi: ushbu element uchun to'lov.")}
+                  className="bg-emerald-600 hover:bg-emerald-700 text-white"
+                >
+                  To'lash
+                </Button>
+
                 <button
                   className={
                     `px-3 py-1 rounded text-white transition-colors duration-150 focus:outline-none ` +
@@ -204,16 +292,94 @@ export default function OrdersPage() {
       {/* Reservations section */}
       {reservations && reservations.length > 0 && (
         <div className="mt-8">
-          <h2 className="text-xl font-semibold mb-3">Bronlar</h2>
+          <div className="flex items-center justify-between mb-3">
+            <h2 className="text-xl font-semibold">Bronlar</h2>
+            <div className="flex items-center gap-3">
+              <label className="flex items-center gap-2 text-sm">
+                <input
+                  type="checkbox"
+                  checked={reservations.every((x) => selectedResMap[x.id])}
+                  onChange={(e) => {
+                    const checked = e.target.checked;
+                    const next: Record<string, boolean> = {};
+                    for (const r of reservations) next[r.id] = checked;
+                    setSelectedResMap(next);
+                  }}
+                />
+                <span>Hammasini tanlash (faqat bronlar bo'limi)</span>
+              </label>
+              <Button
+                variant="outline"
+                onClick={async () => {
+                  const ids = reservations.filter((x) => selectedResMap[x.id]).map((x) => x.id);
+                  if (ids.length === 0) return;
+                  setRemovingResMap((m) => {
+                    const next = { ...m };
+                    for (const id of ids) next[id] = true;
+                    return next;
+                  });
+                  try {
+                    for (const id of ids) {
+                      await fetch("/api/reservations/remove", {
+                        method: "DELETE",
+                        headers: { "Content-Type": "application/json" },
+                        credentials: "same-origin",
+                        body: JSON.stringify({ id }),
+                      });
+                    }
+                  } finally {
+                    await fetchCart();
+                    setRemovingResMap({});
+                    setSelectedResMap({});
+                  }
+                }}
+              >
+                Tanlanganlarni o'chirish
+              </Button>
+            </div>
+          </div>
           <div className="space-y-3">
             {reservations.map((r) => (
               <div key={r.id} className="p-3 bg-white/80 rounded shadow flex justify-between items-center">
-                <div>
-                  <div className="font-medium">{r.restaurantId ? `Restoran: ${r.restaurantId}` : "Bron"}</div>
+                <div className="flex items-center gap-3">
+                  <input
+                    type="checkbox"
+                    checked={Boolean(selectedResMap[r.id])}
+                    onChange={(e) =>
+                      setSelectedResMap((m) => ({ ...m, [r.id]: e.target.checked }))
+                    }
+                  />
+                  <div className="font-medium">{r.restaurantName ? `Restoran: ${r.restaurantName}` : "Bron"}</div>
                   <div className="text-sm text-gray-600">Sana: {r.fromDate ? new Date(r.fromDate).toLocaleString() : "—"}</div>
                   {r.partySize && <div className="text-sm text-gray-600">Odamlar: {r.partySize}</div>}
                 </div>
-                <div className="text-sm text-gray-500">{r.createdAt ? new Date(r.createdAt).toLocaleString() : ""}</div>
+                <div className="flex items-center gap-3">
+                  <div className="text-sm text-gray-500">{r.createdAt ? new Date(r.createdAt).toLocaleString() : ""}</div>
+                  <button
+                    className={
+                      `px-3 py-1 rounded text-white transition-colors duration-150 focus:outline-none ` +
+                      (removingResMap[r.id] ? "bg-red-600 opacity-80 cursor-wait" : "bg-red-500 hover:bg-red-600")
+                    }
+                    onClick={async () => {
+                      setRemovingResMap((m) => ({ ...m, [r.id]: true }));
+                      try {
+                        await fetch("/api/reservations/remove", {
+                          method: "DELETE",
+                          headers: { "Content-Type": "application/json" },
+                          credentials: "same-origin",
+                          body: JSON.stringify({ id: r.id }),
+                        });
+                        await fetchCart();
+                      } finally {
+                        setRemovingResMap((m) => ({ ...m, [r.id]: false }));
+                      }
+                    }}
+                    disabled={Boolean(removingResMap[r.id])}
+                    aria-busy={Boolean(removingResMap[r.id])}
+                  >
+                    {removingResMap[r.id] ? "O'chirilmoqda..." : "O'chirish"}
+                  </button>
+                </div>
               </div>
             ))}
           </div>

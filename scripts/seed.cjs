@@ -11,6 +11,14 @@ const sampleRestaurants = [
   { name: "Bellissimo PIZZA", logoUrl: "/logos/bellissimo.svg" },
 ];
 
+// Optional: per-restaurant capacities for tables (2/4/6/8 people).
+// If a restaurant name is not present here, defaults will be used.
+const capacityByName = {
+  "LOOOK": { table2: 6, table4: 8, table6: 4, table8: 2 },
+  "OQTEPA LAVASH": { table2: 10, table4: 6, table6: 3, table8: 1 },
+  "Bellissimo PIZZA": { table2: 8, table4: 10, table6: 4, table8: 2 },
+};
+
 const sampleMenu = [
   { name: "Somsa", slug: "somsa", logoUrl: "/photo/somsa.jpg" },
   { name: "Osh", slug: "osh", logoUrl: "/photo/osh.jpg" },
@@ -36,6 +44,31 @@ async function main() {
       where: { name: r.name },
       update: { logoUrl: r.logoUrl ?? null },
       create: { name: r.name, logoUrl: r.logoUrl ?? null },
+    });
+  }
+
+  // Ensure RestaurantCapacity rows exist and are linked by restaurantId
+  console.log("Seeding restaurant capacities...");
+  const allRestaurants = await prisma.restaurant.findMany({
+    select: { id: true, name: true },
+  });
+  for (const r of allRestaurants) {
+    const caps = capacityByName[r.name] || { table2: 5, table4: 5, table6: 5, table8: 5 };
+    await prisma.restaurantCapacity.upsert({
+      where: { restaurantId: r.id },
+      update: {
+        table2: caps.table2,
+        table4: caps.table4,
+        table6: caps.table6,
+        table8: caps.table8,
+      },
+      create: {
+        restaurantId: r.id,
+        table2: caps.table2,
+        table4: caps.table4,
+        table6: caps.table6,
+        table8: caps.table8,
+      },
     });
   }
 
