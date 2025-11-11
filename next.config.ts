@@ -76,11 +76,11 @@ const nextConfig: NextConfig = {
           // HSTS only in production and when served via HTTPS
           ...(isProd
             ? [
-                {
-                  key: "Strict-Transport-Security",
-                  value: "max-age=31536000; includeSubDomains; preload",
-                },
-              ]
+              {
+                key: "Strict-Transport-Security",
+                value: "max-age=31536000; includeSubDomains; preload",
+              },
+            ]
             : []),
         ],
       },
