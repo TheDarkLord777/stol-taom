@@ -86,6 +86,10 @@ const nextConfig: NextConfig = {
       },
     ];
   },
+  allowedDevOrigins: [
+    "http://10.91.247.198:3000", // hamkasbingiz IP:PORT (Next terminalda ko‘rsatgan port)
+    "http://localhost:3000", // lokal ham kirish ruxsat
+  ],
 };
 
 export default nextConfig;

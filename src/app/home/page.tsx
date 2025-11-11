@@ -1,38 +1,42 @@
-// app/dashboard/page.tsx (yoki app/page.tsx)
+// app/home/page.tsx
 
 "use client";
 
-import { Button } from "@/components/ui/button";
+import PulseCard from "@/components/ui/pulse-card";
 import Galaxy from "@/components/ui/Galaxy"; // Galaxy komponentini import qilish
+import Link from "next/link";
+import { Menu, Calendar, ShoppingCart, User } from "lucide-react";
 
 export default function Dashboard() {
   const actions = [
-    { label: "🍔 Menyu", href: "/menu" },
-    { label: "🍽️ Joy band qilish", href: "/reservation" },
-    { label: "📅 Buyurtmalarim", href: "/orders" },
-    { label: "️⚙️ Profil", href: "/profile" },
+    { title: "Menyu", description: "Barcha taomlar", icon: <Menu />, href: "/menu", variant: "emerald" },
+    { title: "Joy band qilish", description: "Rezervatsiya qiling", icon: <Calendar />, href: "/reservation", variant: "blue" },
+    { title: "Buyurtmalarim", description: "Sizning buyurtmalaringiz", icon: <ShoppingCart />, href: "/orders", variant: "purple" },
+    { title: "Profil", description: "Hisob sozlamalari", icon: <User />, href: "/profile", variant: "amber" },
   ];
 
   return (
     <div className="relative min-h-screen w-full overflow-hidden bg-black">
       {/* Galaxy background */}
       <div className="absolute inset-0 z-0">
-      <Galaxy mouseRepulsion={true} mouseInteraction={true} />
-
+        <Galaxy mouseRepulsion={true} mouseInteraction={true} className="size-full" />
       </div>
 
       {/* Content */}
       <div className="relative z-10 flex min-h-screen items-center justify-center px-4 py-12">
         <div className="w-full max-w-md">
-          <div className="flex flex-col items-center gap-4">
+          <div className="grid grid-cols-1 gap-4">
             {actions.map((a) => (
-              <Button
-                key={a.label}
-                href={a.href}
-                className="h-14 w-full max-w-xs bg-[#C8FF00] hover:bg-[#B8EF00] text-black text-xl font-bold shadow-xl rounded-lg flex justify-start items-center leading-none text-left pl-5 md:pl-10"
-              >
-                {a.label}
-              </Button>
+              <Link key={a.title} href={a.href} className="w-full block">
+                <PulseCard
+                  icon={a.icon}
+                  title={a.title}
+                  description={a.description}
+                  variant={(a as any).variant}
+                  size="md"
+                  glowEffect={true}
+                />
+              </Link>
             ))}
           </div>
         </div>

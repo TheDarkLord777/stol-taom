@@ -149,6 +149,7 @@ void main() {
 `;
 
 interface GalaxyProps {
+  className?: string;
   focal?: [number, number];
   rotation?: [number, number];
   starSpeed?: number;
@@ -165,6 +166,7 @@ interface GalaxyProps {
 }
 
 export default function Galaxy({
+  className,
   focal = [0.5, 0.5],
   rotation = [1.0, 0.0],
   starSpeed = 0.5,           // Star Speed
@@ -195,6 +197,7 @@ export default function Galaxy({
     gl.enable(gl.BLEND);
     gl.blendFunc(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA);
     gl.clearColor(0, 0, 0, 0);
+
 
     const dpr = Math.min(window.devicePixelRatio || 1, 2);
     function resize() {
@@ -232,6 +235,9 @@ export default function Galaxy({
     });
 
     const mesh = new Mesh(gl, { geometry, program });
+
+    // canvas pointer-eventsni qo‘yish
+    gl.canvas.style.pointerEvents = "auto";
     ctn.appendChild(gl.canvas);
     window.addEventListener("resize", resize);
     resize();
@@ -299,5 +305,8 @@ export default function Galaxy({
     repulsionStrength,
   ]);
 
-  return <div ref={ctnDom} className="w-full h-full relative" />;
+return  <div
+    ref={ctnDom}
+    className={`w-full h-full relative pointer-events-none ${className || ""}`}
+  />
 }
