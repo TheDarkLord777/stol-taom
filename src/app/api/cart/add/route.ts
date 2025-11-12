@@ -1,14 +1,26 @@
 import type { NextRequest } from "next/server";
 import { NextResponse } from "next/server";
 import { getPrisma } from "@/lib/prisma";
-import { getUserFromRequest } from "@/lib/jwtAuth";
+import { getUserFromRequest, refreshAccessToken, ACCESS_TOKEN_NAME, ACCESS_TTL_SEC } from "@/lib/jwtAuth";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
 export async function POST(req: NextRequest) {
     try {
-        const user = await getUserFromRequest(req);
+        let user = await getUserFromRequest(req);
+        // If access token missing/expired, try to rotate using refresh token (best-effort).
+        // refreshAccessToken(req) returns { access, user } if refresh valid.
+        if (!user) {
+            try {
+                const refreshed = await refreshAccessToken(req);
+                if (refreshed?.user) {
+                    user = refreshed.user;
+                }
+            } catch {
+                // ignore
+            }
+        }
         if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
         const body = (await req.json()) as {
@@ -51,7 +63,36 @@ export async function POST(req: NextRequest) {
             },
         });
 
-        return NextResponse.json({ success: true, item });
+        // If we obtained an access token via refreshAccessToken(req), it did not set
+        // cookies on the response (since we didn't pass a NextResponse). If refresh
+        // returned an access token we can set it here so the client receives it.
+        const res = NextResponse.json({ success: true, item });
+        try {
+            const refreshed = await refreshAccessToken(req);
+            if (refreshed?.access) {
+                const cookieSecureEnv = process.env.COOKIE_SECURE?.toLowerCase();
+                const cookieSecure =
+                    cookieSecureEnv === "true"
+                        ? true
+                        : cookieSecureEnv === "false"
+                            ? false
+                            : process.env.NODE_ENV === "production";
+                const base = {
+                    httpOnly: true,
+                    sameSite: "lax" as const,
+                    path: "/",
+                    secure: cookieSecure,
+                };
+                res.cookies.set(ACCESS_TOKEN_NAME, refreshed.access, {
+                    ...base,
+                    maxAge: ACCESS_TTL_SEC,
+                });
+            }
+        } catch {
+            // ignore cookie set errors
+        }
+
+        return res;
     } catch (e: unknown) {
         const msg = e instanceof Error ? e.message : String(e);
         console.error("POST /api/cart/add error", msg);

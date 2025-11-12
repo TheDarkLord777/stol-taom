@@ -4,6 +4,7 @@ import * as React from "react";
 import AuthSessionTimer from "@/components/AuthSessionTimer";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import RedisDebugger from "./RedisDebugger";
 
 type MeResponse = {
   user?: {
@@ -134,6 +135,12 @@ export default function ProfileClient() {
           >
             Premium
           </Tabs.Trigger>
+            <Tabs.Trigger
+              value="redis"
+              className={`rounded px-3 py-1 text-sm ${tab === "redis" ? "bg-white/10" : "hover:bg-white/5"}`}
+            >
+              Redis
+            </Tabs.Trigger>
           {/* Reservations moved to /orders */}
         </Tabs.List>
 
@@ -365,6 +372,12 @@ export default function ProfileClient() {
                 </Button>
               </div>
             </div>
+          </Section>
+        </Tabs.Content>
+
+        <Tabs.Content value="redis" className="space-y-4">
+          <Section title="Redis Debugger">
+            <RedisDebugger />
           </Section>
         </Tabs.Content>
 
