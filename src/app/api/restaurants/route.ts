@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { restaurantRepo } from "@/lib/restaurantRepo";
+import { restaurantRepo, getRestaurantLastCacheStatus } from "@/lib/restaurantRepo";
 import { resetPrisma } from "@/lib/prisma";
 
 export const dynamic = "force-dynamic";
@@ -16,7 +16,26 @@ export async function GET() {
     }
 
     const rows = await restaurantRepo.list();
-    return NextResponse.json({ items: rows });
+
+    // Respect MENU_CACHE_TTL_MS for CDN/edge caching when present. Use
+    // a short browser max-age but allow CDNs (s-maxage) to cache longer.
+    const ttlMs = Number(process.env.MENU_CACHE_TTL_MS ?? 3 * 24 * 60 * 60 * 1000);
+    const sMaxAge = Math.max(0, Math.floor(ttlMs / 1000));
+    const cacheControl = `public, max-age=60, s-maxage=${sMaxAge}, stale-while-revalidate=60`;
+
+    // Add cache status header
+    const cacheStatus = getRestaurantLastCacheStatus() ?? "MISS";
+    const xcache = cacheStatus.includes("HIT") ? "HIT" : "MISS";
+
+    return NextResponse.json(
+      { items: rows },
+      {
+        headers: {
+          "Cache-Control": cacheControl,
+          "X-Cache": xcache,
+        },
+      },
+    );
   } catch (e: unknown) {
     // log server-side
     // eslint-disable-next-line no-console

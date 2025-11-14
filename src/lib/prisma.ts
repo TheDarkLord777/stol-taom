@@ -65,9 +65,12 @@ prisma.$use(async (params, next) => {
             break;
           case "MenuItem":
             patterns.push("menu:menuitems*");
+            patterns.push("menu:detail:*");
+            patterns.push("menu:list*");
             break;
           case "Ingredient":
-            patterns.push("menu:ingredients*");
+            patterns.push("ingredients:v:*");
+            patterns.push("ingredients:version");
             break;
           case "MenuItemOnRestaurant":
             patterns.push("menu:restaurants*");
