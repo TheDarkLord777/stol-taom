@@ -1,7 +1,9 @@
 import ClientOnly from "@/components/ClientOnly";
-import ReservationClient from "./ReservationClient";
+import ReservationPageClientWrapper from "./ReservationPageClientWrapper";
 
 export default function Page() {
+  // This is a server component, but the ClientOnly wrapper will render
+  // ReservationPageClientWrapper as a client component where useLightMode hook works
   return (
     <ClientOnly
       fallback={
@@ -15,7 +17,7 @@ export default function Page() {
         </div>
       }
     >
-      <ReservationClient />
+      <ReservationPageClientWrapper />
     </ClientOnly>
   );
 }

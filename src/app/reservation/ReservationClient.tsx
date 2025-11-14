@@ -5,10 +5,13 @@ import type { DateRange } from "react-day-picker";
 import Combobox from "@/components/ui/combobox";
 import { DatePicker, DateRangePicker } from "@/components/ui/datepicker";
 import { Button } from "@/components/ui/button";
+import { usePageTheme } from "@/lib/use-page-theme";
 
 type Option = { value: string; label: string; logo?: string };
 
 export default function ReservationClient() {
+  // Apply per-page theme from localStorage (default: light for /reservation)
+  usePageTheme('/reservation');
   const [selected, setSelected] = React.useState<string | undefined>();
   const [restaurants, setRestaurants] = React.useState<Option[]>([]);
   const [loading, setLoading] = React.useState(true);
@@ -241,17 +244,17 @@ export default function ReservationClient() {
                     </button>
                   );
                 })}
-      </div>
+              </div>
             ) : null}
             {error ? (
               <div className="mt-2 rounded border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">
                 {error}
-      </div>
-          ) : null}
+              </div>
+            ) : null}
             {success ? (
               <div className="mt-2 rounded border border-green-200 bg-green-50 px-3 py-2 text-sm text-green-700">
                 {success}
-        </div>
+              </div>
             ) : null}
           </section>
 
@@ -290,7 +293,7 @@ export default function ReservationClient() {
                 "Joy band qilish"
               )}
             </Button>
-            </div>
+          </div>
         </>
       ) : null}
     </div>

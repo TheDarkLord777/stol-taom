@@ -5,6 +5,7 @@ import AuthSessionTimer from "@/components/AuthSessionTimer";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import RedisDebugger from "./RedisDebugger";
+import ThemeManager from "./ThemeManager";
 
 type MeResponse = {
   user?: {
@@ -35,6 +36,10 @@ function Section({
 
 export default function ProfileClient() {
   const [tab, setTab] = React.useState("account");
+
+  React.useEffect(() => {
+    console.log('[ProfileClient] Mounted, current theme:', localStorage.getItem('app-theme'), 'HTML classes:', document.documentElement.className);
+  }, []);
 
   // Account state
   const [me, setMe] = React.useState<MeResponse["user"] | null>(null);
@@ -135,12 +140,18 @@ export default function ProfileClient() {
           >
             Premium
           </Tabs.Trigger>
-            <Tabs.Trigger
-              value="redis"
-              className={`rounded px-3 py-1 text-sm ${tab === "redis" ? "bg-white/10" : "hover:bg-white/5"}`}
-            >
-              Redis
-            </Tabs.Trigger>
+          <Tabs.Trigger
+            value="redis"
+            className={`rounded px-3 py-1 text-sm ${tab === "redis" ? "bg-white/10" : "hover:bg-white/5"}`}
+          >
+            Redis
+          </Tabs.Trigger>
+          <Tabs.Trigger
+            value="theme"
+            className={`rounded px-3 py-1 text-sm ${tab === "theme" ? "bg-white/10" : "hover:bg-white/5"}`}
+          >
+            Tema
+          </Tabs.Trigger>
           {/* Reservations moved to /orders */}
         </Tabs.List>
 
@@ -378,6 +389,12 @@ export default function ProfileClient() {
         <Tabs.Content value="redis" className="space-y-4">
           <Section title="Redis Debugger">
             <RedisDebugger />
+          </Section>
+        </Tabs.Content>
+
+        <Tabs.Content value="theme" className="space-y-4">
+          <Section title="Tema Sozlamalari">
+            <ThemeManager />
           </Section>
         </Tabs.Content>
 

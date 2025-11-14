@@ -1,3 +1,5 @@
+"use client";
+
 import React from "react";
 import { motion } from "framer-motion";
 import { cn } from "@/lib/utils";
@@ -118,12 +120,11 @@ export function CardHoverEffect({
             className={cn(
                 "group relative z-30 cursor-pointer overflow-hidden rounded-2xl",
                 sizeConfig.padding,
-                // Light mode styles
-                "bg-white/80 before:bg-linear-to-b before:from-white/5 before:to-white/20 before:backdrop-blur-3xl",
-                "after:bg-linear-to-b after:from-transparent after:via-transparent after:to-white/20",
-                // Dark mode styles
-                "dark:bg-black/5 dark:before:bg-linear-to-b dark:before:from-black/5 dark:before:to-black/20",
-                "dark:after:to-black/20",
+                // Use both light and dark classes — css variables in html.light/html.dark handle the rest
+                "bg-white/80 dark:bg-black/5",
+                "before:bg-linear-to-b before:from-white/5 before:to-white/20",
+                "dark:before:from-black/5 dark:before:to-black/20",
+                "before:backdrop-blur-3xl after:bg-linear-to-b after:from-transparent after:via-transparent after:to-white/20 dark:after:to-black/20",
                 // Common styles
                 "before:absolute before:inset-0 before:rounded-[inherit] before:content-['']",
                 "after:absolute after:inset-0 after:rounded-[inherit] after:content-['']",

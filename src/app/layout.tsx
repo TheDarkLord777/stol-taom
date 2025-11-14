@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { Geist, Geist_Mono, Inika } from "next/font/google";
 import Script from "next/script";
+import { ThemeProvider } from "@/components/ThemeProvider";
 import "./globals.css";
 
 const inika = Inika({
@@ -30,24 +31,20 @@ export default function RootLayout({
 }: Readonly<{
   children: React.ReactNode;
 }>) {
-  // Determine theme override from env:
-  // - DEFAULT_THEME: 'dark' | 'light' | 'system'
-  // - ENABLE_DARK_MODE: 'true' | 'false' (legacy boolean)
-  const themePref = (process.env.DEFAULT_THEME || "").toLowerCase();
-  let themeClass = "";
-  if (themePref === "dark") themeClass = "force-dark";
-  else if (themePref === "light") themeClass = "force-light";
-  else if (process.env.ENABLE_DARK_MODE === "true") themeClass = "force-dark";
-  else if (process.env.ENABLE_DARK_MODE === "false") themeClass = "force-light";
+  // Layout forces dark mode at the <html> level. Legacy env flags like
+  // DEFAULT_THEME and ENABLE_DARK_MODE are intentionally unused.
 
+  // Do not force dark class here — let ThemeProvider apply dark/light client-side.
+  // Server renders with suppressHydrationWarning to allow client to manage the class.
   return (
-    <html lang="en">
+    <html lang="en" suppressHydrationWarning>
       <body
-        className={`${inika.className} ${inika.variable} ${geistSans.variable} ${geistMono.variable} antialiased ${themeClass}`}
+        className={`${inika.className} ${inika.variable} ${geistSans.variable} ${geistMono.variable} antialiased`}
       >
-        {process.env.NODE_ENV !== "production" ? (
-          <Script id="strip-ext-attrs" strategy="beforeInteractive">
-            {`
+        <ThemeProvider>
+          {process.env.NODE_ENV !== "production" ? (
+            <Script id="strip-ext-attrs" strategy="beforeInteractive">
+              {`
               (function () {
                 try {
                   var ATTR_EXACT = ["bis_skin_checked", "bis_register"];
@@ -88,11 +85,11 @@ export default function RootLayout({
                 } catch(_) {}
               })();
             `}
-          </Script>
-        ) : null}
-        {process.env.NODE_ENV !== "production" ? (
-          <Script id="silence-hydration-warnings" strategy="beforeInteractive">
-            {`
+            </Script>
+          ) : null}
+          {process.env.NODE_ENV !== "production" ? (
+            <Script id="silence-hydration-warnings" strategy="beforeInteractive">
+              {`
               (function(){
                 try {
                   var origError = console.error;
@@ -114,9 +111,10 @@ export default function RootLayout({
                 } catch(_) {}
               })();
             `}
-          </Script>
-        ) : null}
-        {children}
+            </Script>
+          ) : null}
+          {children}
+        </ThemeProvider>
       </body>
     </html>
   );

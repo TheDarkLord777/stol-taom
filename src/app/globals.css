@@ -1,8 +1,47 @@
 @import "tailwindcss";
 
 :root {
+  --background: #0a0a0a;
+  --foreground: #ededed;
+}
+
+html.light {
   --background: #ffffff;
   --foreground: #171717;
+}
+
+/* When html.light is applied, override Tailwind dark: prefix behavior
+   by forcing specific classes to light mode values */
+html.light {
+  --tw-bg-opacity: 1;
+}
+
+html.light .dark\:bg-black\/5 {
+  background-color: rgba(255, 255, 255, 0.8) !important;
+}
+
+html.light .dark\:before\:bg-linear-to-b::before {
+  background: linear-gradient(to bottom, rgba(255, 255, 255, 0.05), rgba(255, 255, 255, 0.2)) !important;
+}
+
+html.light .dark\:before\:from-black\/5::before {
+  --gradient-from: rgba(255, 255, 255, 0.05) !important;
+}
+
+html.light .dark\:before\:to-black\/20::before {
+  --gradient-to: rgba(255, 255, 255, 0.2) !important;
+}
+
+html.light .dark\:after\:to-black\/20::after {
+  --gradient-to: rgba(255, 255, 255, 0.2) !important;
+}
+
+html.light .dark\:shadow-\[0px_3px_8px_rgba\(0\,0\,0\,0\.08\)\,0px_12px_20px_rgba\(0\,0\,0\,0\.15\)\] {
+  box-shadow: 0px 3px 8px rgba(0, 0, 0, 0.04), 0px 12px 20px rgba(0, 0, 0, 0.08) !important;
+}
+
+html.light .dark\:hover\:shadow-\[0px_5px_15px_rgba\(0\,0\,0\,0\.06\)\,0px_25px_35px_rgba\(0\,0\,0\,0\.4\)\]:hover {
+  box-shadow: 0px 5px 15px rgba(0, 0, 0, 0.03), 0px 25px 35px rgba(0, 0, 0, 0.2) !important;
 }
 
 @theme inline {
@@ -12,12 +51,7 @@
   --font-mono: var(--font-geist-mono);
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
-}
+/* Removed system-dependent prefers-color-scheme block: dark is the default. */
 
 body {
   background: var(--background);
@@ -25,16 +59,7 @@ body {
   font-family: Arial, Helvetica, sans-serif;
 }
 
-/* Force theme via class, useful for env-controlled overrides */
-.force-dark {
-  --background: #0a0a0a;
-  --foreground: #ededed;
-}
-
-.force-light {
-  --background: #ffffff;
-  --foreground: #171717;
-}
+/* Legacy force-* classes removed: theme is globally dark via `html.dark` */
 
 /* Utility class to style input placeholders with Inika at 24px */
 .placeholder-inika-24::placeholder {
