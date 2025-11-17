@@ -1,6 +1,8 @@
 "use client";
 import * as Tabs from "@radix-ui/react-tabs";
 import * as React from "react";
+import { useRouter } from "next/navigation";
+import { ArrowBigLeft } from "lucide-react";
 import AuthSessionTimer from "@/components/AuthSessionTimer";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -36,6 +38,7 @@ function Section({
 
 export default function ProfileClient() {
   const [tab, setTab] = React.useState("account");
+  const router = useRouter();
 
   React.useEffect(() => {
     console.log('[ProfileClient] Mounted, current theme:', localStorage.getItem('app-theme'), 'HTML classes:', document.documentElement.className);
@@ -118,6 +121,15 @@ export default function ProfileClient() {
 
   return (
     <div className="mx-auto max-w-4xl p-6">
+      {/* Desktop-only fixed back button (top-left). Visible on md+ screens, stays while scrolling. */}
+      <Button
+        onClick={() => router.back()}
+        className="fixed top-4 left-4 z-50 hidden md:flex h-10 w-10 p-0 items-center justify-center bg-black text-white shadow-md hover:opacity-90"
+        aria-label="Orqaga"
+        title="Orqaga"
+      >
+        <ArrowBigLeft className="h-5 w-5" />
+      </Button>
       <h1 className="mb-4 text-2xl font-bold">Profil</h1>
 
       <Tabs.Root value={tab} onValueChange={setTab}>

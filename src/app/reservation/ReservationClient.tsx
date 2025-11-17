@@ -1,10 +1,13 @@
 "use client";
 import Image from "next/image";
 import React from "react";
+import { useRouter } from "next/navigation";
+import { ArrowBigLeft } from "lucide-react";
 import type { DateRange } from "react-day-picker";
 import Combobox from "@/components/ui/combobox";
 import { DatePicker, DateRangePicker } from "@/components/ui/datepicker";
 import { Button } from "@/components/ui/button";
+import Shimmer from "@/components/ui/Shimmer";
 import { usePageTheme } from "@/lib/use-page-theme";
 
 type Option = { value: string; label: string; logo?: string };
@@ -12,6 +15,7 @@ type Option = { value: string; label: string; logo?: string };
 export default function ReservationClient() {
   // Apply per-page theme from localStorage (default: light for /reservation)
   usePageTheme('/reservation');
+  const router = useRouter();
   const [selected, setSelected] = React.useState<string | undefined>();
   const [restaurants, setRestaurants] = React.useState<Option[]>([]);
   const [loading, setLoading] = React.useState(true);
@@ -149,6 +153,15 @@ export default function ReservationClient() {
 
   return (
     <div className="max-w-3xl mx-auto p-6 space-y-8">
+      {/* Desktop-only fixed back button (top-left). Visible on md+ screens, stays while scrolling. */}
+      <Button
+        onClick={() => router.back()}
+        className="fixed top-4 left-4 z-50 hidden md:flex h-10 w-10 p-0 items-center justify-center bg-black text-white shadow-md hover:opacity-90"
+        aria-label="Orqaga"
+        title="Orqaga"
+      >
+        <ArrowBigLeft className="h-5 w-5" />
+      </Button>
       <div className="relative h-40 w-full overflow-hidden rounded-md">
         <Image
           src="/dashboard.png"
@@ -217,7 +230,11 @@ export default function ReservationClient() {
           <section className="space-y-2">
             <div className="text-sm font-medium">Bo'sh stol o'lchamlarini tanlang</div>
             {availabilityLoading ? (
-              <div className="text-sm text-gray-600">Mavjudlik yuklanmoqda…</div>
+              <div className="flex flex-wrap gap-2" aria-busy>
+                {[2, 4, 6, 8].map((s) => (
+                  <Shimmer key={s} className="h-9 w-28 rounded" />
+                ))}
+              </div>
             ) : sizes ? (
               <div className="flex flex-wrap gap-2">
                 {[2, 4, 6, 8].map((s) => {

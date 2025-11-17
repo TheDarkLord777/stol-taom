@@ -6,6 +6,8 @@
     "dev": "next dev --turbopack",
     "dev:webpack": "next dev",
     "dev:https": "next dev --turbopack --experimental-https --experimental-https-key .cert/localhost-key.pem --experimental-https-cert .cert/localhost.pem",
+    "dev:host": "next dev --turbopack --hostname 0.0.0.0",
+    "dev:host:https": "next dev --turbopack --experimental-https --experimental-https-key .cert/localhost-key.pem --experimental-https-cert .cert/localhost.pem --hostname 0.0.0.0",
     "build": "next build --turbopack",
     "dev:test": "concurrently \"npm run dev\" \"npm run perf:wait-and-run\"",
     "perf:wait-and-run": "wait-on http://localhost:3000 && npx autocannon -c 20 -d 30 http://localhost:3000/api/menu",

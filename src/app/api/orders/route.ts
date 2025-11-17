@@ -69,13 +69,14 @@ export async function GET(req: NextRequest) {
         const restIds = Array.from(new Set((reservations ?? []).map((r: any) => r.restaurantId).filter(Boolean)));
         const restMap: Record<string, { name: string }> = {};
         if (restIds.length > 0) {
-            const rows = await prisma.restaurant.findMany({ where: { id: { in: restIds } }, select: { id: true, name: true } });
-            for (const r of rows) restMap[r.id] = { name: r.name };
+            const rows = await prisma.restaurant.findMany({ where: { id: { in: restIds } }, select: { id: true, name: true, logoUrl: true } });
+            for (const r of rows) restMap[r.id] = { name: r.name, logoUrl: r.logoUrl } as any;
         }
         const mappedReservations = (reservations ?? []).map((r: any) => ({
             id: r.id,
             restaurantId: r.restaurantId,
             restaurantName: restMap[r.restaurantId]?.name ?? undefined,
+            logoUrl: restMap[r.restaurantId]?.logoUrl ?? undefined,
             fromDate: r.fromDate ? new Date(r.fromDate).toISOString() : undefined,
             toDate: r.toDate ? new Date(r.toDate).toISOString() : undefined,
             partySize: r.partySize ?? undefined,

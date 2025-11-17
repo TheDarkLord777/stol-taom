@@ -1,8 +1,11 @@
 "use client";
 import React, { useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { usePageTheme } from "@/lib/use-page-theme";
+import { RefreshCw, ArrowLeft, ShoppingBasket, ArrowBigLeft, Trash, ShieldPlus } from "lucide-react";
+import Shimmer from "@/components/ui/Shimmer";
 
 type CartItem = {
     id: string;
@@ -19,6 +22,7 @@ type CartItem = {
 export default function OrdersClient() {
     // Apply per-page theme from localStorage (default: dark for /orders)
     usePageTheme('/orders');
+    const router = useRouter();
     const [items, setItems] = useState<CartItem[] | null>(null);
     const [reservations, setReservations] = useState<any[] | null>(null);
     const [error, setError] = useState<string | null>(null);
@@ -70,17 +74,78 @@ export default function OrdersClient() {
 
     return (
         <div className="p-4 max-w-3xl mx-auto">
+            {/* Desktop-only fixed back button (top-left). Visible on md+ screens, stays while scrolling. */}
+            <Button
+                onClick={() => router.back()}
+                className="fixed top-4 left-4 z-50 hidden md:flex h-10 w-10 p-0 items-center justify-center bg-black text-white shadow-md hover:opacity-90"
+                aria-label="Orqaga"
+                title="Orqaga"
+            >
+                <ArrowBigLeft className="h-5 w-5" />
+            </Button>
             <div className="flex items-center justify-between mb-4">
-                <h1 className="text-2xl font-bold">Savat / Orders</h1>
-                <div className="flex gap-2">
-                    <Button onClick={() => void fetchCart()} className="bg-gray-200 text-black">Yangilash</Button>
+                <h1 className="text-2xl font-bold flex items-center gap-2">
+                    <ShoppingBasket className="h-6 w-6" />
+                    <span>Savat</span>
+                </h1>
+                <div className="flex gap-2 items-center">
+                    <Button
+                        onClick={() => void fetchCart()}
+                        className="h-10 w-10 p-0 flex items-center justify-center bg-gray-200 text-black cursor-pointer"
+                        aria-label="Yangilash"
+                        title="Yangilash"
+                        disabled={loading}
+                    >
+                        <RefreshCw className={`h-5 w-5 ${loading ? "animate-spin" : ""}`} />
+                    </Button>
+
                     <Link href="/menu">
-                        <Button className="bg-[#C8FF00] text-black">Menyuga qaytish</Button>
+                        <Button
+                            className="h-10 px-3 py-0 flex items-center justify-center bg-[#C8FF00] text-black gap-2 cursor-pointer"
+                            aria-label="Menyuga qaytish"
+                            title="Menyuga qaytish"
+                        >
+                            <ArrowLeft className="h-5 w-5" />
+                            <span className="text-sm font-medium">Menyuga qaytish</span>
+                        </Button>
                     </Link>
                 </div>
             </div>
 
-            {loading && <p>Yuklanmoqda...</p>}
+            {loading && (
+                <div className="space-y-6" aria-busy>
+                    <div className="animate-pulse space-y-4">
+                        {[1, 2, 3].map((n) => (
+                            <div key={n} className="p-4 bg-white/80 rounded shadow flex items-start gap-4">
+                                <Shimmer className="h-12 w-12 rounded" />
+                                <div className="flex-1 space-y-2">
+                                    <Shimmer className="h-4 w-1/3 rounded" />
+                                    <Shimmer className="h-3 w-1/2 rounded" />
+                                </div>
+                                <div className="flex flex-col gap-2">
+                                    <Shimmer className="h-8 w-20 rounded" />
+                                    <Shimmer className="h-8 w-24 rounded" />
+                                </div>
+                            </div>
+                        ))}
+                    </div>
+
+                    <div className="mt-6">
+                        <div className="space-y-3">
+                            {[1, 2].map((r) => (
+                                <div key={r} className="p-3 bg-white/80 rounded shadow flex justify-between items-center">
+                                    <div className="flex items-center gap-3">
+                                        <Shimmer className="h-4 w-4 rounded" />
+                                        <Shimmer className="h-4 w-48 rounded" />
+                                        <Shimmer className="h-3 w-24 rounded" />
+                                    </div>
+                                    <Shimmer className="h-4 w-20 rounded" />
+                                </div>
+                            ))}
+                        </div>
+                    </div>
+                </div>
+            )}
 
             {error && (
                 <div className="mb-4 text-red-600">
@@ -111,7 +176,6 @@ export default function OrdersClient() {
                         </label>
                         <div className="flex items-center gap-2">
                             <Button
-                                variant="outline"
                                 onClick={async () => {
                                     const ids = items.filter((x) => selectedMap[x.id]).map((x) => x.id);
                                     if (ids.length === 0) return;
@@ -134,8 +198,10 @@ export default function OrdersClient() {
                                         setRemovingMap({});
                                     }
                                 }}
+                                className="h-10 px-3 py-0 flex items-center gap-2 bg-red-500 hover:bg-red-600 text-white"
                             >
-                                Tanlanganlarni o'chirish
+                                <Trash className="h-4 w-4" />
+                                <span className="text-sm">Tanlanganlarni o'chirish</span>
                             </Button>
                             <Button
                                 onClick={() => {
@@ -296,7 +362,10 @@ export default function OrdersClient() {
             {reservations && reservations.length > 0 && (
                 <div className="mt-8">
                     <div className="flex items-center justify-between mb-3">
-                        <h2 className="text-xl font-semibold">Bronlar</h2>
+                        <h2 className="text-xl font-semibold flex items-center gap-2">
+                            <ShieldPlus className="h-5 w-5" />
+                            <span>Bronlar</span>
+                        </h2>
                         <div className="flex items-center gap-3">
                             <label className="flex items-center gap-2 text-sm">
                                 <input
@@ -309,10 +378,9 @@ export default function OrdersClient() {
                                         setSelectedResMap(next);
                                     }}
                                 />
-                                <span>Hammasini tanlash (faqat bronlar bo'limi)</span>
+                                <span>Hammasini tanlash</span>
                             </label>
                             <Button
-                                variant="outline"
                                 onClick={async () => {
                                     const ids = reservations.filter((x) => selectedResMap[x.id]).map((x) => x.id);
                                     if (ids.length === 0) return;
@@ -336,28 +404,43 @@ export default function OrdersClient() {
                                         setSelectedResMap({});
                                     }
                                 }}
+                                className="h-10 px-3 py-0 flex items-center gap-2 bg-red-500 hover:bg-red-600 text-white"
                             >
-                                Tanlanganlarni o'chirish
+                                <Trash className="h-4 w-4" />
+                                <span className="text-sm">Tanlanganlarni o'chirish</span>
                             </Button>
                         </div>
                     </div>
                     <div className="space-y-3">
                         {reservations.map((r) => (
-                            <div key={r.id} className="p-3 bg-white/80 rounded shadow flex justify-between items-center">
-                                <div className="flex items-center gap-3">
+                            <div key={r.id} className="p-4 bg-white/80 rounded shadow flex items-start justify-between gap-4">
+                                <div className="flex items-start gap-3">
                                     <input
                                         type="checkbox"
                                         checked={Boolean(selectedResMap[r.id])}
-                                        onChange={(e) =>
-                                            setSelectedResMap((m) => ({ ...m, [r.id]: e.target.checked }))
-                                        }
+                                        onChange={(e) => setSelectedResMap((m) => ({ ...m, [r.id]: e.target.checked }))}
+                                        className="mt-1 shrink-0"
                                     />
-                                    <div className="font-medium">{r.restaurantName ? `Restoran: ${r.restaurantName}` : "Bron"}</div>
-                                    <div className="text-sm text-gray-600">Sana: {r.fromDate ? new Date(r.fromDate).toLocaleString() : "—"}</div>
-                                    {r.partySize && <div className="text-sm text-gray-600">Odamlar: {r.partySize}</div>}
+                                    <div className="relative h-12 w-12 shrink-0 overflow-hidden rounded bg-gray-100 flex items-center justify-center">
+                                        {r.logoUrl ? (
+                                            // eslint-disable-next-line @next/next/no-img-element
+                                            <img src={r.logoUrl} alt={r.restaurantName ?? "Bron"} className="h-full w-full object-cover" />
+                                        ) : (
+                                            <span className="text-xs text-gray-500">No image</span>
+                                        )}
+                                    </div>
+                                    <div className="flex-1 min-w-0">
+                                        <div className="font-semibold text-lg">{r.restaurantName ?? "Bron"}</div>
+                                        <div className="text-sm text-gray-700 mt-1">Sana: {r.fromDate ? new Date(r.fromDate).toLocaleString() : "—"}</div>
+                                        {r.partySize && <div className="text-sm text-gray-700 mt-1">Odamlar: {r.partySize}</div>}
+                                    </div>
                                 </div>
+
                                 <div className="flex items-center gap-3">
-                                    <div className="text-sm text-gray-500">{r.createdAt ? new Date(r.createdAt).toLocaleString() : ""}</div>
+                                    <div className="text-right mr-2 text-sm text-gray-500">{r.createdAt ? new Date(r.createdAt).toLocaleString() : ""}</div>
+                                    <Button onClick={() => alert('Yaqinda qo`shiladi: bron uchun to`lov')} className="bg-emerald-600 hover:bg-emerald-700 text-white">
+                                        To'lash
+                                    </Button>
                                     <button
                                         className={
                                             `px-3 py-1 rounded text-white transition-colors duration-150 focus:outline-none ` +

@@ -86,10 +86,21 @@ const nextConfig: NextConfig = {
       },
     ];
   },
-  allowedDevOrigins: [
-    "http://10.91.247.198:3000", // hamkasbingiz IP:PORT (Next terminalda ko‘rsatgan port)
-    "http://localhost:3000", // lokal ham kirish ruxsat
-  ],
+  // allowedDevOrigins is only used by Next.js in development to allow the dev
+  // overlay and `_next` assets when loaded from other origins (e.g. remote
+  // share links, tunnelling services). Keep this permissive only in dev.
+  allowedDevOrigins: (() => {
+    if (isProd) return [];
+    const defaults = [
+      "http://localhost:3000",
+      "http://127.0.0.1:3000",
+      // Some tools bind to 0.0.0.0 which appears as this origin in requests
+      "http://0.0.0.0:3000",
+    ];
+    // Allow extra origins via comma-separated env var DEV_ALLOWED_ORIGINS
+    const extra = (process.env.DEV_ALLOWED_ORIGINS || "").split(",").map((s) => s.trim()).filter(Boolean);
+    return Array.from(new Set([...defaults, ...extra]));
+  })(),
 };
 
 export default nextConfig;

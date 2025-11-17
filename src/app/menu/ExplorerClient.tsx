@@ -2,6 +2,9 @@
 import Image from "next/image";
 import * as React from "react";
 import Combobox from "@/components/ui/combobox";
+import { useRouter } from "next/navigation";
+import { Button } from "@/components/ui/button";
+import { ArrowBigLeft } from "lucide-react";
 
 type Option = { value: string; label: string; logo?: string };
 
@@ -19,6 +22,7 @@ export default function ExplorerClient({
   const [loading, setLoading] = React.useState<boolean>(
     Boolean(initialLoading),
   );
+  const router = useRouter();
 
   React.useEffect(() => {
     let mounted = true;
@@ -65,6 +69,15 @@ export default function ExplorerClient({
 
   return (
     <div className="max-w-3xl mx-auto p-6 space-y-8">
+      {/* Desktop-only fixed back button (top-left). Visible on md+ screens, stays while scrolling. */}
+      <Button
+        onClick={() => router.back()}
+        className="fixed top-4 left-4 z-50 hidden md:flex h-10 w-10 p-0 items-center justify-center bg-black text-white shadow-md hover:opacity-90"
+        aria-label="Orqaga"
+        title="Orqaga"
+      >
+        <ArrowBigLeft className="h-5 w-5" />
+      </Button>
       <div className="relative h-40 w-full overflow-hidden rounded-md">
         <Image
           src="/dashboard.png"

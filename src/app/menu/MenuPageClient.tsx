@@ -1,6 +1,7 @@
 'use client';
 
 import React from 'react';
+import { BookOpenCheck } from 'lucide-react';
 import { usePageTheme } from '@/lib/use-page-theme';
 import MenuGrid, { type MenuItem } from '@/components/MenuGrid';
 import ExplorerClient from './ExplorerClient';
@@ -51,7 +52,10 @@ export default function MenuPageClient() {
 
     return (
         <main className="mx-auto max-w-6xl p-6">
-            <h1 className="mb-6 text-2xl font-bold">Menyu</h1>
+            <h1 className="mb-6 text-2xl font-bold flex items-center gap-2">
+                <BookOpenCheck className="h-6 w-6" />
+                <span>Menyu</span>
+            </h1>
             {/* Show the previous explorer/search UI first so it's visible at the top */}
             <ExplorerClient
                 onQueryChange={setQuery}
