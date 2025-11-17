@@ -43,7 +43,7 @@ export async function POST(req: NextRequest) {
 
     await prisma.$executeRaw`SELECT pg_advisory_xact_lock(${lockHash})`;
 
-    const row = await prisma.$transaction(async (tx) => {
+    const row = await prisma.$transaction(async (tx: any) => {
       // Count overlapping reservations for same restaurant and same size bucket inside transaction
       const overlapping = await tx.reservation.count({
         where: {

@@ -77,7 +77,7 @@ export default function ThemeManager() {
         const next = pages.map(p =>
             p.path === path ? { ...p, currentTheme: p.currentTheme === 'dark' ? 'light' : 'dark' } : p
         );
-        setPages(next);
+        setPages(next as PageThemeConfig[]);
         // If we're toggling the current page, apply the theme immediately
         try {
             const cfg = next.find((pp) => currentPath.includes(pp.path));

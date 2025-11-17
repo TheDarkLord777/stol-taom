@@ -67,7 +67,7 @@ export async function GET(req: NextRequest) {
         const reservations = await prisma.reservation.findMany({ where: { userId: user.id }, orderBy: { createdAt: "desc" } });
         // join restaurant names
         const restIds = Array.from(new Set((reservations ?? []).map((r: any) => r.restaurantId).filter(Boolean)));
-        const restMap: Record<string, { name: string }> = {};
+        const restMap: Record<string, { name: string; logoUrl?: string | null }> = {};
         if (restIds.length > 0) {
             const rows = await prisma.restaurant.findMany({ where: { id: { in: restIds } }, select: { id: true, name: true, logoUrl: true } });
             for (const r of rows) restMap[r.id] = { name: r.name, logoUrl: r.logoUrl } as any;
