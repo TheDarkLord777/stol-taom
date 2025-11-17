@@ -117,12 +117,20 @@ export function Combobox(props: ComboboxProps) {
   if (props.mode !== "input") {
     const { placeholder = "Tanlang…", buttonClassName, notifyOnSelect = true } =
       props as ButtonModeProps;
+    // Resolve theme from context when available, but fall back to DOM class when
+    // context and DOM might be temporarily out-of-sync (pre-hydration). This
+    // ensures Tailwind `dark:` styles (which rely on `document.documentElement`)
+    // match the classes we apply here.
     let theme: 'dark' | 'light' = 'dark';
     try {
       theme = useTheme().theme;
     } catch (e) {
-      // ThemeProvider not available; default to dark
       theme = 'dark';
+    }
+    if (typeof document !== 'undefined') {
+      const root = document.documentElement;
+      if (root.classList.contains('light')) theme = 'light';
+      else if (root.classList.contains('dark')) theme = 'dark';
     }
     return (
       <Popover.Root open={open} onOpenChange={setOpen}>
@@ -176,7 +184,12 @@ export function Combobox(props: ComboboxProps) {
                   (props as BaseProps).onQueryChange?.(v);
                 }}
                 placeholder="Qidirish…"
-                className="w-full bg-transparent text-sm outline-none placeholder:text-gray-400 dark:placeholder:text-gray-500 text-gray-900 dark:text-gray-100"
+                className={
+                  `w-full bg-transparent text-sm outline-none ` +
+                  (theme === 'light'
+                    ? 'placeholder:text-gray-400 text-gray-900'
+                    : 'placeholder:text-gray-500 text-gray-100')
+                }
               />
             </div>
             <Command.List className="max-h-60 overflow-auto py-1">
@@ -191,7 +204,7 @@ export function Combobox(props: ComboboxProps) {
                 </div>
               ) : (
                 <>
-                  <Command.Empty className="px-3 py-2 text-sm text-gray-500 dark:text-gray-400">
+                  <Command.Empty className={"px-3 py-2 text-sm " + (theme === 'light' ? 'text-gray-500' : 'text-gray-400')}>
                     {emptyText}
                   </Command.Empty>
                   {filtered.map((opt) => (
@@ -204,7 +217,12 @@ export function Combobox(props: ComboboxProps) {
                         setQuery("");
                         if (notifyOnSelect) (props as BaseProps).onQueryChange?.("");
                       }}
-                      className="cursor-pointer select-none px-3 py-2 text-sm text-gray-900 dark:text-gray-100 aria-selected:bg-gray-100 aria-selected:text-gray-900 aria-selected:dark:bg-gray-800 aria-selected:dark:text-gray-100"
+                      className={
+                        `cursor-pointer select-none px-3 py-2 text-sm ` +
+                        (theme === 'light'
+                          ? 'text-gray-900 aria-selected:bg-gray-100 aria-selected:text-gray-900'
+                          : 'text-gray-100 aria-selected:dark:bg-gray-800 aria-selected:dark:text-gray-100')
+                      }
                     >
                       {opt.label}
                     </Command.Item>
@@ -222,11 +240,17 @@ export function Combobox(props: ComboboxProps) {
   const { inputPlaceholder = "Qidirish uchun yozing…", inputClassName, notifyOnSelect = true } =
     props as InputModeProps;
 
+  // resolve theme similarly for input mode
   let theme: 'dark' | 'light' = 'dark';
   try {
     theme = useTheme().theme;
   } catch (e) {
     theme = 'dark';
+  }
+  if (typeof document !== 'undefined') {
+    const root = document.documentElement;
+    if (root.classList.contains('light')) theme = 'light';
+    else if (root.classList.contains('dark')) theme = 'dark';
   }
 
   return (
@@ -294,7 +318,10 @@ export function Combobox(props: ComboboxProps) {
       <Popover.Content
         align="start"
         sideOffset={6}
-        className="z-50 rounded-md border border-gray-200 bg-white p-0 shadow-lg w-[min(22rem,90vw)] dark:border-gray-700 dark:bg-gray-900"
+        className={
+          `z-50 rounded-md p-0 shadow-lg w-[min(22rem,90vw)] ` +
+          (theme === 'light' ? 'border border-gray-200 bg-white' : 'border border-gray-700 bg-gray-900')
+        }
         onOpenAutoFocus={(e) => {
           // Keep focus on the input when popover opens so typing/backspace works
           e.preventDefault();
@@ -322,7 +349,7 @@ export function Combobox(props: ComboboxProps) {
               </div>
             ) : (
               <>
-                <Command.Empty className="px-3 py-2 text-sm text-gray-500">
+                <Command.Empty className={"px-3 py-2 text-sm " + (theme === 'light' ? 'text-gray-500' : 'text-gray-400')}>
                   {emptyText}
                 </Command.Empty>
                 {filtered.map((opt, idx) => (
@@ -343,8 +370,10 @@ export function Combobox(props: ComboboxProps) {
                       setOpen(false);
                     }}
                     className={
-                      "cursor-pointer select-none px-3 py-2 text-sm text-gray-900 dark:text-gray-100 aria-selected:bg-gray-100 aria-selected:text-gray-900 aria-selected:dark:bg-gray-800 aria-selected:dark:text-gray-100" +
-                      (idx === activeIndex ? " bg-gray-100 text-gray-900 dark:bg-gray-800 dark:text-gray-100" : "")
+                      `cursor-pointer select-none px-3 py-2 text-sm ` +
+                      (theme === 'light'
+                        ? `text-gray-900 ${idx === activeIndex ? 'bg-gray-100 text-gray-900' : ''} aria-selected:bg-gray-100 aria-selected:text-gray-900`
+                        : `text-gray-100 ${idx === activeIndex ? 'dark:bg-gray-800 dark:text-gray-100' : ''} aria-selected:dark:bg-gray-800 aria-selected:dark:text-gray-100`)
                     }
                   >
                     {opt.label}

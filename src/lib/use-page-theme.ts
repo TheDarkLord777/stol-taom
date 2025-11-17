@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect } from 'react';
+import { useLayoutEffect } from 'react';
 import { useTheme } from './theme-context';
 
 /**
@@ -15,7 +15,8 @@ import { useTheme } from './theme-context';
 export function usePageTheme(pagePath: string) {
     const { setTheme } = useTheme();
 
-    useEffect(() => {
+    // Apply theme before paint to avoid input/dropdown mismatches on mount
+    useLayoutEffect(() => {
         const saved = localStorage.getItem('page-themes');
         if (!saved) {
             console.log(`[usePageTheme] No page-themes config found for ${pagePath}`);

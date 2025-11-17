@@ -32,7 +32,7 @@ export default function ThemeManager() {
             console.error(`[ThemeManager] Error setting theme to ${newTheme}:`, e);
         }
     };
-    const [pages, setPages] = React.useState<PageThemeConfig[]>([
+    const defaultPages: PageThemeConfig[] = [
         { name: 'Home', path: '/home', currentTheme: 'dark' },
         { name: 'Login', path: '/login', currentTheme: 'dark' },
         { name: 'Register', path: '/register', currentTheme: 'dark' },
@@ -40,44 +40,53 @@ export default function ThemeManager() {
         { name: 'Reservation', path: '/reservation', currentTheme: 'light' },
         { name: 'Profile', path: '/profile', currentTheme: 'dark' },
         { name: 'Orders', path: '/orders', currentTheme: 'dark' },
-    ]);
+    ];
 
-    // Load and save per-page themes from localStorage
+    // Start as null to avoid overwriting localStorage on initial mount.
+    const [pages, setPages] = React.useState<PageThemeConfig[] | null>(null);
+
+    // Load per-page themes from localStorage once on mount
     React.useEffect(() => {
         const saved = localStorage.getItem('page-themes');
         if (saved) {
             try {
                 setPages(JSON.parse(saved));
+                console.log('[ThemeManager] Loaded page-themes from localStorage');
+                return;
             } catch (e) {
-                console.error('[ThemeManager] Failed to load page-themes from localStorage:', e);
+                console.error('[ThemeManager] Failed to parse page-themes from localStorage:', e);
             }
         }
+        // fallback to defaults
+        setPages(defaultPages);
     }, []);
 
-    // Save per-page themes whenever they change
+    // Save per-page themes whenever they change (but only after we've loaded them)
     React.useEffect(() => {
-        localStorage.setItem('page-themes', JSON.stringify(pages));
-        console.log('[ThemeManager] Saved page-themes to localStorage:', pages);
+        if (pages === null) return; // not loaded yet
+        try {
+            localStorage.setItem('page-themes', JSON.stringify(pages));
+            console.log('[ThemeManager] Saved page-themes to localStorage:', pages);
+        } catch (e) {
+            console.error('[ThemeManager] Failed to save page-themes to localStorage:', e);
+        }
     }, [pages]);
 
     const togglePageTheme = (path: string) => {
-        setPages(prev => {
-            const next = prev.map(p =>
-                p.path === path
-                    ? { ...p, currentTheme: p.currentTheme === 'dark' ? 'light' : 'dark' }
-                    : p
-            );
-            // If we're toggling the current page, apply the theme immediately
-            try {
-                const cfg = next.find((pp) => currentPath.includes(pp.path));
-                if (cfg) {
-                    setThemeFromContext(cfg.currentTheme as ThemeMode);
-                }
-            } catch (e) {
-                // ignore
+        if (!pages) return;
+        const next = pages.map(p =>
+            p.path === path ? { ...p, currentTheme: p.currentTheme === 'dark' ? 'light' : 'dark' } : p
+        );
+        setPages(next);
+        // If we're toggling the current page, apply the theme immediately
+        try {
+            const cfg = next.find((pp) => currentPath.includes(pp.path));
+            if (cfg) {
+                setThemeFromContext(cfg.currentTheme as ThemeMode);
             }
-            return next;
-        });
+        } catch (e) {
+            // ignore
+        }
     };
 
     const currentPath = React.useMemo(() => {
@@ -86,6 +95,7 @@ export default function ThemeManager() {
     }, []);
 
     const getCurrentPageConfig = () => {
+        if (!pages) return undefined;
         return pages.find(p => currentPath.includes(p.path));
     };
 
@@ -96,19 +106,21 @@ export default function ThemeManager() {
                 <div className="flex gap-2">
                     <button
                         onClick={() => setTheme('dark')}
-                        className={`px-4 py-2 rounded text-sm font-medium transition ${theme === 'dark'
+                        className={`px-4 py-2 rounded text-sm font-medium transition cursor-pointer ${theme === 'dark'
                             ? 'bg-blue-600 text-white'
                             : 'bg-white/10 text-white/70 hover:bg-white/20'
                             }`}
+                        aria-pressed={theme === 'dark'}
                     >
                         🌙 Dark
                     </button>
                     <button
                         onClick={() => setTheme('light')}
-                        className={`px-4 py-2 rounded text-sm font-medium transition ${theme === 'light'
+                        className={`px-4 py-2 rounded text-sm font-medium transition cursor-pointer ${theme === 'light'
                             ? 'bg-yellow-500 text-black'
                             : 'bg-white/10 text-white/70 hover:bg-white/20'
                             }`}
+                        aria-pressed={theme === 'light'}
                     >
                         ☀️ Light
                     </button>
@@ -118,22 +130,27 @@ export default function ThemeManager() {
             <div className="bg-white/5 border border-white/10 rounded-lg p-4">
                 <h3 className="text-sm font-semibold mb-3">Barcha sahifalar tema sozlamalari</h3>
                 <div className="space-y-2 max-h-64 overflow-y-auto">
-                    {pages.map((page) => (
-                        <div key={page.path} className="flex items-center justify-between p-2 bg-white/5 rounded">
-                            <span className="text-sm">{page.name}</span>
-                            <div className="flex gap-1">
-                                <button
-                                    onClick={() => togglePageTheme(page.path)}
-                                    className={`px-2 py-1 rounded text-xs font-medium transition ${page.currentTheme === 'dark'
-                                        ? 'bg-blue-600 text-white'
-                                        : 'bg-yellow-500 text-black'
-                                        }`}
-                                >
-                                    {page.currentTheme === 'dark' ? '🌙' : '☀️'}
-                                </button>
+                    {!pages ? (
+                        <div className="p-2 text-xs text-gray-400">Yuklanmoqda...</div>
+                    ) : (
+                        pages.map((page) => (
+                            <div key={page.path} className="flex items-center justify-between p-2 bg-white/5 rounded">
+                                <span className="text-sm">{page.name}</span>
+                                <div className="flex gap-1">
+                                    <button
+                                        onClick={() => togglePageTheme(page.path)}
+                                        className={`px-2 py-1 rounded text-xs font-medium transition cursor-pointer ${page.currentTheme === 'dark'
+                                            ? 'bg-blue-600 text-white'
+                                            : 'bg-yellow-500 text-black'
+                                            }`}
+                                        aria-pressed={page.currentTheme === 'dark'}
+                                    >
+                                        {page.currentTheme === 'dark' ? '🌙' : '☀️'}
+                                    </button>
+                                </div>
                             </div>
-                        </div>
-                    ))}
+                        ))
+                    )}
                 </div>
             </div>
 
