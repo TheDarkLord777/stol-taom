@@ -3,6 +3,7 @@ import Image from "next/image";
 import * as React from "react";
 import TiltedCard from "@/components/ui/TiltedCard";
 import { useRouter } from "next/navigation";
+import { toast } from 'sonner';
 import { addToCart, enqueueAndTrySync } from "@/lib/cart";
 
 export type MenuItem = {
@@ -426,6 +427,15 @@ export default function MenuGrid({
                             bc.postMessage({ type: 'orders:update' });
                             bc.close();
                           } catch { }
+                          try {
+                            toast.success("Taom savatga qo'shildi.", {
+                              description: "Buyurtmalar sahifasida ko'rishingiz mumkin.",
+                              action: {
+                                label: "Orders-ga o'tish",
+                                onClick: () => router.push('/orders'),
+                              },
+                            });
+                          } catch { }
                           closeDetail();
                         } catch (e) {
                           console.error('Add to cart error', e);
@@ -440,10 +450,31 @@ export default function MenuGrid({
                                 bc.close();
                               } catch { }
                             }
+                            try {
+                              toast.success("Taom savatga qo'shildi (offline).", {
+                                description: "Buyurtmalar sahifasida ko'rishingiz mumkin.",
+                                action: {
+                                  label: "Orders-ga o'tish",
+                                  onClick: () => router.push('/orders'),
+                                },
+                              });
+                            } catch { }
                             closeDetail();
                           } catch {
                             // if even enqueue fails, as absolute last resort write to local cart
-                            try { addToCart(payload as any); closeDetail(); } catch { }
+                            try {
+                              addToCart(payload as any);
+                              try {
+                                toast.success("Taom savatga qo'shildi (offline).", {
+                                  description: "Buyurtmalar sahifasida ko'rishingiz mumkin.",
+                                  action: {
+                                    label: "Orders-ga o'tish",
+                                    onClick: () => router.push('/orders'),
+                                  },
+                                });
+                              } catch { }
+                              closeDetail();
+                            } catch { }
                           }
                         } finally {
                           // clear adding state for this item
@@ -470,8 +501,9 @@ export default function MenuGrid({
               </div>
             </div>
           </div>
-        </div>
-      ) : null}
+        </div >
+      ) : null
+      }
     </>
   );
 }

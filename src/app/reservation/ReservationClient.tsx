@@ -2,10 +2,12 @@
 import Image from "next/image";
 import React from "react";
 import { useRouter } from "next/navigation";
-import { ArrowBigLeft } from "lucide-react";
+import { ArrowBigLeft, ShieldPlus } from "lucide-react";
+import { toast, Toaster } from 'sonner';
 import { useTheme } from '@/lib/theme-context';
 import type { DateRange } from "react-day-picker";
 import Combobox from "@/components/ui/combobox";
+import TiltedCard from '@/components/ui/TiltedCard';
 import { DatePicker, DateRangePicker } from "@/components/ui/datepicker";
 import { Button } from "@/components/ui/button";
 import Shimmer from "@/components/ui/Shimmer";
@@ -140,6 +142,20 @@ export default function ReservationClient() {
       const data = await res.json().catch(() => ({}));
       if (!res.ok) throw new Error(data?.error || "Server error");
       setSuccess("Buyurtma qabul qilindi! Bron muvaffaqiyatli yaratildi.");
+      // show toast with link to orders page
+      try {
+        toast.success("Bron muvaffaqiyatli yaratildi.", {
+          description: "Buyurtmalar sahifasida ko'rishingiz mumkin.",
+          action: {
+            label: "Orders-ga o'tish",
+            onClick: () => {
+              try {
+                router.push('/orders');
+              } catch { }
+            },
+          },
+        });
+      } catch { }
       // notify orders page to refresh
       try {
         const bc = new BroadcastChannel("orders");
@@ -154,7 +170,7 @@ export default function ReservationClient() {
   };
 
   return (
-    <div className="max-w-3xl mx-auto p-6 space-y-8">
+    <main className="mx-auto max-w-6xl p-6">
       {/* Desktop-only fixed back button (top-left). Visible on md+ screens, stays while scrolling. */}
       <Button
         onClick={() => router.back()}
@@ -167,26 +183,72 @@ export default function ReservationClient() {
       >
         <ArrowBigLeft className="h-5 w-5" />
       </Button>
-      <div className="relative h-40 w-full overflow-hidden rounded-md">
-        <Image
-          src="/dashboard.png"
-          alt="Food background"
-          fill
-          className="object-cover"
-          priority
-        />
-        <div className="absolute inset-0 bg-black/10" />
-      </div>
-      <div>
+
+      <h1 className="mb-4 text-2xl font-bold flex items-center gap-2">
+        <ShieldPlus className="h-6 w-6" />
+        <span>Bron</span>
+      </h1>
+
+      <Toaster position="top-right" />
+
+      <div className="mb-6">
         <Combobox
           mode="input"
-          options={restaurants}
+          options={restaurants.map((r) => ({ value: r.value, label: r.label }))}
           value={selected}
-          onChange={setSelected}
-          inputPlaceholder="Restaran nomini kiriting"
+          onChange={(v) => setSelected(v || undefined)}
+          inputPlaceholder="Restoran nomini kiriting"
           loading={loading}
         />
       </div>
+
+      {/* Restaurants grid (card view). Click a card to pick a restaurant and open reservation modal. */}
+      {!loading && restaurants && restaurants.length > 0 ? (
+        <div className="grid gap-6 grid-cols-1 sm:grid-cols-2 md:grid-cols-3">
+          {restaurants.map((r) => (
+            <div
+              key={r.value}
+              role="button"
+              tabIndex={0}
+              className="flex flex-col overflow-hidden rounded-lg border bg-linear-to-br from-gray-50 to-gray-100 shadow-md hover:shadow-lg hover:scale-105 transition-transform duration-200 cursor-pointer text-left"
+              onClick={() => setSelected(r.value)}
+              onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') setSelected(r.value); }}
+            >
+              <div className="w-full">
+                <TiltedCard
+                  imageSrc={r.logo}
+                  altText={r.label}
+                  captionText={r.label}
+                  containerHeight="12rem"
+                  imageHeight="12rem"
+                  rotateAmplitude={6}
+                  scaleOnHover={1.03}
+                  displayOverlayContent={false}
+                  className="rounded-t-lg"
+                />
+              </div>
+              <div className="p-3">
+                <div className="text-sm font-semibold text-gray-800">{r.label}</div>
+              </div>
+            </div>
+          ))}
+        </div>
+      ) : (
+        loading ? (
+          <div className="space-y-6" aria-busy>
+            <div className="grid gap-6 grid-cols-1 sm:grid-cols-2 md:grid-cols-3">
+              {[1, 2, 3].map((n) => (
+                <div key={n} className="p-4 bg-white/80 rounded shadow">
+                  <Shimmer className="h-40 w-full rounded" />
+                </div>
+              ))}
+            </div>
+          </div>
+        ) : (
+          <div className="text-center text-gray-600">Hech qanday restoran topilmadi.</div>
+        )
+      )}
+
 
       {selected && (
         <div className="flex items-center gap-2 text-sm text-gray-700">
@@ -203,121 +265,125 @@ export default function ReservationClient() {
         </div>
       )}
 
+      {/* When a restaurant is selected, show a modal with image and reservation controls */}
       {selected ? (
-        <>
-          <section className="space-y-2">
-            <div className="text-sm font-medium">Sana tanlash</div>
-            <DatePicker
-              date={date}
-              onDateChange={setDate}
-              fromDate={today}
-              toDate={inOneYear}
-            />
-            <div className="text-sm text-gray-600">
-              {date ? date.toDateString() : "—"}
-            </div>
-          </section>
-
-          <section className="space-y-2">
-            <div className="text-sm font-medium">Sana oralig'i</div>
-            <DateRangePicker
-              range={range}
-              onRangeChange={setRange}
-              fromDate={today}
-              toDate={inOneYear}
-            />
-            <div className="text-sm text-gray-600">
-              {range?.from ? range.from.toDateString() : "—"} — {range?.to ? range.to.toDateString() : "—"}
-            </div>
-          </section>
-
-          {/* Availability & table size selection */}
-          <section className="space-y-2">
-            <div className="text-sm font-medium">Bo'sh stol o'lchamlarini tanlang</div>
-            {availabilityLoading ? (
-              <div className="flex flex-wrap gap-2" aria-busy>
-                {[2, 4, 6, 8].map((s) => (
-                  <Shimmer key={s} className="h-9 w-28 rounded" />
-                ))}
-              </div>
-            ) : sizes ? (
-              <div className="flex flex-wrap gap-2">
-                {[2, 4, 6, 8].map((s) => {
-                  const left = sizes[String(s)] ?? 0;
-                  const disabled = left <= 0;
-                  const active = chosenSize === s;
-                  return (
-                    <button
-                      key={s}
-                      type="button"
-                      disabled={disabled}
-                      onClick={() => setChosenSize(s)}
-                      className={
-                        "rounded border px-3 py-1 text-sm " +
-                        (disabled
-                          ? "text-gray-400 bg-gray-100 cursor-not-allowed"
-                          : active
-                            ? "bg-emerald-600 text-white border-emerald-600"
-                            : "bg-white hover:bg-gray-50")
-                      }
-                      title={left > 0 ? `${left} ta stol mavjud` : "Mavjud emas"}
-                    >
-                      {s} kishilik {left > 0 ? `(${left} ta)` : "(yo'q)"}
-                    </button>
-                  );
-                })}
-              </div>
-            ) : null}
-            {error ? (
-              <div className="mt-2 rounded border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">
-                {error}
-              </div>
-            ) : null}
-            {success ? (
-              <div className="mt-2 rounded border border-green-200 bg-green-50 px-3 py-2 text-sm text-green-700">
-                {success}
-              </div>
-            ) : null}
-          </section>
-
-          <div className="pt-2">
-            <Button
-              onClick={submitReservation}
-              disabled={!canSubmit || submitLoading}
-              className="bg-[#C8FF00] hover:bg-[#B8EF00] text-black font-semibold"
-              aria-busy={submitLoading}
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm"
+          onClick={() => setSelected(undefined)}
+          aria-modal="true"
+          role="dialog"
+        >
+          <div
+            className="relative mx-4 max-w-4xl transform overflow-hidden rounded-lg bg-white shadow-xl transition-all duration-300 ease-out"
+            onClick={(e) => e.stopPropagation()}
+            role="document"
+          >
+            <button
+              type="button"
+              onClick={() => setSelected(undefined)}
+              aria-label="Close"
+              className="absolute right-3 top-3 z-10 rounded bg-white/80 px-2 py-1 text-sm shadow hover:bg-gray-200"
             >
-              {submitLoading ? (
-                <span className="inline-flex items-center gap-2">
-                  <svg
-                    className="animate-spin -ml-1 mr-1 h-4 w-4 text-black"
-                    xmlns="http://www.w3.org/2000/svg"
-                    fill="none"
-                    viewBox="0 0 24 24"
+              ✕
+            </button>
+
+            <div className="grid grid-cols-1 md:grid-cols-2">
+              <div className="relative h-80 md:h-[560px] w-full bg-gray-100">
+                {selectedOption?.logo ? (
+                  <Image
+                    src={selectedOption.logo}
+                    alt={selectedOption.label}
+                    fill
+                    className="object-cover rounded-t-lg"
+                  />
+                ) : (
+                  <div className="h-full w-full flex items-center justify-center text-gray-500">Rasm yo'q</div>
+                )}
+              </div>
+              <div className="p-6">
+                <h2 className="mb-2 text-2xl font-bold text-gray-800">{selectedOption?.label}</h2>
+
+                <section className="space-y-2">
+                  <div className="text-sm font-medium">Sana tanlash</div>
+                  <DatePicker
+                    date={date}
+                    onDateChange={setDate}
+                    fromDate={today}
+                    toDate={inOneYear}
+                  />
+                  <div className="text-sm text-gray-600">{date ? date.toDateString() : '—'}</div>
+                </section>
+
+                <section className="space-y-2 mt-4">
+                  <div className="text-sm font-medium">Sana oralig'i</div>
+                  <DateRangePicker
+                    range={range}
+                    onRangeChange={setRange}
+                    fromDate={today}
+                    toDate={inOneYear}
+                  />
+                  <div className="text-sm text-gray-600">{range?.from ? range.from.toDateString() : '—'} — {range?.to ? range.to.toDateString() : '—'}</div>
+                </section>
+
+                <section className="space-y-2 mt-4">
+                  <div className="text-sm font-medium">Bo'sh stol o'lchamlarini tanlang</div>
+                  {availabilityLoading ? (
+                    <div className="flex flex-wrap gap-2" aria-busy>
+                      {[2, 4, 6, 8].map((s) => (<Shimmer key={s} className="h-9 w-28 rounded" />))}
+                    </div>
+                  ) : sizes ? (
+                    <div className="flex flex-wrap gap-2">
+                      {[2, 4, 6, 8].map((s) => {
+                        const left = sizes[String(s)] ?? 0;
+                        const disabled = left <= 0;
+                        const active = chosenSize === s;
+                        return (
+                          <button
+                            key={s}
+                            type="button"
+                            disabled={disabled}
+                            onClick={() => setChosenSize(s)}
+                            className={
+                              'rounded border px-3 py-1 text-sm ' +
+                              (disabled ? 'text-gray-400 bg-gray-100 cursor-not-allowed' : active ? 'bg-emerald-600 text-white border-emerald-600' : 'bg-white hover:bg-gray-50')
+                            }
+                            title={left > 0 ? `${left} ta stol mavjud` : 'Mavjud emas'}
+                          >
+                            {s} kishilik {left > 0 ? `(${left} ta)` : '(yo\'q)'}
+                          </button>
+                        );
+                      })}
+                    </div>
+                  ) : null}
+                  {error && <div className="mt-2 rounded border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">{error}</div>}
+                  {success && <div className="mt-2 rounded border border-green-200 bg-green-50 px-3 py-2 text-sm text-green-700">{success}</div>}
+                </section>
+
+                <div className="mt-6">
+                  <Button
+                    onClick={submitReservation}
+                    disabled={!canSubmit || submitLoading}
+                    className="bg-[#C8FF00] hover:bg-[#B8EF00] text-black font-semibold"
+                    aria-busy={submitLoading}
                   >
-                    <circle
-                      className="opacity-25"
-                      cx="12"
-                      cy="12"
-                      r="10"
-                      stroke="currentColor"
-                      strokeWidth="4"
-                    ></circle>
-                    <path
-                      className="opacity-75"
-                      fill="currentColor"
-                      d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z"
-                    ></path>
-                  </svg>
-                  Yuborilmoqda…
-                </span>
-              ) : (
-                "Joy band qilish"
-              )}
-            </Button>
+                    {submitLoading ? (
+                      <span className="inline-flex items-center gap-2">
+                        <svg className="animate-spin -ml-1 mr-1 h-4 w-4 text-black" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                          <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                          <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z"></path>
+                        </svg>
+                        Yuborilmoqda…
+                      </span>
+                    ) : (
+                      'Joy band qilish'
+                    )}
+                  </Button>
+                </div>
+              </div>
+            </div>
           </div>
-        </>
+        </div>
       ) : null}
-    </div>
+    </main>
   );
 }

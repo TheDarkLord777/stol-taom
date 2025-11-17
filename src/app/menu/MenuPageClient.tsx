@@ -1,6 +1,7 @@
 'use client';
 
 import React from 'react';
+import { Toaster } from 'sonner';
 import { BookOpenCheck } from 'lucide-react';
 import { usePageTheme } from '@/lib/use-page-theme';
 import MenuGrid, { type MenuItem } from '@/components/MenuGrid';
@@ -56,6 +57,7 @@ export default function MenuPageClient() {
                 <BookOpenCheck className="h-6 w-6" />
                 <span>Menyu</span>
             </h1>
+            <Toaster position="top-right" />
             {/* Show the previous explorer/search UI first so it's visible at the top */}
             <ExplorerClient
                 onQueryChange={setQuery}
