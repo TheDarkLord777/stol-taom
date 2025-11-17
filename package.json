@@ -28,7 +28,8 @@
     "prewarm:restaurants": "node scripts/prewarm-restaurants.cjs",
     "prewarm:menuitems": "node scripts/prewarm-menuitems.cjs",
     "prewarm:ingredients:http": "node scripts/prewarm-ingredients-http.cjs",
-    "scan:security": "node scripts/security-scan.cjs"
+    "scan:security": "node scripts/security-scan.cjs",
+    "gen:openapi": "node scripts/generate-openapi.cjs"
   },
   "dependencies": {
     "@hookform/resolvers": "^3.10.0",

@@ -1,0 +1,142 @@
+openapi: 3.0.3
+info:
+  title: Stol-Taom API (Reservations)
+  version: "1.0.0"
+  description: |
+    Minimal OpenAPI spec covering restaurant list, availability, and reservations
+    used by the frontend reservation UI. This spec documents the new/changed
+    endpoints including `tablesCount` in `POST /api/reservations`.
+servers:
+  - url: http://localhost:3000
+    description: Local development
+paths:
+  /api/restaurants:
+    get:
+      summary: List restaurants
+      description: Returns a list of available restaurants used by the reservation UI.
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  items:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Restaurant'
+  /api/restaurants/{id}/availability:
+    get:
+      summary: Get availability for a restaurant
+      description: |
+        Return how many tables of each size are available within the requested
+        window. Query parameters `from` and `to` are required ISO datetimes.
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: from
+          in: query
+          required: true
+          schema:
+            type: string
+            format: date-time
+        - name: to
+          in: query
+          required: true
+          schema:
+            type: string
+            format: date-time
+      responses:
+        '200':
+          description: Availability response
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  sizes:
+                    type: object
+                    additionalProperties: false
+                    properties:
+                      "2": { type: integer, minimum: 0 }
+                      "4": { type: integer, minimum: 0 }
+                      "6": { type: integer, minimum: 0 }
+                      "8": { type: integer, minimum: 0 }
+  /api/reservations:
+    post:
+      summary: Create a reservation
+      description: Create a new reservation. The client sends `tablesCount` to indicate how many tables of the chosen size are required.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ReservationRequest'
+      responses:
+        '201':
+          description: Created
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  id:
+                    type: string
+                  status:
+                    type: string
+        '409':
+          description: Conflict (no availability)
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+        '400':
+          description: Bad request
+components:
+  schemas:
+    Restaurant:
+      type: object
+      properties:
+        id:
+          type: string
+        name:
+          type: string
+        logoUrl:
+          type: string
+          nullable: true
+    ReservationRequest:
+      type: object
+      required:
+        - restaurantId
+        - fromDate
+        - toDate
+        - partySize
+        - tablesCount
+      properties:
+        restaurantId:
+          type: string
+          description: Restaurant identifier
+        fromDate:
+          type: string
+          format: date-time
+          description: ISO start datetime (includes time applied by client)
+        toDate:
+          type: string
+          format: date-time
+          description: ISO end datetime (either range end or start+duration)
+        partySize:
+          type: integer
+          minimum: 1
+          description: Table capacity selected (2,4,6,8)
+        tablesCount:
+          type: integer
+          minimum: 1
+          description: Number of tables requested for the reservation
+security: []

@@ -120,11 +120,11 @@ npx prisma generate
 6. Run `npm run format` and `npm run lint` before committing.
 
 ## Common patterns & gotchas
-- Only call Prisma from server code (avoid bundling Prisma into client).
-- Use `next/image` with `sizes` when using `fill` to avoid LCP warnings.
-- Keep dev-only pages under `src/app/dev` and gate production behavior with env flags.
 
 ## Where to ask if unsure
+
+**Reservations Feature**: See `docs/reservations.md` for details about the reservation UI and APIs (time picker, duration, availability, `tablesCount` in POST payload).
+
 
 ## Migration note: Cart idempotency (developer steps)
 
