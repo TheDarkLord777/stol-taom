@@ -152,3 +152,63 @@ If you want, I can run these steps for you now (I will need you to stop the dev 
 ---
 
 If you'd like, I can also add a small commit-msg template or a checklist for PRs that references this guide. Follow these rules for all future code suggestions and I will generate code consistent with them.
+
+## Recent Changes (quick reference)
+
+This project has had several UI and infra updates. When working in these areas, please follow the notes below.
+
+- Theme & per-page theme persistence
+  - Per-page theme settings are persisted in `localStorage` under the key `page-themes`.
+  - The hook `src/lib/use-page-theme.ts` now uses `useLayoutEffect` to apply a page's theme synchronously before paint to avoid flicker or mismatch between input/dropdown colors on first render.
+  - `src/app/profile/ThemeManager.tsx` was updated to load saved page themes before writing defaults and to apply toggles immediately for the current page.
+  - When reading/writing page-theme values from JSON, code uses explicit casts to `PageThemeConfig[]` to satisfy TypeScript. Prefer validating the saved shape when you need stricter guarantees.
+
+- Combobox (cmdk + radix popover)
+  - `src/components/ui/combobox.tsx` was made theme-aware and more robust during hydration: it resolves theme from context and falls back to `document.documentElement` classes to determine `light` vs `dark` when hydrating.
+  - Input and popover/list styles are explicitly chosen based on the resolved theme to avoid mismatched dropdown backgrounds in light mode.
+  - The Combobox supports both `mode="input"` and `mode="button"`; pages can pass `inputClassName` for exact control of the input styling when necessary.
+
+- Reservation page UI
+  - `src/app/reservation/ReservationClient.tsx` now presents restaurants as a grid of `TiltedCard` cards (see `src/components/ui/TiltedCard.tsx`). Clicking a card opens a modal that reuses existing reservation controls (date pickers, availability checks, party-size selection, submit flow).
+  - A `Combobox` was added under the Reservation header to allow text search as an alternative to the card grid.
+
+- Menu grid & Tilted cards
+  - `src/components/MenuGrid.tsx` uses `TiltedCard` for menu visuals and a full-screen detail modal for item details, ingredients, and adding to cart.
+  - The add-to-cart flow now attempts server add, falls back to offline enqueue + sync, and finally falls back to a local `addToCart` write. Each successful outcome triggers a `sonner` toast.
+
+- Sonner Toasts
+  - `sonner` is used for user-facing notifications (success toasts). Pages that show toasts should mount a `Toaster` (e.g. `src/app/menu/MenuPageClient.tsx` and `src/app/reservation/ReservationClient.tsx` currently mount one). For consistency, consider adding a single global `<Toaster />` in `src/app/layout.tsx` so all pages use the same container and positioning.
+  - Toast actions (e.g., "Orders-ga o'tish") navigate via `router.push('/orders')`.
+
+- Mobile-friendly home hero
+  - To avoid expensive GPU work on phones, the Home client (`src/app/home/HomeClient.tsx`) serves a lightweight static image `public/lightversion.jpg` for small screens and only mounts the animated `Galaxy` background on larger devices.
+
+- Build/type fixes
+  - During the production build a few TypeScript issues were fixed:
+    - `src/app/api/orders/route.ts`: `restMap` entries now include optional `logoUrl`.
+    - `src/app/api/reservations/route.ts`: transaction callback annotated `tx: any` (pragmatic fix; replace with proper Prisma types if you want stricter safety).
+    - `src/app/profile/ThemeManager.tsx`: cast to `PageThemeConfig[]` when updating state from parsed JSON.
+
+Verification & recommended steps
+- Run the full build and type checks locally after UI changes:
+
+```powershell
+npm run build
+```
+
+- Dev run to validate interactions (recommended):
+
+```powershell
+npm run dev
+```
+
+- Visual checks to perform after UI edits:
+  - `/menu`: open item modal, add to cart, confirm toast shows and Orders action navigates.
+  - `/reservation`: pick a restaurant, open modal, submit reservation, confirm toast appears and navigation works.
+  - `/` (home) on a mobile viewport: ensure `public/lightversion.jpg` is used and the page does not freeze.
+  - Combobox dropdown colors in both light and dark themes across `/menu`, `/reservation` — ensure background and item selection look correct.
+
+Follow-ups you may want me to do
+- Move the single `Toaster` to `src/app/layout.tsx` (recommended).
+- Replace `tx: any` with the correct Prisma `Prisma.TransactionClient` type for stricter typing.
+- Add runtime validation when loading `page-themes` from `localStorage` to avoid casts and improve safety.
