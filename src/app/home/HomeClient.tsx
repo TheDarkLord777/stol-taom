@@ -5,6 +5,7 @@ import PulseCard from "@/components/ui/pulse-card";
 import Galaxy from "@/components/ui/Galaxy";
 import Link from "next/link";
 import { Menu, Calendar, ShoppingCart, User } from "lucide-react";
+import React from "react";
 
 export default function HomeClient() {
     // Apply per-page theme from localStorage (default: dark for /home)
@@ -17,11 +18,32 @@ export default function HomeClient() {
         { title: "Profil", description: "Hisob sozlamalari", icon: <User />, href: "/profile", variant: "amber" },
     ];
 
+    const [isMobile, setIsMobile] = React.useState(false);
+
+    React.useEffect(() => {
+        if (typeof window === 'undefined') return;
+        const mq = window.matchMedia('(max-width: 640px)');
+        const onChange = () => setIsMobile(mq.matches);
+        onChange();
+        if (mq.addEventListener) mq.addEventListener('change', onChange);
+        else mq.addListener(onChange as any);
+        return () => {
+            if (mq.removeEventListener) mq.removeEventListener('change', onChange);
+            else mq.removeListener(onChange as any);
+        };
+    }, []);
+
     return (
         <div className="relative min-h-screen w-full overflow-hidden bg-black">
-            {/* Galaxy background */}
+            {/* Background: lightweight image on small screens, Galaxy on larger devices */}
             <div className="absolute inset-0 z-0">
-                <Galaxy mouseRepulsion={true} mouseInteraction={true} className="size-full" />
+                {isMobile ? (
+                    // lightweight hero for phones (placed in public/lightversion.jpg)
+                    // use plain img to avoid heavy canvas/three resource usage on mobile
+                    <img src="/liteversion.jpg" alt="Hero" className="w-full h-full object-cover" />
+                ) : (
+                    <Galaxy mouseRepulsion={true} mouseInteraction={true} className="size-full" />
+                )}
             </div>
 
             {/* Content */}
