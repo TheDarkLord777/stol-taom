@@ -28,6 +28,21 @@ export default function ReservationClient() {
   const [sizes, setSizes] = React.useState<Record<string, number> | null>(null);
   const [availabilityLoading, setAvailabilityLoading] = React.useState(false);
   const [chosenSize, setChosenSize] = React.useState<number | null>(null);
+  // time input: from (HH:MM). We removed explicit `toTime` and rely on duration.
+  const [fromTime, setFromTime] = React.useState<string>("12:00");
+  // duration selector (minutes): 30min steps up to 12 hours (720 min)
+  const durationOptions = React.useMemo(() => {
+    const opts: number[] = [];
+    for (let m = 30; m <= 720; m += 30) opts.push(m);
+    return opts;
+  }, []);
+  const [durationMinutes, setDurationMinutes] = React.useState<number>(60);
+  // earliest-availability helpers
+  const [searchingEarliest, setSearchingEarliest] = React.useState<boolean>(false);
+  const [earliestAvailable, setEarliestAvailable] = React.useState<string | null>(null); // ISO time string
+  const [suggestedDurations, setSuggestedDurations] = React.useState<number[]>([]);
+  // per-size table counts (2,4,6,8)
+  const [sizeCounts, setSizeCounts] = React.useState<Record<string, number>>({ "2": 0, "4": 0, "6": 0, "8": 0 });
   const [submitLoading, setSubmitLoading] = React.useState(false);
   const [error, setError] = React.useState<string | null>(null);
   const [success, setSuccess] = React.useState<string | null>(null);
@@ -76,14 +91,87 @@ export default function ReservationClient() {
     if (!selected) return;
     // Default pick date: today
     if (!date) setDate(new Date());
-    // Default range: 1 week (today -> today + 7 days)
-    if (!range) {
-      const from = new Date();
-      const to = new Date(from);
-      to.setDate(from.getDate() + 7);
-      setRange({ from, to });
-    }
   }, [selected, date, range]);
+
+  function applyTimeToDate(base: Date, timeStr: string) {
+    const d = new Date(base);
+    if (!timeStr) return d;
+    const [hhStr, mmStr] = timeStr.split(":");
+    const hh = parseInt(hhStr || "0", 10);
+    const mm = parseInt(mmStr || "0", 10);
+    if (!Number.isNaN(hh)) d.setHours(hh);
+    if (!Number.isNaN(mm)) d.setMinutes(mm);
+    d.setSeconds(0, 0);
+    return d;
+  }
+
+  // Check availability for a specific window and return sizes object or null on error
+  async function fetchWindowSizes(restaurantId: string, fromIso: string, toIso?: string) {
+    try {
+      const qs = new URLSearchParams({ from: fromIso, ...(toIso ? { to: toIso } : {}) });
+      const res = await fetch(`/api/restaurants/${restaurantId}/availability?` + qs.toString(), { cache: 'no-store' });
+      if (!res.ok) return null;
+      const j = await res.json().catch(() => null);
+      return j?.sizes ?? null;
+    } catch {
+      return null;
+    }
+  }
+
+  // Find earliest available start time for the selected day (scans from open to close in 30m steps)
+  async function findEarliestAvailable() {
+    if (!selected) return;
+    const baseDate = date ?? range?.from;
+    if (!baseDate) return;
+    setSearchingEarliest(true);
+    setEarliestAvailable(null);
+    setSuggestedDurations([]);
+    try {
+      // Business hours (defaults) - could be made configurable per-restaurant later
+      const openHour = 9;
+      const closeHour = 21;
+      const stepMinutes = 30;
+      // Start at opening of baseDate
+      const open = new Date(baseDate);
+      open.setHours(openHour, 0, 0, 0);
+      const close = new Date(baseDate);
+      close.setHours(closeHour, 0, 0, 0);
+
+      // iterate start times
+      for (let t = new Date(open); t.getTime() + 1 <= close.getTime(); t.setMinutes(t.getMinutes() + stepMinutes)) {
+        const startIso = t.toISOString();
+        // check for at least one duration option to be available
+        let anyAvailable = false;
+        const availableDurations: number[] = [];
+        for (const d of durationOptions) {
+          const end = new Date(t.getTime() + d * 60_000);
+          if (end.getTime() > close.getTime()) continue; // can't exceed close
+          const endIso = end.toISOString();
+          const sizesObj = await fetchWindowSizes(selected, startIso, endIso) as Record<string, number> | null;
+          if (sizesObj) {
+            // sum available tables (coerce types for TS)
+            const vals = Object.values(sizesObj) as number[];
+            const totalAvailable = vals.reduce((s, v) => s + (Number(v) || 0), 0);
+            if (totalAvailable > 0) {
+              anyAvailable = true;
+              availableDurations.push(d);
+            }
+          }
+        }
+        if (anyAvailable) {
+          setEarliestAvailable(startIso);
+          setSuggestedDurations(availableDurations);
+          // set fromTime to the found time's HH:MM for convenience
+          const hh = String(t.getHours()).padStart(2, '0');
+          const mm = String(t.getMinutes()).padStart(2, '0');
+          setFromTime(`${hh}:${mm}`);
+          break;
+        }
+      }
+    } finally {
+      setSearchingEarliest(false);
+    }
+  }
 
   const selectedOption = React.useMemo(
     () => restaurants.find((r) => r.value === selected),
@@ -93,14 +181,22 @@ export default function ReservationClient() {
   // Fetch availability when we have a restaurant and a time window
   React.useEffect(() => {
     if (!selected) return;
-    const from = date ?? range?.from;
-    const to = range?.to;
+    const baseFrom = date ?? range?.from;
+    const baseTo = range?.to;
+    if (!baseFrom) return;
+    // apply times if present
+    const from = applyTimeToDate(baseFrom, fromTime).toISOString();
+    // If there is an explicit range end (baseTo), use that date with the same time as `fromTime`.
+    // Otherwise compute `to` from `from` + selected durationMinutes.
+    const toComputed = baseTo
+      ? applyTimeToDate(baseTo, fromTime).toISOString()
+      : new Date(applyTimeToDate(baseFrom, fromTime).getTime() + durationMinutes * 60_000).toISOString();
     if (!from) return;
     setAvailabilityLoading(true);
     setSizes(null);
     setChosenSize(null);
     setError(null);
-    const qs = new URLSearchParams({ from: from.toISOString(), ...(to ? { to: to.toISOString() } : {}) });
+    const qs = new URLSearchParams({ from, ...(toComputed ? { to: toComputed } : {}) });
     fetch(`/api/restaurants/${selected}/availability?` + qs.toString())
       .then((r) => r.json())
       .then((d) => {
@@ -112,32 +208,51 @@ export default function ReservationClient() {
         setSizes({ "2": 0, "4": 0, "6": 0, "8": 0 });
       })
       .finally(() => setAvailabilityLoading(false));
-  }, [selected, date, range?.from, range?.to]);
+  }, [selected, date, range?.from, range?.to, fromTime, durationMinutes]);
+
+  const totalTablesSelected = React.useMemo(() => Object.values(sizeCounts).reduce((s, v) => s + (v || 0), 0), [sizeCounts]);
+  const totalPeople = React.useMemo(() => {
+    let sum = 0;
+    for (const key of Object.keys(sizeCounts)) {
+      const cnt = sizeCounts[key] || 0;
+      const sizeNum = parseInt(key, 10) || 0;
+      sum += cnt * sizeNum;
+    }
+    return sum;
+  }, [sizeCounts]);
 
   const canSubmit = React.useMemo(() => {
-    const from = date ?? range?.from;
-    return Boolean(selected && from && chosenSize && (sizes && (sizes[String(chosenSize)] ?? 0) > 0));
-  }, [selected, date, range?.from, chosenSize, sizes]);
+    const baseFrom = date ?? range?.from;
+    return Boolean(selected && baseFrom && totalTablesSelected > 0 && totalPeople > 0 && !submitLoading);
+  }, [selected, date, range?.from, totalTablesSelected, totalPeople, submitLoading]);
 
   const submitReservation = async () => {
     if (!selected) return;
-    const from = date ?? range?.from;
-    const to = range?.to;
-    if (!from || !chosenSize) return;
+    const baseFrom = date ?? range?.from;
+    const baseTo = range?.to;
+    if (!baseFrom || totalTablesSelected <= 0) return;
     setSubmitLoading(true);
     setError(null);
     setSuccess(null);
     try {
+      const fromIso = applyTimeToDate(baseFrom, fromTime).toISOString();
+      // Always compute reservation end (`toDate`) from the chosen start time + duration.
+      // The `range` is used only for availability filtering and should not drive the
+      // actual booking end time unless we add an explicit 'booking range' UI.
+      const toIso = new Date(applyTimeToDate(baseFrom, fromTime).getTime() + durationMinutes * 60_000).toISOString();
+      const payload = {
+        restaurantId: selected,
+        fromDate: fromIso,
+        toDate: toIso,
+        partySize: totalPeople,
+        tablesCount: totalTablesSelected,
+        tableBreakdown: sizeCounts,
+      } as any;
       const res = await fetch("/api/reservations", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         credentials: "same-origin",
-        body: JSON.stringify({
-          restaurantId: selected,
-          fromDate: from.toISOString(),
-          toDate: to ? to.toISOString() : undefined,
-          partySize: chosenSize,
-        }),
+        body: JSON.stringify(payload),
       });
       const data = await res.json().catch(() => ({}));
       if (!res.ok) throw new Error(data?.error || "Server error");
@@ -173,7 +288,7 @@ export default function ReservationClient() {
     <main className="mx-auto max-w-6xl p-6">
       {/* Desktop-only fixed back button (top-left). Visible on md+ screens, stays while scrolling. */}
       <Button
-        onClick={() => router.back()}
+        onClick={() => router.push('/home')}
         className={
           `fixed top-4 left-4 z-50 hidden md:flex h-10 w-10 p-0 items-center justify-center shadow-md cursor-pointer hover:opacity-90 ` +
           (theme === 'light' ? 'bg-white text-black border border-gray-200' : 'bg-black text-white')
@@ -326,33 +441,83 @@ export default function ReservationClient() {
                 </section>
 
                 <section className="space-y-2 mt-4">
-                  <div className="text-sm font-medium">Bo'sh stol o'lchamlarini tanlang</div>
+                  <div className="text-sm font-medium">Vaqt oralig'i (soat)</div>
+                  <div className="flex flex-col gap-3">
+                    <div className="flex items-center gap-3">
+                      <label className="flex items-center gap-2">
+                        <span className="text-sm">Boshlanish:</span>
+                        <input type="time" value={fromTime} onChange={(e) => setFromTime(e.target.value)} className="rounded border px-2 py-1 text-sm" />
+                      </label>
+                      {/* `toTime` removed; duration controls drive the end time */}
+                      <label className="flex items-center gap-2">
+                        <span className="text-sm">Davomiylik:</span>
+                        <select value={String(durationMinutes)} onChange={(e) => setDurationMinutes(parseInt(e.target.value, 10))} className="rounded border px-2 py-1 text-sm">
+                          {durationOptions.map((d) => (
+                            <option key={d} value={String(d)}>{d % 60 === 0 ? `${d / 60} soat` : `${d} min`}</option>
+                          ))}
+                        </select>
+                      </label>
+                      <button type="button" onClick={findEarliestAvailable} className="rounded border px-3 py-1 text-sm bg-white hover:bg-gray-50">
+                        {searchingEarliest ? 'Qidirilmoqda…' : 'Eng erta bo‘sh vaqtni top'}
+                      </button>
+                    </div>
+                    <div className="text-sm text-gray-600">(Tugash vaqti avtomatik: davomiylik tanlovi bo'yicha hisoblanadi.)</div>
+
+                    {earliestAvailable ? (
+                      <div className="mt-2 p-3 rounded border bg-gray-50">
+                        <div className="text-sm">Eng erta mavjud start: <span className="font-medium">{new Date(earliestAvailable).toLocaleString()}</span></div>
+                        <div className="mt-2 flex gap-2">
+                          {suggestedDurations.length > 0 ? suggestedDurations.map((d) => (
+                            <button key={d} type="button" onClick={() => { setDurationMinutes(d); const dt = new Date(earliestAvailable); const hh = String(dt.getHours()).padStart(2, '0'); const mm = String(dt.getMinutes()).padStart(2, '0'); setFromTime(`${hh}:${mm}`); }} className="rounded border px-2 py-1 text-sm bg-white hover:bg-gray-50">{d % 60 === 0 ? `${d / 60} soat` : `${d} min`}</button>
+                          )) : <div className="text-sm text-gray-500">Variant topilmadi.</div>}
+                        </div>
+                      </div>
+                    ) : null}
+                  </div>
+
+                  <div className="text-sm font-medium mt-3">Bo'sh stol o'lchamlari va miqdori</div>
                   {availabilityLoading ? (
                     <div className="flex flex-wrap gap-2" aria-busy>
                       {[2, 4, 6, 8].map((s) => (<Shimmer key={s} className="h-9 w-28 rounded" />))}
                     </div>
                   ) : sizes ? (
-                    <div className="flex flex-wrap gap-2">
+                    <div className="space-y-3">
                       {[2, 4, 6, 8].map((s) => {
                         const left = sizes[String(s)] ?? 0;
-                        const disabled = left <= 0;
-                        const active = chosenSize === s;
+                        const count = sizeCounts[String(s)] ?? 0;
                         return (
-                          <button
-                            key={s}
-                            type="button"
-                            disabled={disabled}
-                            onClick={() => setChosenSize(s)}
-                            className={
-                              'rounded border px-3 py-1 text-sm ' +
-                              (disabled ? 'text-gray-400 bg-gray-100 cursor-not-allowed' : active ? 'bg-emerald-600 text-white border-emerald-600' : 'bg-white hover:bg-gray-50')
-                            }
-                            title={left > 0 ? `${left} ta stol mavjud` : 'Mavjud emas'}
-                          >
-                            {s} kishilik {left > 0 ? `(${left} ta)` : '(yo\'q)'}
-                          </button>
+                          <div key={s} className="flex items-center justify-between gap-3">
+                            <div className="flex items-center gap-3">
+                              <div className="text-sm font-medium">{s} kishilik</div>
+                              <div className="text-sm text-gray-500">{left} ta mavjud</div>
+                            </div>
+                            <div className="inline-flex items-center gap-2">
+                              <button
+                                type="button"
+                                onClick={() => setSizeCounts((prev) => ({ ...prev, [String(s)]: Math.max(0, (prev[String(s)] || 0) - 1) }))}
+                                className="rounded border px-3 py-1 text-sm"
+                                aria-label={`Kamaytir ${s}`}
+                              >
+                                -
+                              </button>
+                              <div className="w-10 text-center text-sm">{count}</div>
+                              <button
+                                type="button"
+                                onClick={() => setSizeCounts((prev) => ({ ...prev, [String(s)]: Math.min(left, (prev[String(s)] || 0) + 1) }))}
+                                className="rounded border px-3 py-1 text-sm"
+                                disabled={left <= 0 || (count >= left)}
+                                aria-label={`Ko'paytir ${s}`}
+                              >
+                                +
+                              </button>
+                            </div>
+                          </div>
                         );
                       })}
+
+                      <div className="pt-2 text-sm">
+                        Tanlangan stol soni: <span className="font-medium">{totalTablesSelected}</span> — Umumiy odamlar: <span className="font-medium">{totalPeople}</span>
+                      </div>
                     </div>
                   ) : null}
                   {error && <div className="mt-2 rounded border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">{error}</div>}

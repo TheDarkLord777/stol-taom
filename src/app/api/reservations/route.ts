@@ -8,7 +8,7 @@ export const dynamic = "force-dynamic";
 
 export async function POST(req: NextRequest) {
   const body = await req.json();
-  const { restaurantId, fromDate, toDate, partySize, note } = body || {};
+  const { restaurantId, fromDate, toDate, partySize, note, tableBreakdown, tablesCount } = body || {};
   const user = await getUserFromRequest(req).catch(() => null);
   if (!restaurantId || !fromDate) {
     return NextResponse.json({ error: "restaurantId and fromDate are required" }, { status: 400 });
@@ -70,6 +70,12 @@ export async function POST(req: NextRequest) {
         throw new Error("NO_AVAILABILITY");
       }
 
+      // Persist table breakdown metadata inside `note` as JSON to avoid schema migration.
+      const notePayload: any = {};
+      if (typeof note === "string" && note.trim() !== "") notePayload.noteText = note;
+      if (tableBreakdown && typeof tableBreakdown === 'object') notePayload.tableBreakdown = tableBreakdown;
+      if (typeof tablesCount === 'number') notePayload.tablesCount = tablesCount;
+
       return tx.reservation.create({
         data: {
           restaurantId,
@@ -77,7 +83,7 @@ export async function POST(req: NextRequest) {
           fromDate: from,
           toDate: to ?? null,
           partySize: typeof partySize === "number" ? partySize : null,
-          note: typeof note === "string" ? note : null,
+          note: Object.keys(notePayload).length > 0 ? JSON.stringify(notePayload) : (typeof note === 'string' ? note : null),
         },
       });
     });

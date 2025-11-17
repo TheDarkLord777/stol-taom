@@ -34,6 +34,8 @@ export default function OrdersClient() {
     const [selectedMap, setSelectedMap] = useState<Record<string, boolean>>({});
     const [selectedResMap, setSelectedResMap] = useState<Record<string, boolean>>({});
     const [removingResMap, setRemovingResMap] = useState<Record<string, boolean>>({});
+    // fallback/compat: also keep a Set of selected ids for reliable multi-select
+    const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
 
     const fetchCart = async () => {
         setLoading(true);
@@ -51,6 +53,7 @@ export default function OrdersClient() {
             setItems(data.items ?? []);
             setReservations(data.reservations ?? []);
             setSelectedMap({});
+            setSelectedIds(new Set());
         } catch (e: unknown) {
             const m = e instanceof Error ? e.message : String(e);
             setError(m);
@@ -78,7 +81,7 @@ export default function OrdersClient() {
         <div className="p-4 max-w-3xl mx-auto">
             {/* Desktop-only fixed back button (top-left). Visible on md+ screens, stays while scrolling. */}
             <Button
-                onClick={() => router.back()}
+                onClick={() => router.push('/home')}
                 className={
                     `fixed top-4 left-4 z-50 hidden md:flex h-10 w-10 p-0 items-center justify-center shadow-md cursor-pointer hover:opacity-90 ` +
                     (theme === 'light' ? 'bg-white text-black border border-gray-200' : 'bg-black text-white')
@@ -169,12 +172,16 @@ export default function OrdersClient() {
                         <label className="flex items-center gap-2 text-sm">
                             <input
                                 type="checkbox"
-                                checked={items.every((x) => selectedMap[x.id])}
+                                checked={items.length > 0 && items.every((x) => selectedIds.has(x.id))}
                                 onChange={(e) => {
-                                    const checked = e.target.checked;
-                                    const next: Record<string, boolean> = {};
-                                    for (const it of items) next[it.id] = checked;
-                                    setSelectedMap(next);
+                                    const checked = (e.target as HTMLInputElement).checked;
+                                    if (checked) {
+                                        const s = new Set<string>();
+                                        for (const it of items) s.add(it.id);
+                                        setSelectedIds(s);
+                                    } else {
+                                        setSelectedIds(new Set());
+                                    }
                                 }}
                             />
                             <span>Hammasini tanlash (faqat savat bo'limi)</span>
@@ -182,7 +189,7 @@ export default function OrdersClient() {
                         <div className="flex items-center gap-2">
                             <Button
                                 onClick={async () => {
-                                    const ids = items.filter((x) => selectedMap[x.id]).map((x) => x.id);
+                                    const ids = items.filter((x) => selectedIds.has(x.id)).map((x) => x.id);
                                     if (ids.length === 0) return;
                                     setRemovingMap((m) => {
                                         const next = { ...m };
@@ -210,7 +217,7 @@ export default function OrdersClient() {
                             </Button>
                             <Button
                                 onClick={() => {
-                                    const ids = items.filter((x) => selectedMap[x.id]).map((x) => x.id);
+                                    const ids = items.filter((x) => selectedIds.has(x.id)).map((x) => x.id);
                                     if (ids.length === 0) return;
                                     alert(`Yaqinda qo'shiladi: ${ids.length} ta element uchun to'lov.`);
                                 }}
@@ -225,10 +232,16 @@ export default function OrdersClient() {
                             <div className="flex items-start gap-3 flex-1 min-w-0">
                                 <input
                                     type="checkbox"
-                                    checked={Boolean(selectedMap[it.id])}
-                                    onChange={(e) =>
-                                        setSelectedMap((m) => ({ ...m, [it.id]: e.target.checked }))
-                                    }
+                                    checked={selectedIds.has(it.id)}
+                                    onChange={(e) => {
+                                        const checked = (e.target as HTMLInputElement).checked;
+                                        setSelectedIds((prev) => {
+                                            const next = new Set(prev);
+                                            if (checked) next.add(it.id);
+                                            else next.delete(it.id);
+                                            return next;
+                                        });
+                                    }}
                                     className="mt-1 shrink-0"
                                 />
                                 <div className="relative h-12 w-12 shrink-0 overflow-hidden rounded bg-gray-100 flex items-center justify-center">
@@ -436,8 +449,38 @@ export default function OrdersClient() {
                                     </div>
                                     <div className="flex-1 min-w-0">
                                         <div className="font-semibold text-lg">{r.restaurantName ?? "Bron"}</div>
-                                        <div className="text-sm text-gray-700 mt-1">Sana: {r.fromDate ? new Date(r.fromDate).toLocaleString() : "—"}</div>
+                                        <div className="text-sm text-gray-700 mt-1">
+                                            {r.fromDate ? (
+                                                (() => {
+                                                    const from = new Date(r.fromDate);
+                                                    const to = r.toDate ? new Date(r.toDate) : null;
+                                                    const dateStr = from.toLocaleDateString();
+                                                    const timeFrom = from.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+                                                    const timeTo = to ? to.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : null;
+                                                    const rangeStr = timeTo ? `${timeFrom} - ${timeTo}` : `${timeFrom}`;
+                                                    let durationText = '';
+                                                    if (to) {
+                                                        const diffMin = Math.round((to.getTime() - from.getTime()) / 60000);
+                                                        if (diffMin % 60 === 0) durationText = `${diffMin / 60} soat`;
+                                                        else durationText = `${diffMin} min`;
+                                                    }
+                                                    return (
+                                                        <div>
+                                                            <div>Sana: <span className="font-medium">{dateStr}</span></div>
+                                                            <div>Vaqt: <span className="font-medium">{rangeStr}{durationText ? ` (${durationText})` : ''}</span></div>
+                                                        </div>
+                                                    );
+                                                })()
+                                            ) : (
+                                                'Sana: —'
+                                            )}
+                                        </div>
                                         {r.partySize && <div className="text-sm text-gray-700 mt-1">Odamlar: {r.partySize}</div>}
+                                        {r.tableBreakdown && (
+                                            <div className="text-sm text-gray-700 mt-1">
+                                                Stollar: {Object.entries(r.tableBreakdown as Record<string, number>).filter(([, c]) => Number(c) > 0).map(([size, cnt]) => `${Number(cnt)}×${size}`).join(', ')}{r.tablesCount ? ` — Jami stol: ${r.tablesCount}` : ''}
+                                            </div>
+                                        )}
                                     </div>
                                 </div>
 

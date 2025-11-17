@@ -125,7 +125,7 @@ export default function ProfileClient() {
     <div className="mx-auto max-w-4xl p-6">
       {/* Desktop-only fixed back button (top-left). Visible on md+ screens, stays while scrolling. */}
       <Button
-        onClick={() => router.back()}
+        onClick={() => router.push('/home')}
         className={
           `fixed top-4 left-4 z-50 hidden md:flex h-10 w-10 p-0 items-center justify-center shadow-md cursor-pointer hover:opacity-90 ` +
           (theme === 'light' ? 'bg-white text-black border border-gray-200' : 'bg-black text-white')

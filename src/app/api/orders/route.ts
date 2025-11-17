@@ -72,17 +72,39 @@ export async function GET(req: NextRequest) {
             const rows = await prisma.restaurant.findMany({ where: { id: { in: restIds } }, select: { id: true, name: true, logoUrl: true } });
             for (const r of rows) restMap[r.id] = { name: r.name, logoUrl: r.logoUrl } as any;
         }
-        const mappedReservations = (reservations ?? []).map((r: any) => ({
-            id: r.id,
-            restaurantId: r.restaurantId,
-            restaurantName: restMap[r.restaurantId]?.name ?? undefined,
-            logoUrl: restMap[r.restaurantId]?.logoUrl ?? undefined,
-            fromDate: r.fromDate ? new Date(r.fromDate).toISOString() : undefined,
-            toDate: r.toDate ? new Date(r.toDate).toISOString() : undefined,
-            partySize: r.partySize ?? undefined,
-            note: r.note ?? undefined,
-            createdAt: r.createdAt ? new Date(r.createdAt).toISOString() : undefined,
-        }));
+        const mappedReservations = (reservations ?? []).map((r: any) => {
+            let tableBreakdown: Record<string, number> | undefined = undefined;
+            let tablesCount: number | undefined = undefined;
+            let noteText: string | undefined = undefined;
+            if (typeof r.note === 'string') {
+                try {
+                    const parsed = JSON.parse(r.note);
+                    if (parsed && typeof parsed === 'object') {
+                        if (parsed.tableBreakdown) tableBreakdown = parsed.tableBreakdown;
+                        if (typeof parsed.tablesCount === 'number') tablesCount = parsed.tablesCount;
+                        if (typeof parsed.noteText === 'string') noteText = parsed.noteText;
+                    } else {
+                        noteText = r.note;
+                    }
+                } catch (e) {
+                    // not JSON, treat as plain text
+                    noteText = r.note;
+                }
+            }
+            return {
+                id: r.id,
+                restaurantId: r.restaurantId,
+                restaurantName: restMap[r.restaurantId]?.name ?? undefined,
+                logoUrl: restMap[r.restaurantId]?.logoUrl ?? undefined,
+                fromDate: r.fromDate ? new Date(r.fromDate).toISOString() : undefined,
+                toDate: r.toDate ? new Date(r.toDate).toISOString() : undefined,
+                partySize: r.partySize ?? undefined,
+                note: noteText ?? undefined,
+                tableBreakdown,
+                tablesCount,
+                createdAt: r.createdAt ? new Date(r.createdAt).toISOString() : undefined,
+            };
+        });
 
         const body = { items, reservations: mappedReservations };
         if (cookieResponse) {
