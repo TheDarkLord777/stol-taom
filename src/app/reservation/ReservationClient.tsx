@@ -3,6 +3,7 @@ import Image from "next/image";
 import React from "react";
 import { useRouter } from "next/navigation";
 import { ArrowBigLeft } from "lucide-react";
+import { useTheme } from '@/lib/theme-context';
 import type { DateRange } from "react-day-picker";
 import Combobox from "@/components/ui/combobox";
 import { DatePicker, DateRangePicker } from "@/components/ui/datepicker";
@@ -16,6 +17,7 @@ export default function ReservationClient() {
   // Apply per-page theme from localStorage (default: light for /reservation)
   usePageTheme('/reservation');
   const router = useRouter();
+  const { theme } = useTheme();
   const [selected, setSelected] = React.useState<string | undefined>();
   const [restaurants, setRestaurants] = React.useState<Option[]>([]);
   const [loading, setLoading] = React.useState(true);
@@ -156,7 +158,10 @@ export default function ReservationClient() {
       {/* Desktop-only fixed back button (top-left). Visible on md+ screens, stays while scrolling. */}
       <Button
         onClick={() => router.back()}
-        className="fixed top-4 left-4 z-50 hidden md:flex h-10 w-10 p-0 items-center justify-center bg-black text-white shadow-md hover:opacity-90"
+        className={
+          `fixed top-4 left-4 z-50 hidden md:flex h-10 w-10 p-0 items-center justify-center shadow-md cursor-pointer hover:opacity-90 ` +
+          (theme === 'light' ? 'bg-white text-black border border-gray-200' : 'bg-black text-white')
+        }
         aria-label="Orqaga"
         title="Orqaga"
       >

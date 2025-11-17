@@ -59,32 +59,49 @@ const nextConfig: NextConfig = {
   output: useStandalone ? "standalone" : undefined,
   transpilePackages: ["swagger-ui-react", "swagger-client"],
   async headers() {
-    return [
-      {
-        source: "/(.*)",
-        headers: [
-          { key: "Content-Security-Policy", value: csp },
-          { key: "X-Frame-Options", value: "DENY" },
-          { key: "Referrer-Policy", value: "no-referrer" },
+    // Add dev-only cache headers for image optimizer and public photo assets
+    // to avoid stale images when replacing files in /public/photo during development.
+    const common = [
+      { key: "Content-Security-Policy", value: csp },
+      { key: "X-Frame-Options", value: "DENY" },
+      { key: "Referrer-Policy", value: "no-referrer" },
+      { key: "Permissions-Policy", value: "camera=(), microphone=(), geolocation=()" },
+      { key: "X-Content-Type-Options", value: "nosniff" },
+      { key: "Cross-Origin-Opener-Policy", value: "same-origin" },
+      { key: "Cross-Origin-Resource-Policy", value: "same-origin" },
+      // HSTS only in production and when served via HTTPS
+      ...(isProd
+        ? [
           {
-            key: "Permissions-Policy",
-            value: "camera=(), microphone=(), geolocation=()",
+            key: "Strict-Transport-Security",
+            value: "max-age=31536000; includeSubDomains; preload",
           },
-          { key: "X-Content-Type-Options", value: "nosniff" },
-          { key: "Cross-Origin-Opener-Policy", value: "same-origin" },
-          { key: "Cross-Origin-Resource-Policy", value: "same-origin" },
-          // HSTS only in production and when served via HTTPS
-          ...(isProd
-            ? [
-              {
-                key: "Strict-Transport-Security",
-                value: "max-age=31536000; includeSubDomains; preload",
-              },
-            ]
-            : []),
-        ],
-      },
+        ]
+        : []),
     ];
+
+    const headers: Array<{ source: string; headers: { key: string; value: string }[] }> = [];
+
+    if (!isProd) {
+      headers.push(
+        {
+          source: "/_next/image(.*)",
+          headers: [
+            { key: "Cache-Control", value: "no-cache, no-store, must-revalidate" },
+          ],
+        },
+        {
+          source: "/photo/:path*",
+          headers: [
+            { key: "Cache-Control", value: "no-cache, no-store, must-revalidate" },
+          ],
+        },
+      );
+    }
+
+    // Fallback for all routes (common security headers)
+    headers.push({ source: "/(.*)", headers: common });
+    return headers;
   },
   // allowedDevOrigins is only used by Next.js in development to allow the dev
   // overlay and `_next` assets when loaded from other origins (e.g. remote

@@ -3,6 +3,7 @@ import React, { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
+import { useTheme } from '@/lib/theme-context';
 import { usePageTheme } from "@/lib/use-page-theme";
 import { RefreshCw, ArrowLeft, ShoppingBasket, ArrowBigLeft, Trash, ShieldPlus } from "lucide-react";
 import Shimmer from "@/components/ui/Shimmer";
@@ -23,6 +24,7 @@ export default function OrdersClient() {
     // Apply per-page theme from localStorage (default: dark for /orders)
     usePageTheme('/orders');
     const router = useRouter();
+    const { theme } = useTheme();
     const [items, setItems] = useState<CartItem[] | null>(null);
     const [reservations, setReservations] = useState<any[] | null>(null);
     const [error, setError] = useState<string | null>(null);
@@ -77,7 +79,10 @@ export default function OrdersClient() {
             {/* Desktop-only fixed back button (top-left). Visible on md+ screens, stays while scrolling. */}
             <Button
                 onClick={() => router.back()}
-                className="fixed top-4 left-4 z-50 hidden md:flex h-10 w-10 p-0 items-center justify-center bg-black text-white shadow-md hover:opacity-90"
+                className={
+                    `fixed top-4 left-4 z-50 hidden md:flex h-10 w-10 p-0 items-center justify-center shadow-md cursor-pointer hover:opacity-90 ` +
+                    (theme === 'light' ? 'bg-white text-black border border-gray-200' : 'bg-black text-white')
+                }
                 aria-label="Orqaga"
                 title="Orqaga"
             >

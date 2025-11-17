@@ -61,11 +61,23 @@ export default function ThemeManager() {
     }, [pages]);
 
     const togglePageTheme = (path: string) => {
-        setPages(prev => prev.map(p =>
-            p.path === path
-                ? { ...p, currentTheme: p.currentTheme === 'dark' ? 'light' : 'dark' }
-                : p
-        ));
+        setPages(prev => {
+            const next = prev.map(p =>
+                p.path === path
+                    ? { ...p, currentTheme: p.currentTheme === 'dark' ? 'light' : 'dark' }
+                    : p
+            );
+            // If we're toggling the current page, apply the theme immediately
+            try {
+                const cfg = next.find((pp) => currentPath.includes(pp.path));
+                if (cfg) {
+                    setThemeFromContext(cfg.currentTheme as ThemeMode);
+                }
+            } catch (e) {
+                // ignore
+            }
+            return next;
+        });
     };
 
     const currentPath = React.useMemo(() => {
@@ -126,7 +138,7 @@ export default function ThemeManager() {
             </div>
 
             <div className="bg-blue-500/20 border border-blue-500/30 rounded-lg p-3 text-xs text-blue-300">
-                <p><strong>Eslatma:</strong> Bu sozlamalar faqat current session uchun saqlanadi. Refresh qilsangiz, default tema qaytadi.</p>
+                <p><strong>Eslatma:</strong> Sahifa tema sozlamalari `localStorage` ga saqlanadi va qayta yuklanganda tiklanadi. Agar siz sahifa uchun tema o'rnatsangiz, u darhol joriy sahifaga tatbiq etiladi.</p>
             </div>
         </div>
     );

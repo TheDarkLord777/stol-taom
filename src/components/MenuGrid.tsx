@@ -1,6 +1,7 @@
 "use client";
 import Image from "next/image";
 import * as React from "react";
+import TiltedCard from "@/components/ui/TiltedCard";
 import { useRouter } from "next/navigation";
 import { addToCart, enqueueAndTrySync } from "@/lib/cart";
 
@@ -98,23 +99,19 @@ export default function MenuGrid({
           if (e.key === "Enter" || e.key === " ") openDetail(it);
         }}
       >
-        <div className="relative w-full bg-gray-100/5">
-          {it.imageUrl || it.logoUrl ? (
-            <div className="relative h-56 md:h-64 w-full">
-              <Image
-                src={(it.imageUrl ?? it.logoUrl) as string}
-                alt={it.name}
-                fill
-                priority={idx === 0}
-                className="object-cover rounded-t-lg"
-                sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw"
-              />
-            </div>
-          ) : (
-            <div className="h-56 md:h-64 w-full bg-white/3 flex items-center justify-center text-sm text-gray-400">
-              Rasm yo'q
-            </div>
-          )}
+        <div className="w-full">
+          <TiltedCard
+            imageSrc={(it.imageUrl ?? it.logoUrl) ?? undefined}
+            altText={it.name}
+            captionText={it.name}
+            containerHeight="14rem"
+            imageHeight="14rem"
+            rotateAmplitude={10}
+            scaleOnHover={1.04}
+            displayOverlayContent={false}
+            className="rounded-t-lg"
+            onClick={() => openDetail(it)}
+          />
         </div>
 
         <div className="p-4 flex flex-col gap-2">

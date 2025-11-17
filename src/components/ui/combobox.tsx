@@ -3,6 +3,7 @@ import * as Popover from "@radix-ui/react-popover";
 import { Command } from "cmdk";
 import * as React from "react";
 import { Button } from "@/components/ui/button";
+import { useTheme } from '@/lib/theme-context';
 
 export type ComboOption = { value: string; label: string };
 
@@ -116,6 +117,13 @@ export function Combobox(props: ComboboxProps) {
   if (props.mode !== "input") {
     const { placeholder = "Tanlang…", buttonClassName, notifyOnSelect = true } =
       props as ButtonModeProps;
+    let theme: 'dark' | 'light' = 'dark';
+    try {
+      theme = useTheme().theme;
+    } catch (e) {
+      // ThemeProvider not available; default to dark
+      theme = 'dark';
+    }
     return (
       <Popover.Root open={open} onOpenChange={setOpen}>
         <Popover.Trigger asChild>
@@ -123,7 +131,9 @@ export function Combobox(props: ComboboxProps) {
             type="button"
             className={
               buttonClassName ||
-              "inline-flex items-center justify-between gap-2 min-w-[220px] bg-white text-gray-900 hover:bg-gray-100 border border-gray-200"
+              (theme === 'light'
+                ? "inline-flex items-center justify-between gap-2 min-w-[220px] bg-white text-black hover:bg-gray-50 border border-gray-200"
+                : "inline-flex items-center justify-between gap-2 min-w-[220px] bg-gray-800 text-gray-100 hover:bg-gray-700 border border-gray-700")
             }
           >
             <span className="truncate">
@@ -150,7 +160,10 @@ export function Combobox(props: ComboboxProps) {
         </Popover.Trigger>
         <Popover.Content
           sideOffset={8}
-          className="z-50 rounded-md border border-gray-200 bg-white p-0 shadow-lg"
+          className={
+            `z-50 rounded-md p-0 shadow-lg ` +
+            (theme === 'light' ? 'border border-gray-200 bg-white' : 'border border-gray-700 bg-gray-900')
+          }
         >
           <Command label="combobox" className="w-64">
             <div className="px-2 py-2 border-b border-gray-200">
@@ -163,7 +176,7 @@ export function Combobox(props: ComboboxProps) {
                   (props as BaseProps).onQueryChange?.(v);
                 }}
                 placeholder="Qidirish…"
-                className="w-full bg-transparent text-sm outline-none placeholder:text-gray-400"
+                className="w-full bg-transparent text-sm outline-none placeholder:text-gray-400 dark:placeholder:text-gray-500 text-gray-900 dark:text-gray-100"
               />
             </div>
             <Command.List className="max-h-60 overflow-auto py-1">
@@ -178,7 +191,7 @@ export function Combobox(props: ComboboxProps) {
                 </div>
               ) : (
                 <>
-                  <Command.Empty className="px-3 py-2 text-sm text-gray-500">
+                  <Command.Empty className="px-3 py-2 text-sm text-gray-500 dark:text-gray-400">
                     {emptyText}
                   </Command.Empty>
                   {filtered.map((opt) => (
@@ -191,7 +204,7 @@ export function Combobox(props: ComboboxProps) {
                         setQuery("");
                         if (notifyOnSelect) (props as BaseProps).onQueryChange?.("");
                       }}
-                      className="cursor-pointer select-none px-3 py-2 text-sm aria-selected:bg-gray-100 aria-selected:text-gray-900"
+                      className="cursor-pointer select-none px-3 py-2 text-sm text-gray-900 dark:text-gray-100 aria-selected:bg-gray-100 aria-selected:text-gray-900 aria-selected:dark:bg-gray-800 aria-selected:dark:text-gray-100"
                     >
                       {opt.label}
                     </Command.Item>
@@ -208,6 +221,13 @@ export function Combobox(props: ComboboxProps) {
   // Input trigger mode
   const { inputPlaceholder = "Qidirish uchun yozing…", inputClassName, notifyOnSelect = true } =
     props as InputModeProps;
+
+  let theme: 'dark' | 'light' = 'dark';
+  try {
+    theme = useTheme().theme;
+  } catch (e) {
+    theme = 'dark';
+  }
 
   return (
     <Popover.Root open={open} onOpenChange={setOpen}>
@@ -249,7 +269,9 @@ export function Combobox(props: ComboboxProps) {
             placeholder={inputPlaceholder}
             className={
               inputClassName ||
-              "w-full rounded border border-gray-300 px-3 py-2 text-sm bg-white placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-gray-300"
+              (theme === 'light'
+                ? "w-full rounded border border-gray-300 px-3 py-2 text-sm bg-white placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-gray-300 text-black"
+                : "w-full rounded border border-gray-700 px-3 py-2 text-sm bg-gray-800 placeholder:text-gray-500 focus:outline-none dark:focus:ring-2 dark:focus:ring-gray-700 text-gray-100")
             }
           />
           {query ? (
@@ -262,7 +284,7 @@ export function Combobox(props: ComboboxProps) {
                 inputRef.current?.focus();
               }}
               aria-label="Tozalash"
-              className="absolute inset-y-0 right-2 my-auto h-6 w-6 rounded text-gray-400 hover:text-gray-600"
+              className="absolute inset-y-0 right-2 my-auto h-6 w-6 rounded text-gray-400 hover:text-gray-600 dark:text-gray-400 dark:hover:text-gray-300"
             >
               ×
             </button>
@@ -272,7 +294,7 @@ export function Combobox(props: ComboboxProps) {
       <Popover.Content
         align="start"
         sideOffset={6}
-        className="z-50 rounded-md border border-gray-200 bg-white p-0 shadow-lg w-[min(22rem,90vw)]"
+        className="z-50 rounded-md border border-gray-200 bg-white p-0 shadow-lg w-[min(22rem,90vw)] dark:border-gray-700 dark:bg-gray-900"
         onOpenAutoFocus={(e) => {
           // Keep focus on the input when popover opens so typing/backspace works
           e.preventDefault();
@@ -294,7 +316,7 @@ export function Combobox(props: ComboboxProps) {
                 {loadingKeys.map((k) => (
                   <div
                     key={k}
-                    className="mb-2 h-5 w-full rounded bg-gray-200 shimmer last:mb-0"
+                    className="mb-2 h-5 w-full rounded bg-gray-200 shimmer last:mb-0 dark:bg-gray-700"
                   />
                 ))}
               </div>
@@ -321,8 +343,8 @@ export function Combobox(props: ComboboxProps) {
                       setOpen(false);
                     }}
                     className={
-                      "cursor-pointer select-none px-3 py-2 text-sm aria-selected:bg-gray-100 aria-selected:text-gray-900" +
-                      (idx === activeIndex ? " bg-gray-100 text-gray-900" : "")
+                      "cursor-pointer select-none px-3 py-2 text-sm text-gray-900 dark:text-gray-100 aria-selected:bg-gray-100 aria-selected:text-gray-900 aria-selected:dark:bg-gray-800 aria-selected:dark:text-gray-100" +
+                      (idx === activeIndex ? " bg-gray-100 text-gray-900 dark:bg-gray-800 dark:text-gray-100" : "")
                     }
                   >
                     {opt.label}
