@@ -429,6 +429,7 @@ export default function ReservationClient() {
                   <div className="text-sm text-gray-600">{date ? date.toDateString() : '—'}</div>
                 </section>
 
+                {/*
                 <section className="space-y-2 mt-4">
                   <div className="text-sm font-medium">Sana oralig'i</div>
                   <DateRangePicker
@@ -439,6 +440,7 @@ export default function ReservationClient() {
                   />
                   <div className="text-sm text-gray-600">{range?.from ? range.from.toDateString() : '—'} — {range?.to ? range.to.toDateString() : '—'}</div>
                 </section>
+                */}
 
                 <section className="space-y-2 mt-4">
                   <div className="text-sm font-medium">Vaqt oralig'i (soat)</div>
@@ -489,7 +491,7 @@ export default function ReservationClient() {
                           <div key={s} className="flex items-center justify-between gap-3">
                             <div className="flex items-center gap-3">
                               <div className="text-sm font-medium">{s} kishilik</div>
-                              <div className="text-sm text-gray-500">{left} ta mavjud</div>
+                              <div className="text-sm"><span className={left <= 0 ? 'text-red-600 font-medium' : 'text-green-600 font-medium'}>{left}</span> <span className="text-gray-500">ta mavjud</span></div>
                             </div>
                             <div className="inline-flex items-center gap-2">
                               <button
