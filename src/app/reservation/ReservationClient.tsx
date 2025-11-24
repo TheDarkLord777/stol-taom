@@ -443,9 +443,9 @@ export default function ReservationClient() {
                 */}
 
                 <section className="space-y-2 mt-4">
-                  <div className="text-sm font-medium">Vaqt oralig'i (soat)</div>
+
                   <div className="flex flex-col gap-3">
-                    <div className="flex items-center gap-3">
+                    <div className="flex flex-col md:flex-row md:items-center gap-3">
                       <label className="flex items-center gap-2">
                         <span className="text-sm">Boshlanish:</span>
                         <input type="time" value={fromTime} onChange={(e) => setFromTime(e.target.value)} className="rounded border px-2 py-1 text-sm" />
@@ -459,11 +459,9 @@ export default function ReservationClient() {
                           ))}
                         </select>
                       </label>
-                      <button type="button" onClick={findEarliestAvailable} className="rounded border px-3 py-1 text-sm bg-white hover:bg-gray-50">
-                        {searchingEarliest ? 'Qidirilmoqda…' : 'Eng erta bo‘sh vaqtni top'}
-                      </button>
+                      {/* helper button removed - no longer needed */}
                     </div>
-                    <div className="text-sm text-gray-600">(Tugash vaqti avtomatik: davomiylik tanlovi bo'yicha hisoblanadi.)</div>
+
 
                     {earliestAvailable ? (
                       <div className="mt-2 p-3 rounded border bg-gray-50">
