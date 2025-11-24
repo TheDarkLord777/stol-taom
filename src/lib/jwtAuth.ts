@@ -287,7 +287,7 @@ function normalizePath(p: string) {
 
 export const AuthControl = {
   // Pages that require login (exact match or prefix with *; RegExp supported)
-  protectedPages: ["/profile", "/orders"] as PathRule[],
+  protectedPages: ["/profile", "/orders", "/dev/admin*"] as PathRule[],
   // API routes that require login
   protectedApi: [
     "/api/reservations",

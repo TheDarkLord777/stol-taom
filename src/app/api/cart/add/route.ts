@@ -50,6 +50,13 @@ export async function POST(req: NextRequest) {
             }
         }
 
+        // try to infer the restaurant for this menu item so we can persist it with the cart item
+        let inferredRestaurantId: string | null = null;
+        try {
+            const link = await prisma.menuItemOnRestaurant.findFirst({ where: { menuItemId: body.menuItemId }, select: { restaurantId: true } });
+            if (link?.restaurantId) inferredRestaurantId = link.restaurantId;
+        } catch { }
+
         const item = await prisma.cartItem.create({
             data: {
                 cartId: cart.id,
@@ -60,6 +67,7 @@ export async function POST(req: NextRequest) {
                 ingredients: typeof body.ingredients === "string" ? JSON.parse(body.ingredients) : body.ingredients ?? undefined,
                 quantity: body.quantity ?? 1,
                 price: body.price ?? undefined,
+                restaurantId: inferredRestaurantId ?? undefined,
             },
         });
 

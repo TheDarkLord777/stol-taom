@@ -2,6 +2,7 @@ export type CartItem = {
     id: string; // unique cart id
     menuItemId: string;
     name: string;
+    restaurantId?: string;
     price?: string;
     ingredients?: Array<{ id?: string; name: string }>;
     quantity: number;

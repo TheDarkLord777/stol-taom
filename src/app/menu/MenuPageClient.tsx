@@ -18,7 +18,13 @@ export default function MenuPageClient() {
     React.useEffect(() => {
         let mounted = true;
         setLoading(true);
-        fetch('/api/menu')
+
+        // If a restaurant query param is present, fetch menu for that restaurant
+        const params = new URLSearchParams(window.location.search);
+        const restaurantId = params.get('restaurant');
+        const url = restaurantId ? `/api/restaurants/${restaurantId}/menu` : '/api/menu';
+
+        fetch(url)
             .then((r) => r.json())
             .then((d) => {
                 if (!mounted) return;
@@ -46,6 +52,7 @@ export default function MenuPageClient() {
                 if (!mounted) return;
                 setLoading(false);
             });
+
         return () => {
             mounted = false;
         };

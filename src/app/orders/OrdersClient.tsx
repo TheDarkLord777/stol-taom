@@ -3,6 +3,7 @@ import React, { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
+import { toast, Toaster } from 'sonner';
 import { useTheme } from '@/lib/theme-context';
 import { usePageTheme } from "@/lib/use-page-theme";
 import { RefreshCw, ArrowLeft, ShoppingBasket, ArrowBigLeft, Trash, ShieldPlus } from "lucide-react";
@@ -25,6 +26,12 @@ export default function OrdersClient() {
     usePageTheme('/orders');
     const router = useRouter();
     const { theme } = useTheme();
+    // Theme-aware utility classes
+    const cardBase = theme === 'light' ? 'bg-gray-100 text-black' : 'bg-white/5 text-white';
+    const subtleText = theme === 'light' ? 'text-gray-700' : 'text-gray-300';
+    const mutedText = theme === 'light' ? 'text-gray-500' : 'text-gray-400';
+    const controlBg = theme === 'light' ? 'bg-gray-100' : 'bg-gray-800/60';
+
     const [items, setItems] = useState<CartItem[] | null>(null);
     const [reservations, setReservations] = useState<any[] | null>(null);
     const [error, setError] = useState<string | null>(null);
@@ -34,6 +41,7 @@ export default function OrdersClient() {
     const [selectedMap, setSelectedMap] = useState<Record<string, boolean>>({});
     const [selectedResMap, setSelectedResMap] = useState<Record<string, boolean>>({});
     const [removingResMap, setRemovingResMap] = useState<Record<string, boolean>>({});
+    const [updatingMap, setUpdatingMap] = useState<Record<string, boolean>>({});
     // fallback/compat: also keep a Set of selected ids for reliable multi-select
     const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
 
@@ -91,40 +99,35 @@ export default function OrdersClient() {
             >
                 <ArrowBigLeft className="h-5 w-5" />
             </Button>
-            <div className="flex items-center justify-between mb-4">
-                <h1 className="text-2xl font-bold flex items-center gap-2">
-                    <ShoppingBasket className="h-6 w-6" />
-                    <span>Savat</span>
-                </h1>
-                <div className="flex gap-2 items-center">
-                    <Button
-                        onClick={() => void fetchCart()}
-                        className="h-10 w-10 p-0 flex items-center justify-center bg-gray-200 text-black cursor-pointer"
-                        aria-label="Yangilash"
-                        title="Yangilash"
-                        disabled={loading}
-                    >
-                        <RefreshCw className={`h-5 w-5 ${loading ? "animate-spin" : ""}`} />
-                    </Button>
+            <Toaster position="top-right" />
+            <div className="flex gap-2 items-center">
+                <Button
+                    onClick={() => void fetchCart()}
+                    className="h-10 w-10 p-0 flex items-center justify-center bg-gray-200 text-black cursor-pointer"
+                    aria-label="Yangilash"
+                    title="Yangilash"
+                    disabled={loading}
+                >
+                    <RefreshCw className={`h-5 w-5 ${loading ? "animate-spin" : ""}`} />
+                </Button>
 
-                    <Link href="/menu">
-                        <Button
-                            className="h-10 px-3 py-0 flex items-center justify-center bg-[#C8FF00] text-black gap-2 cursor-pointer"
-                            aria-label="Menyuga qaytish"
-                            title="Menyuga qaytish"
-                        >
-                            <ArrowLeft className="h-5 w-5" />
-                            <span className="text-sm font-medium">Menyuga qaytish</span>
-                        </Button>
-                    </Link>
-                </div>
+                <Link href="/menu">
+                    <Button
+                        className="h-10 px-3 py-0 flex items-center justify-center bg-[#C8FF00] text-black gap-2 cursor-pointer"
+                        aria-label="Menyuga qaytish"
+                        title="Menyuga qaytish"
+                    >
+                        <ArrowLeft className="h-5 w-5" />
+                        <span className="text-sm font-medium">Menyuga qaytish</span>
+                    </Button>
+                </Link>
             </div>
 
             {loading && (
                 <div className="space-y-6" aria-busy>
                     <div className="animate-pulse space-y-4">
                         {[1, 2, 3].map((n) => (
-                            <div key={n} className="p-4 bg-white/80 rounded shadow flex items-start gap-4">
+                            <div key={n} className={`p-4 rounded shadow flex items-start gap-4 ${cardBase}`}>
                                 <Shimmer className="h-12 w-12 rounded" />
                                 <div className="flex-1 space-y-2">
                                     <Shimmer className="h-4 w-1/3 rounded" />
@@ -141,7 +144,7 @@ export default function OrdersClient() {
                     <div className="mt-6">
                         <div className="space-y-3">
                             {[1, 2].map((r) => (
-                                <div key={r} className="p-3 bg-white/80 rounded shadow flex justify-between items-center">
+                                <div key={r} className={`p-3 rounded shadow flex justify-between items-center ${cardBase}`}>
                                     <div className="flex items-center gap-3">
                                         <Shimmer className="h-4 w-4 rounded" />
                                         <Shimmer className="h-4 w-48 rounded" />
@@ -162,7 +165,7 @@ export default function OrdersClient() {
             )}
 
             {items && items.length === 0 && !loading && (
-                <div className="text-center text-gray-600">Savat bo'sh. / Hech qanday element qo'shilmagan.</div>
+                <div className={`text-center ${mutedText}`}>Savat bo'sh. / Hech qanday element qo'shilmagan.</div>
             )}
 
             {/* Orders section */}
@@ -216,19 +219,33 @@ export default function OrdersClient() {
                                 <span className="text-sm">Tanlanganlarni o'chirish</span>
                             </Button>
                             <Button
-                                onClick={() => {
+                                onClick={async () => {
+                                    // simple Pay-at-Counter checkout for selected items or whole cart
                                     const ids = items.filter((x) => selectedIds.has(x.id)).map((x) => x.id);
-                                    if (ids.length === 0) return;
-                                    alert(`Yaqinda qo'shiladi: ${ids.length} ta element uchun to'lov.`);
+                                    try {
+                                        const res = await fetch('/api/cart/checkout', {
+                                            method: 'POST',
+                                            headers: { 'Content-Type': 'application/json' },
+                                            credentials: 'same-origin',
+                                            body: JSON.stringify({ ids: ids.length > 0 ? ids : undefined, paymentMethod: 'counter' }),
+                                        });
+                                        const data = await res.json().catch(() => ({}));
+                                        if (!res.ok) throw new Error(data?.error || 'Checkout failed');
+                                        try { toast.success("Buyurtma qabul qilindi. Menedjerga ko‘rinadi."); } catch { }
+                                        await fetchCart();
+                                    } catch (e) {
+                                        try { toast.error(String((e as Error).message || e)); } catch { }
+                                        await fetchCart();
+                                    }
                                 }}
                                 className="bg-emerald-600 hover:bg-emerald-700 text-white"
                             >
-                                Tanlanganlarni to'lash
+                                Tanlanganlarni to'lash (Joyida to'lash)
                             </Button>
                         </div>
                     </div>
                     {items.map((it) => (
-                        <div key={it.id} className="p-4 bg-white/80 rounded shadow flex items-start gap-4">
+                        <div key={it.id} className={`p-4 rounded shadow flex items-start gap-4 ${cardBase}`}>
                             <div className="flex items-start gap-3 flex-1 min-w-0">
                                 <input
                                     type="checkbox"
@@ -244,7 +261,7 @@ export default function OrdersClient() {
                                     }}
                                     className="mt-1 shrink-0"
                                 />
-                                <div className="relative h-12 w-12 shrink-0 overflow-hidden rounded bg-gray-100 flex items-center justify-center">
+                                <div className={`relative h-12 w-12 shrink-0 overflow-hidden rounded ${theme === 'light' ? 'bg-gray-100' : 'bg-gray-800/60'} flex items-center justify-center`}>
                                     {it.logoUrl ? (
                                         // eslint-disable-next-line @next/next/no-img-element
                                         <img
@@ -253,24 +270,29 @@ export default function OrdersClient() {
                                             className="h-full w-full object-cover"
                                         />
                                     ) : (
-                                        <span className="text-xs text-gray-500">No image</span>
+                                        <span className={`text-xs ${mutedText}`}>No image</span>
                                     )}
                                 </div>
                                 <div className="flex-1 min-w-0">
                                     <div className="font-semibold text-lg">{it.name}</div>
                                     {it.ingredients && it.ingredients.length > 0 && (
-                                        <div className="text-sm text-gray-700 mt-1">Tarkibi: {it.ingredients.map((ing) => ing.name).join(", ")}</div>
+                                        <div className={`text-sm ${subtleText} mt-1`}>Tarkibi: {it.ingredients.map((ing) => ing.name).join(", ")}</div>
                                     )}
-                                    {it.addedAt && <div className="text-xs text-gray-500 mt-1">{new Date(it.addedAt).toLocaleString()}</div>}
+                                    {it.addedAt && <div className={`text-xs ${mutedText} mt-1`}>{new Date(it.addedAt).toLocaleString()}</div>}
                                 </div>
                             </div>
 
                             <div className="flex items-center gap-3">
-                                <div className="flex items-center gap-2 bg-white rounded px-2 py-1">
+                                <div className={`flex items-center gap-2 rounded px-2 py-1 ${controlBg}`}>
                                     <button
-                                        className="px-2 py-1 rounded bg-gray-100"
+                                        type="button"
+                                        disabled={Boolean(updatingMap[it.id])}
+                                        className={`px-2 py-1 rounded ${theme === 'light' ? 'bg-gray-100' : 'bg-gray-700'} ${updatingMap[it.id] ? 'opacity-70 cursor-wait' : ''}`}
                                         onClick={async () => {
                                             const newQty = Math.max(0, it.quantity - 1);
+                                            // optimistic update
+                                            setUpdatingMap((m) => ({ ...m, [it.id]: true }));
+                                            setItems((prev) => (prev ? prev.map((x) => (x.id === it.id ? { ...x, quantity: newQty } : x)) : prev));
                                             try {
                                                 const res = await fetch("/api/cart/update", {
                                                     method: "PATCH",
@@ -286,8 +308,10 @@ export default function OrdersClient() {
                                                     setItems((prev) => (prev ? prev.map((x) => (x.id === it.id ? { ...x, quantity: data.item.quantity } : x)) : prev));
                                                 }
                                             } catch (e) {
-                                                // fallback: refetch
+                                                // rollback by refetching
                                                 await fetchCart();
+                                            } finally {
+                                                setUpdatingMap((m) => ({ ...m, [it.id]: false }));
                                             }
                                         }}
                                     >
@@ -297,9 +321,14 @@ export default function OrdersClient() {
                                     <div className="px-3 font-medium">{it.quantity}</div>
 
                                     <button
-                                        className="px-2 py-1 rounded bg-gray-100"
+                                        type="button"
+                                        disabled={Boolean(updatingMap[it.id])}
+                                        className={`px-2 py-1 rounded ${theme === 'light' ? 'bg-gray-100' : 'bg-gray-700'} ${updatingMap[it.id] ? 'opacity-70 cursor-wait' : ''}`}
                                         onClick={async () => {
                                             const newQty = it.quantity + 1;
+                                            // optimistic update
+                                            setUpdatingMap((m) => ({ ...m, [it.id]: true }));
+                                            setItems((prev) => (prev ? prev.map((x) => (x.id === it.id ? { ...x, quantity: newQty } : x)) : prev));
                                             try {
                                                 const res = await fetch("/api/cart/update", {
                                                     method: "PATCH",
@@ -314,6 +343,8 @@ export default function OrdersClient() {
                                                 }
                                             } catch (e) {
                                                 await fetchCart();
+                                            } finally {
+                                                setUpdatingMap((m) => ({ ...m, [it.id]: false }));
                                             }
                                         }}
                                     >
@@ -326,7 +357,23 @@ export default function OrdersClient() {
                                 </div>
 
                                 <Button
-                                    onClick={() => alert("Yaqinda qo'shiladi: ushbu element uchun to'lov.")}
+                                    onClick={async () => {
+                                        try {
+                                            const res = await fetch('/api/cart/checkout', {
+                                                method: 'POST',
+                                                headers: { 'Content-Type': 'application/json' },
+                                                credentials: 'same-origin',
+                                                body: JSON.stringify({ ids: [it.id], paymentMethod: 'counter' }),
+                                            });
+                                            const data = await res.json().catch(() => ({}));
+                                            if (!res.ok) throw new Error(data?.error || 'Checkout failed');
+                                            try { toast.success("To'landi"); } catch { }
+                                            await fetchCart();
+                                        } catch (e) {
+                                            try { toast.error(String((e as Error).message || e)); } catch { }
+                                            await fetchCart();
+                                        }
+                                    }}
                                     className="bg-emerald-600 hover:bg-emerald-700 text-white"
                                 >
                                     To'lash
@@ -431,7 +478,7 @@ export default function OrdersClient() {
                     </div>
                     <div className="space-y-3">
                         {reservations.map((r) => (
-                            <div key={r.id} className="p-4 bg-white/80 rounded shadow flex items-start justify-between gap-4">
+                            <div key={r.id} className={`p-4 rounded shadow flex items-start justify-between gap-4 ${cardBase}`}>
                                 <div className="flex items-start gap-3">
                                     <input
                                         type="checkbox"
@@ -449,7 +496,7 @@ export default function OrdersClient() {
                                     </div>
                                     <div className="flex-1 min-w-0">
                                         <div className="font-semibold text-lg">{r.restaurantName ?? "Bron"}</div>
-                                        <div className="text-sm text-gray-700 mt-1">
+                                        <div className={`text-sm ${subtleText} mt-1`}>
                                             {r.fromDate ? (
                                                 (() => {
                                                     const from = new Date(r.fromDate);
@@ -475,9 +522,9 @@ export default function OrdersClient() {
                                                 'Sana: —'
                                             )}
                                         </div>
-                                        {r.partySize && <div className="text-sm text-gray-700 mt-1">Odamlar: {r.partySize}</div>}
+                                        {r.partySize && <div className={`text-sm ${subtleText} mt-1`}>Odamlar: {r.partySize}</div>}
                                         {r.tableBreakdown && (
-                                            <div className="text-sm text-gray-700 mt-1">
+                                            <div className={`text-sm ${subtleText} mt-1`}>
                                                 Stollar: {Object.entries(r.tableBreakdown as Record<string, number>).filter(([, c]) => Number(c) > 0).map(([size, cnt]) => `${Number(cnt)}×${size}`).join(', ')}{r.tablesCount ? ` — Jami stol: ${r.tablesCount}` : ''}
                                             </div>
                                         )}
@@ -485,7 +532,7 @@ export default function OrdersClient() {
                                 </div>
 
                                 <div className="flex items-center gap-3">
-                                    <div className="text-right mr-2 text-sm text-gray-500">{r.createdAt ? new Date(r.createdAt).toLocaleString() : ""}</div>
+                                    <div className={`text-right mr-2 text-sm ${mutedText}`}>{r.createdAt ? new Date(r.createdAt).toLocaleString() : ""}</div>
                                     <Button onClick={() => alert('Yaqinda qo`shiladi: bron uchun to`lov')} className="bg-emerald-600 hover:bg-emerald-700 text-white">
                                         To'lash
                                     </Button>

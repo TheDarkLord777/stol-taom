@@ -59,6 +59,13 @@ body {
   font-family: Arial, Helvetica, sans-serif;
 }
 
+/* Ensure native select/option text is visible in dark mode where possible. */
+select,
+option {
+  color: var(--foreground);
+  background: transparent;
+}
+
 /* Legacy force-* classes removed: theme is globally dark via `html.dark` */
 
 /* Utility class to style input placeholders with Inika at 24px */

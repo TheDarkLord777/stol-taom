@@ -108,7 +108,7 @@ export default function ThemeManager() {
                         onClick={() => setTheme('dark')}
                         className={`px-4 py-2 rounded text-sm font-medium transition cursor-pointer ${theme === 'dark'
                             ? 'bg-blue-600 text-white'
-                            : 'bg-white/10 text-white/70 hover:bg-white/20'
+                            : 'bg-black/5 text-black/80 hover:bg-black/10'
                             }`}
                         aria-pressed={theme === 'dark'}
                     >
@@ -154,7 +154,9 @@ export default function ThemeManager() {
                 </div>
             </div>
 
-            <div className="bg-blue-500/20 border border-blue-500/30 rounded-lg p-3 text-xs text-blue-300">
+            <div className={`rounded-lg p-3 text-xs ${theme === 'light'
+                ? 'bg-blue-50 border border-blue-200 text-blue-800'
+                : 'bg-blue-500/20 border border-blue-500/30 text-blue-300'}`}>
                 <p><strong>Eslatma:</strong> Sahifa tema sozlamalari `localStorage` ga saqlanadi va qayta yuklanganda tiklanadi. Agar siz sahifa uchun tema o'rnatsangiz, u darhol joriy sahifaga tatbiq etiladi.</p>
             </div>
         </div>

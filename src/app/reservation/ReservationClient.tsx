@@ -543,6 +543,18 @@ export default function ReservationClient() {
                       'Joy band qilish'
                     )}
                   </Button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      try {
+                        if (selected) router.push('/menu?restaurant=' + encodeURIComponent(String(selected)));
+                        else router.push('/menu');
+                      } catch { }
+                    }}
+                    className="ml-3 inline-flex items-center rounded-md border px-3 py-2 text-sm bg-white hover:bg-gray-50"
+                  >
+                    Menu
+                  </button>
                 </div>
               </div>
             </div>

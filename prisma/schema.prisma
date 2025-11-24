@@ -17,6 +17,10 @@ model User {
   createdAt    DateTime @default(now())
   // Relations
   reservations Reservation[]
+  // Orders placed by the user
+  orders       Order[]
+  // Restaurants this user manages
+  managedRestaurants RestaurantManager[]
 }
 
 model Restaurant {
@@ -29,6 +33,8 @@ model Restaurant {
   reservations Reservation[]
   menuItems MenuItemOnRestaurant[]
   capacity RestaurantCapacity?
+  // Managers (many-to-many via RestaurantManager)
+  managers RestaurantManager[]
 }
 
 model MenuItem {
@@ -93,6 +99,19 @@ model RestaurantCapacity {
   restaurant    Restaurant @relation(fields: [restaurantId], references: [id])
 }
 
+model RestaurantManager {
+  id           String   @id @default(cuid())
+  restaurantId String
+  userId       String
+  createdAt    DateTime @default(now())
+
+  restaurant   Restaurant @relation(fields: [restaurantId], references: [id])
+  user         User       @relation(fields: [userId], references: [id])
+
+  @@unique([restaurantId, userId])
+  @@index([userId])
+}
+
 model Cart {
   id        String     @id @default(cuid())
   userId    String?
@@ -106,6 +125,8 @@ model Cart {
 model CartItem {
   id         String   @id @default(cuid())
   cartId     String
+  // which restaurant this cart item is associated with (optional)
+  restaurantId String?
   // client-generated id for idempotency (optional)
   clientItemId String?
   menuItemId String
@@ -118,5 +139,35 @@ model CartItem {
   cart Cart @relation(fields: [cartId], references: [id])
 
   @@index([cartId])
+  @@index([restaurantId])
   @@unique([cartId, clientItemId])
+}
+
+model Order {
+  id           String      @id @default(cuid())
+  userId       String?
+  user         User?       @relation(fields: [userId], references: [id])
+  status       String      @default("pending")
+  paymentMethod String?
+  total        String?
+  createdAt    DateTime    @default(now())
+  items        OrderItem[]
+
+  @@index([userId])
+}
+
+model OrderItem {
+  id           String   @id @default(cuid())
+  orderId      String
+  restaurantId String?
+  menuItemId   String
+  name         String
+  ingredients  Json?
+  quantity     Int      @default(1)
+  price        String?
+
+  order Order @relation(fields: [orderId], references: [id])
+
+  @@index([orderId])
+  @@index([restaurantId])
 }
