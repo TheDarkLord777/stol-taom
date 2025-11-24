@@ -530,7 +530,7 @@ export default function ReservationClient() {
                   <Button
                     onClick={submitReservation}
                     disabled={!canSubmit || submitLoading}
-                    className="bg-[#C8FF00] hover:bg-[#B8EF00] text-black font-semibold"
+                    className="rounded-md bg-emerald-500 px-4 py-2 text-white font-semibold inline-flex items-center"
                     aria-busy={submitLoading}
                   >
                     {submitLoading ? (

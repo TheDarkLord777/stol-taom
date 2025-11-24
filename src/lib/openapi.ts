@@ -30,16 +30,20 @@ export function getSwaggerSpec() {
     },
   });
 
+  // `createSwaggerSpec` returns a loosely typed object; cast to `any`
+  // so we can safely augment the spec with additional components/schemas.
+  const specAny: any = spec;
+
   // Augment the generated spec with explicit reservation-related schemas
   // and helpful path descriptions when they are not present. This makes the
   // `/docs` Swagger UI more informative even when individual route files
   // lack detailed JSDoc annotations.
 
-  spec.components = spec.components ?? {};
-  spec.components.schemas = spec.components.schemas ?? {};
+  specAny.components = specAny.components ?? {};
+  specAny.components.schemas = specAny.components.schemas ?? {};
 
   // ReservationRequest schema (client sends `tablesCount`)
-  spec.components.schemas.ReservationRequest = spec.components.schemas.ReservationRequest ?? {
+  specAny.components.schemas.ReservationRequest = specAny.components.schemas.ReservationRequest ?? {
     type: "object",
     required: ["restaurantId", "fromDate", "toDate", "partySize", "tablesCount"],
     properties: {
@@ -52,7 +56,7 @@ export function getSwaggerSpec() {
   };
 
   // Availability response schema
-  spec.components.schemas.AvailabilityResponse = spec.components.schemas.AvailabilityResponse ?? {
+  specAny.components.schemas.AvailabilityResponse = specAny.components.schemas.AvailabilityResponse ?? {
     type: "object",
     properties: {
       sizes: {
@@ -67,11 +71,11 @@ export function getSwaggerSpec() {
     },
   };
 
-  spec.paths = spec.paths ?? {};
+  specAny.paths = specAny.paths ?? {};
 
   // Ensure the availability path is documented
-  if (!spec.paths["/api/restaurants/{id}/availability"]) {
-    spec.paths["/api/restaurants/{id}/availability"] = {
+  if (!specAny.paths["/api/restaurants/{id}/availability"]) {
+    specAny.paths["/api/restaurants/{id}/availability"] = {
       get: {
         summary: "Get availability for a restaurant",
         description:
@@ -92,9 +96,9 @@ export function getSwaggerSpec() {
   }
 
   // Ensure the reservations path has a request schema
-  if (!spec.paths["/api/reservations"] || !spec.paths["/api/reservations"].post) {
-    spec.paths["/api/reservations"] = spec.paths["/api/reservations"] ?? {};
-    spec.paths["/api/reservations"].post = {
+  if (!specAny.paths["/api/reservations"] || !specAny.paths["/api/reservations"].post) {
+    specAny.paths["/api/reservations"] = specAny.paths["/api/reservations"] ?? {};
+    specAny.paths["/api/reservations"].post = {
       summary: "Create a reservation",
       requestBody: { required: true, content: { "application/json": { schema: { $ref: "#/components/schemas/ReservationRequest" } } } },
       responses: {
@@ -104,5 +108,5 @@ export function getSwaggerSpec() {
     };
   }
 
-  return spec;
+  return specAny;
 }
