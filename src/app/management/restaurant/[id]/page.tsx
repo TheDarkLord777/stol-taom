@@ -215,18 +215,35 @@ export default function RestaurantManagementPage() {
                 <div className="mt-6">
                     <h3 className="text-lg font-semibold mb-2">Open Orders / Reservations (grouped by client)</h3>
                     <div className="space-y-2">
-                        {/* Group orders by user id / phone */}
+                        {/* Group orders by user id / phone (robust - falls back to ungrouped list on error) */}
                         {(() => {
-                            const groups: Array<{ key: string; label: string; items: any[] }> = [];
-                            const map = new Map<string, { key: string; label: string; items: any[] }>();
-                            for (const o of openOrders) {
-                                const uid = o.user?.id || o.user?.phone || 'guest';
-                                const label = o.user?.name || o.user?.phone || 'Guest';
-                                if (!map.has(uid)) map.set(uid, { key: uid, label, items: [] });
-                                map.get(uid)!.items.push(o);
+                            try {
+                                const groups: Array<{ key: string; label: string; items: any[] }> = [];
+                                const map = new Map<string, { key: string; label: string; items: any[] }>();
+                                if (!Array.isArray(openOrders)) throw new Error('openOrders is not an array');
+                                for (const o of openOrders) {
+                                    const uid = (o && o.user && (o.user.id || o.user.phone)) || 'guest';
+                                    const label = (o && o.user && (o.user.name || o.user.phone)) || 'Guest';
+                                    if (!map.has(uid)) map.set(uid, { key: uid, label, items: [] });
+                                    map.get(uid)!.items.push(o);
+                                }
+                                for (const v of map.values()) groups.push(v);
+                                if (groups.length === 0) return <div className="text-sm text-gray-500">No open orders found.</div>;
+                                return groups.map((g) => <ClientAccordion key={g.key} label={g.label} items={g.items} />);
+                            } catch (err) {
+                                // If grouping fails for any reason, show a simple fallback list and surface the error message
+                                return (
+                                    <div className="space-y-2">
+                                        <div className="text-sm text-red-600">Failed to group orders: {(err as Error).message}</div>
+                                        {Array.isArray(openOrders) ? openOrders.map((o) => (
+                                            <div key={o.id ?? Math.random()} className="p-2 border rounded">
+                                                <div className="font-medium">{o.type === 'order' ? `Order — ${o.status ?? '—'}` : `Reservation — ${o.partySize ?? '—'}`}</div>
+                                                <div className="text-xs text-gray-600">{o.createdAt ?? ''}</div>
+                                            </div>
+                                        )) : <div className="text-sm text-gray-500">No open orders.</div>}
+                                    </div>
+                                );
                             }
-                            for (const v of map.values()) groups.push(v);
-                            return groups.map((g) => <ClientAccordion key={g.key} label={g.label} items={g.items} />);
                         })()}
                     </div>
                 </div>

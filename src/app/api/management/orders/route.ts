@@ -59,11 +59,24 @@ export async function GET(req: NextRequest) {
         }));
 
         // Fetch orders that have items for this restaurant
-        const orderItemRows = await prisma.orderItem.findMany({ where: { restaurantId }, select: { orderId: true } });
-        const orderIds = Array.from(new Set(orderItemRows.map((o: any) => o.orderId))).slice(0, 200);
+        // 1) OrderItems explicitly assigned to this restaurant
+        const explicitRows = await prisma.orderItem.findMany({ where: { restaurantId }, select: { orderId: true } });
+        const explicitOrderIds = explicitRows.map((o: any) => o.orderId);
+
+        // 2) Fallback: some older OrderItems may have null restaurantId. Match those by menuItemId -> MenuItemOnRestaurant mapping.
+        const menuLinks = await prisma.menuItemOnRestaurant.findMany({ where: { restaurantId }, select: { menuItemId: true } });
+        const menuItemIds = menuLinks.map((m: any) => m.menuItemId);
+        let fallbackOrderIds: string[] = [];
+        if (menuItemIds.length > 0) {
+            const fallbackRows = await prisma.orderItem.findMany({ where: { restaurantId: null, menuItemId: { in: menuItemIds } }, select: { orderId: true } });
+            fallbackOrderIds = fallbackRows.map((o: any) => o.orderId);
+        }
+
+        const orderIds = Array.from(new Set([...explicitOrderIds, ...fallbackOrderIds])).slice(0, 200);
         let orders: any[] = [];
         if (orderIds.length > 0) {
             const orderRows = await prisma.order.findMany({ where: { id: { in: orderIds } }, include: { items: true, user: true }, orderBy: { createdAt: 'desc' } });
+            const menuIdSet = new Set(menuItemIds || []);
             orders = orderRows.map((o: any) => ({
                 id: o.id,
                 type: 'order',
@@ -71,9 +84,11 @@ export async function GET(req: NextRequest) {
                 paymentMethod: o.paymentMethod,
                 restaurantId: restaurantId,
                 user: o.user ? { id: o.user.id, name: o.user.name, phone: o.user.phone } : null,
-                items: o.items.filter((it: any) => it.restaurantId === restaurantId).map((it: any) => ({ id: it.id, name: it.name, quantity: it.quantity, price: it.price })),
+                items: o.items
+                    .filter((it: any) => it.restaurantId === restaurantId || (it.restaurantId == null && menuIdSet.has(it.menuItemId)))
+                    .map((it: any) => ({ id: it.id, name: it.name, quantity: it.quantity, price: it.price })),
                 createdAt: o.createdAt ? new Date(o.createdAt).toISOString() : null,
-            }));
+            })).filter((oo: any) => (oo.items && oo.items.length > 0));
         }
 
         const items = [...reservations, ...orders].sort((a, b) => {

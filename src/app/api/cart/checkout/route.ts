@@ -19,7 +19,10 @@ export async function POST(req: NextRequest) {
         // load cart for user
         const cart = await prisma.cart.findFirst({ where: { userId: user.id }, include: { items: true } });
         const rawItems = (cart?.items ?? []) as any[];
-        const toCheckout = ids && ids.length > 0 ? rawItems.filter((it) => ids.includes(it.id)) : rawItems;
+        // Accept either server-side cart item `id` or client-generated `clientItemId` in the provided ids.
+        const toCheckout = ids && ids.length > 0
+            ? rawItems.filter((it) => ids.includes(it.id) || (it.clientItemId && ids.includes(it.clientItemId)))
+            : rawItems;
         if (!toCheckout || toCheckout.length === 0) return NextResponse.json({ error: "Cart is empty" }, { status: 400 });
 
         // Build order items and try to infer restaurantId from MenuItemOnRestaurant

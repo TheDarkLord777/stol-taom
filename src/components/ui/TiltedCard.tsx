@@ -98,7 +98,11 @@ export default function TiltedCard({
                         className="block w-full"
                     />
                 ) : (
-                    <div className="flex h-full w-full items-center justify-center bg-gray-100 text-gray-500">No image</div>
+                    <div className="flex h-full w-full items-center justify-center bg-gray-100 text-gray-500">
+                        <svg xmlns="http://www.w3.org/2000/svg" className="h-8 w-8 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V7M3 7l9 6 9-6M3 7l9 6 9-6" />
+                        </svg>
+                    </div>
                 )}
 
                 {displayOverlayContent ? (

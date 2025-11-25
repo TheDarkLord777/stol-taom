@@ -107,6 +107,38 @@ export async function GET(req: NextRequest) {
         });
 
         const body = { items, reservations: mappedReservations };
+        // Also include recent orders placed by this user (so paid/checked-out items stay visible)
+        try {
+            const recent = await prisma.order.findMany({
+                where: { userId: user.id, createdAt: { gte: new Date(Date.now() - 1000 * 60 * 60 * 24) } },
+                include: { items: true },
+                orderBy: { createdAt: 'desc' },
+                take: 50,
+            });
+            if (recent && recent.length > 0) {
+                const orderItemsFlattened = [] as any[];
+                for (const o of recent) {
+                    for (const it of o.items ?? []) {
+                        orderItemsFlattened.push({
+                            id: `orderitem:${it.id}`,
+                            orderId: o.id,
+                            menuItemId: it.menuItemId,
+                            name: it.name,
+                            ingredients: it.ingredients ?? undefined,
+                            quantity: it.quantity,
+                            price: it.price ?? null,
+                            addedAt: o.createdAt,
+                            logoUrl: menuMap[it.menuItemId]?.logoUrl ?? undefined,
+                            paid: true,
+                        });
+                    }
+                }
+                // prepend recent orders so they appear alongside cart items
+                body.items = [...orderItemsFlattened, ...body.items];
+            }
+        } catch {
+            // ignore errors here
+        }
         if (cookieResponse) {
             // Return JSON while preserving cookies we just set
             const res = NextResponse.json(body);

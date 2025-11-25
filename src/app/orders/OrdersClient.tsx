@@ -1,38 +1,27 @@
 "use client";
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useMemo } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { toast, Toaster } from 'sonner';
 import { useTheme } from '@/lib/theme-context';
 import { usePageTheme } from "@/lib/use-page-theme";
+import type { CartItem } from '@/lib/cart';
 import { RefreshCw, ArrowLeft, ShoppingBasket, ArrowBigLeft, Trash, ShieldPlus } from "lucide-react";
 import Shimmer from "@/components/ui/Shimmer";
 
-type CartItem = {
-    id: string;
-    menuItemId: string;
-    name: string;
-    clientItemId?: string | null;
-    ingredients?: Array<{ id?: string; name: string }> | null;
-    quantity: number;
-    price?: number | null;
-    addedAt?: string | null;
-    logoUrl?: string | null;
-};
-
 export default function OrdersClient() {
-    // Apply per-page theme from localStorage (default: dark for /orders)
     usePageTheme('/orders');
     const router = useRouter();
     const { theme } = useTheme();
-    // Theme-aware utility classes
-    const cardBase = theme === 'light' ? 'bg-gray-100 text-black' : 'bg-white/5 text-white';
     const subtleText = theme === 'light' ? 'text-gray-700' : 'text-gray-300';
     const mutedText = theme === 'light' ? 'text-gray-500' : 'text-gray-400';
     const controlBg = theme === 'light' ? 'bg-gray-100' : 'bg-gray-800/60';
+    const cardBase = theme === 'light' ? 'bg-white' : 'bg-gray-800/60';
 
-    const [items, setItems] = useState<CartItem[] | null>(null);
+    type LocalItem = CartItem & { paid?: boolean; orderId?: string; logoUrl?: string };
+
+    const [items, setItems] = useState<LocalItem[] | null>(null);
     const [reservations, setReservations] = useState<any[] | null>(null);
     const [error, setError] = useState<string | null>(null);
     const [loading, setLoading] = useState(false);
@@ -84,6 +73,22 @@ export default function OrdersClient() {
             if (bc) bc.close();
         };
     }, []);
+
+    // Split items into paid vs unpaid and group paid items by date (YYYY-MM-DD)
+    const paidItems = (items ?? []).filter((x) => Boolean((x as LocalItem).paid));
+    const unpaidItems = (items ?? []).filter((x) => !x.paid);
+
+    const groupedPaid = useMemo(() => {
+        const m: Record<string, LocalItem[]> = {};
+        for (const it of paidItems) {
+            const ts = (it as any).addedAt || (it as any).createdAt || Date.now();
+            const d = new Date(typeof ts === 'number' ? ts : String(ts));
+            const key = d.toISOString().slice(0, 10);
+            if (!m[key]) m[key] = [];
+            m[key].push(it);
+        }
+        return m;
+    }, [paidItems]);
 
     return (
         <div className="p-4 max-w-3xl mx-auto">
@@ -158,6 +163,43 @@ export default function OrdersClient() {
                 </div>
             )}
 
+            {/* Paid items grouped by date (shown after reservations) */}
+            {(items ?? []).some((x) => x.paid) && (
+                <div className="mt-8">
+                    <h2 className="text-xl font-semibold mb-3">To'langanlar</h2>
+                    <div className="space-y-4">
+                        {Object.keys(groupedPaid).sort((a, b) => b.localeCompare(a)).map((dateKey) => (
+                            <div key={dateKey} className="rounded p-3 bg-gray-50 dark:bg-gray-900">
+                                <div className="text-sm text-gray-500 mb-2">{new Date(dateKey).toLocaleDateString()}</div>
+                                <div className="space-y-2">
+                                    {groupedPaid[dateKey].map((it) => (
+                                        <div key={it.id} className={`p-2 rounded flex items-center justify-between ${cardBase}`}>
+                                            <div className="flex items-center gap-3 min-w-0">
+                                                <div className="h-10 w-10 rounded bg-gray-100 flex items-center justify-center overflow-hidden">
+                                                    {it.logoUrl ? (
+                                                        // eslint-disable-next-line @next/next/no-img-element
+                                                        <img src={it.logoUrl as string} alt={it.name} className="h-full w-full object-cover" />
+                                                    ) : (
+                                                        <ShoppingBasket className="h-5 w-5 text-gray-400" />
+                                                    )}
+                                                </div>
+                                                <div className="min-w-0">
+                                                    <div className="font-medium truncate">{it.name}</div>
+                                                    <div className={`text-sm ${subtleText}`}>x{it.quantity} • {it.price ? `${it.price} so'm` : '-'}</div>
+                                                </div>
+                                            </div>
+                                            <div className="text-right">
+                                                {it.orderId ? <a href={`/orders?orderId=${it.orderId}`} className="text-sm underline">Buyurtma</a> : <span className="text-sm text-gray-500">—</span>}
+                                            </div>
+                                        </div>
+                                    ))}
+                                </div>
+                            </div>
+                        ))}
+                    </div>
+                </div>
+            )}
+
             {error && (
                 <div className="mb-4 text-red-600">
                     {error} {error.includes("tizimga") ? <Link href="/login" className="underline">Kirish</Link> : null}
@@ -169,18 +211,22 @@ export default function OrdersClient() {
             )}
 
             {/* Orders section */}
-            {items && items.length > 0 && (
+            {/* (paid items will be rendered below after reservations) */}
+
+            {unpaidItems && unpaidItems.length > 0 && (
                 <div className="space-y-4">
                     <div className="flex items-center justify-between">
                         <label className="flex items-center gap-2 text-sm">
                             <input
                                 type="checkbox"
-                                checked={items.length > 0 && items.every((x) => selectedIds.has(x.id))}
+                                checked={
+                                    unpaidItems.length > 0 && unpaidItems.every((x) => selectedIds.has(x.id))
+                                }
                                 onChange={(e) => {
                                     const checked = (e.target as HTMLInputElement).checked;
                                     if (checked) {
                                         const s = new Set<string>();
-                                        for (const it of items) s.add(it.id);
+                                        for (const it of unpaidItems) s.add(it.id);
                                         setSelectedIds(s);
                                     } else {
                                         setSelectedIds(new Set());
@@ -192,7 +238,7 @@ export default function OrdersClient() {
                         <div className="flex items-center gap-2">
                             <Button
                                 onClick={async () => {
-                                    const ids = items.filter((x) => selectedIds.has(x.id)).map((x) => x.id);
+                                    const ids = unpaidItems.filter((x) => selectedIds.has(x.id)).map((x) => x.id);
                                     if (ids.length === 0) return;
                                     setRemovingMap((m) => {
                                         const next = { ...m };
@@ -221,7 +267,7 @@ export default function OrdersClient() {
                             <Button
                                 onClick={async () => {
                                     // simple Pay-at-Counter checkout for selected items or whole cart
-                                    const ids = items.filter((x) => selectedIds.has(x.id)).map((x) => x.id);
+                                    const ids = unpaidItems.filter((x) => selectedIds.has(x.id)).map((x) => x.id);
                                     try {
                                         const res = await fetch('/api/cart/checkout', {
                                             method: 'POST',
@@ -244,7 +290,7 @@ export default function OrdersClient() {
                             </Button>
                         </div>
                     </div>
-                    {items.map((it) => (
+                    {unpaidItems.map((it) => (
                         <div key={it.id} className={`p-4 rounded shadow flex items-start gap-4 ${cardBase}`}>
                             <div className="flex items-start gap-3 flex-1 min-w-0">
                                 <input
@@ -270,7 +316,7 @@ export default function OrdersClient() {
                                             className="h-full w-full object-cover"
                                         />
                                     ) : (
-                                        <span className={`text-xs ${mutedText}`}>No image</span>
+                                        <ShoppingBasket className={`h-6 w-6 ${mutedText}`} />
                                     )}
                                 </div>
                                 <div className="flex-1 min-w-0">
@@ -286,7 +332,7 @@ export default function OrdersClient() {
                                 <div className={`flex items-center gap-2 rounded px-2 py-1 ${controlBg}`}>
                                     <button
                                         type="button"
-                                        disabled={Boolean(updatingMap[it.id])}
+                                        disabled={Boolean(updatingMap[it.id]) || Boolean(it.paid)}
                                         className={`px-2 py-1 rounded ${theme === 'light' ? 'bg-gray-100' : 'bg-gray-700'} ${updatingMap[it.id] ? 'opacity-70 cursor-wait' : ''}`}
                                         onClick={async () => {
                                             const newQty = Math.max(0, it.quantity - 1);
@@ -322,7 +368,7 @@ export default function OrdersClient() {
 
                                     <button
                                         type="button"
-                                        disabled={Boolean(updatingMap[it.id])}
+                                        disabled={Boolean(updatingMap[it.id]) || Boolean(it.paid)}
                                         className={`px-2 py-1 rounded ${theme === 'light' ? 'bg-gray-100' : 'bg-gray-700'} ${updatingMap[it.id] ? 'opacity-70 cursor-wait' : ''}`}
                                         onClick={async () => {
                                             const newQty = it.quantity + 1;
@@ -356,28 +402,37 @@ export default function OrdersClient() {
                                     <div className="font-bold">{it.price ? `${it.price} so'm` : "-"}</div>
                                 </div>
 
-                                <Button
-                                    onClick={async () => {
-                                        try {
-                                            const res = await fetch('/api/cart/checkout', {
-                                                method: 'POST',
-                                                headers: { 'Content-Type': 'application/json' },
-                                                credentials: 'same-origin',
-                                                body: JSON.stringify({ ids: [it.id], paymentMethod: 'counter' }),
-                                            });
-                                            const data = await res.json().catch(() => ({}));
-                                            if (!res.ok) throw new Error(data?.error || 'Checkout failed');
-                                            try { toast.success("To'landi"); } catch { }
-                                            await fetchCart();
-                                        } catch (e) {
-                                            try { toast.error(String((e as Error).message || e)); } catch { }
-                                            await fetchCart();
-                                        }
-                                    }}
-                                    className="bg-emerald-600 hover:bg-emerald-700 text-white"
-                                >
-                                    To'lash
-                                </Button>
+                                {it.paid ? (
+                                    <div className="inline-flex items-center gap-2">
+                                        <span className="inline-block px-3 py-1 rounded bg-emerald-600 text-white text-sm">To'langan</span>
+                                        {it.orderId ? (
+                                            <a href={`/orders?orderId=${it.orderId}`} className="text-sm underline">Buyurtma</a>
+                                        ) : null}
+                                    </div>
+                                ) : (
+                                    <Button
+                                        onClick={async () => {
+                                            try {
+                                                const res = await fetch('/api/cart/checkout', {
+                                                    method: 'POST',
+                                                    headers: { 'Content-Type': 'application/json' },
+                                                    credentials: 'same-origin',
+                                                    body: JSON.stringify({ ids: [it.id], paymentMethod: 'counter' }),
+                                                });
+                                                const data = await res.json().catch(() => ({}));
+                                                if (!res.ok) throw new Error(data?.error || 'Checkout failed');
+                                                try { toast.success("To'landi"); } catch { }
+                                                await fetchCart();
+                                            } catch (e) {
+                                                try { toast.error(String((e as Error).message || e)); } catch { }
+                                                await fetchCart();
+                                            }
+                                        }}
+                                        className="bg-emerald-600 hover:bg-emerald-700 text-white"
+                                    >
+                                        To'lash
+                                    </Button>
+                                )}
 
                                 <button
                                     className={
@@ -491,7 +546,7 @@ export default function OrdersClient() {
                                             // eslint-disable-next-line @next/next/no-img-element
                                             <img src={r.logoUrl} alt={r.restaurantName ?? "Bron"} className="h-full w-full object-cover" />
                                         ) : (
-                                            <span className="text-xs text-gray-500">No image</span>
+                                            <ShoppingBasket className="h-6 w-6 text-gray-400" />
                                         )}
                                     </div>
                                     <div className="flex-1 min-w-0">
