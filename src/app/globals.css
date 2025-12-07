@@ -59,15 +59,13 @@ body {
   font-family: Arial, Helvetica, sans-serif;
 }
 
-/* Global button rounding: give buttons a consistent radius across the app */
+/* Global button rounding: consistent radius + pointer across the app */
 @layer base {
-  button {
-    @apply rounded-md;
-  }
 
+  button,
   [role="button"],
   .btn {
-    @apply rounded-md;
+    @apply rounded-md cursor-pointer;
   }
 }
 

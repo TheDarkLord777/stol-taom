@@ -71,6 +71,15 @@ export async function POST(req: NextRequest) {
             },
         });
 
+        // Invalidate per-user orders cache so newly added items appear in /orders
+        try {
+            const { getRedis } = await import("@/lib/redis");
+            const r = getRedis();
+            if (r) await r.del(`orders:view:${user.id}`);
+        } catch {
+            // best-effort; ignore cache invalidate errors
+        }
+
         // If we obtained an access token via refreshAccessToken(req), it did not set
         // cookies on the response (since we didn't pass a NextResponse). If refresh
         // returned an access token we can set it here so the client receives it.

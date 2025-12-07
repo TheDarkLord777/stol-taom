@@ -509,95 +509,7 @@ export default function OrdersClient() {
                                             To'lash
                                         </Button>
 
-                                        <Button
-                                            onClick={async () => {
-                                                // Phone-based payment: create order with paymentMethod 'phone', then call /api/pay/phone
-                                                setPhoneLoading((m) => ({ ...m, [it.id]: true }));
-                                                try {
-                                                    const checkoutRes = await fetch('/api/cart/checkout', {
-                                                        method: 'POST',
-                                                        headers: { 'Content-Type': 'application/json' },
-                                                        credentials: 'same-origin',
-                                                        body: JSON.stringify({ ids: [it.id], paymentMethod: 'phone' }),
-                                                    });
-                                                    const checkoutData = await checkoutRes.json().catch(() => ({}));
-                                                    if (!checkoutRes.ok) throw new Error(checkoutData?.error || 'Checkout failed');
-                                                    const orderId = checkoutData?.id as string | undefined;
-                                                    if (!orderId) throw new Error('Missing order id');
-
-                                                    const phone = window.prompt('Telefon raqamingizni kiriting (masalan +9989...)', '') || undefined;
-                                                    const payRes = await fetch('/api/pay/phone', {
-                                                        method: 'POST',
-                                                        headers: { 'Content-Type': 'application/json' },
-                                                        credentials: 'same-origin',
-                                                        body: JSON.stringify({ orderId, phone }),
-                                                    });
-                                                    const payData = await payRes.json().catch(() => ({}));
-                                                    if (!payRes.ok) throw new Error(payData?.error || 'Payment init failed');
-                                                    try { toast.success('Telefon toʻlovi soʻrovi yuborildi'); } catch { }
-                                                    await fetchCart();
-                                                } catch (e) {
-                                                    try { toast.error(String((e as Error).message || e)); } catch { }
-                                                    await fetchCart();
-                                                } finally {
-                                                    setPhoneLoading((m) => ({ ...m, [it.id]: false }));
-                                                }
-                                            }}
-                                            className="bg-blue-600 hover:bg-blue-700 text-white"
-                                            disabled={Boolean(phoneLoading[it.id])}
-                                        >
-                                            Telefon orqali
-                                        </Button>
-
-                                        <Button
-                                            onClick={async () => {
-                                                // QR-based payment
-                                                try {
-                                                    const checkoutRes = await fetch('/api/cart/checkout', {
-                                                        method: 'POST',
-                                                        headers: { 'Content-Type': 'application/json' },
-                                                        credentials: 'same-origin',
-                                                        body: JSON.stringify({ ids: [it.id], paymentMethod: 'qrcode' }),
-                                                    });
-                                                    const checkoutData = await checkoutRes.json().catch(() => ({}));
-                                                    if (!checkoutRes.ok) throw new Error(checkoutData?.error || 'Checkout failed');
-                                                    const orderId = checkoutData?.id as string | undefined;
-                                                    if (!orderId) throw new Error('Missing order id');
-
-                                                    const qrFromCheckout = checkoutData?.qrData ?? null;
-                                                    if (qrFromCheckout) {
-                                                        setQrMap((m) => ({ ...m, [it.id]: qrFromCheckout }));
-                                                        setQrData(qrFromCheckout);
-                                                        setShowQrModal(true);
-                                                        try { toast.success('QR kod tayyor'); } catch { }
-                                                        await fetchCart();
-                                                    } else {
-                                                        const payRes = await fetch('/api/pay/qrcode', {
-                                                            method: 'POST',
-                                                            headers: { 'Content-Type': 'application/json' },
-                                                            credentials: 'same-origin',
-                                                            body: JSON.stringify({ orderId }),
-                                                        });
-                                                        const payData = await payRes.json().catch(() => ({}));
-                                                        if (!payRes.ok) throw new Error(payData?.error || 'QR init failed');
-                                                        const qr = payData?.paymentRequest?.qrData ?? payData?.qrData ?? null;
-                                                        if (!qr) throw new Error('QR data missing');
-                                                        // show inline next to the item and also keep modal for convenience
-                                                        setQrMap((m) => ({ ...m, [it.id]: qr }));
-                                                        setQrData(qr);
-                                                        setShowQrModal(true);
-                                                        try { toast.success('QR kod tayyor'); } catch { }
-                                                        await fetchCart();
-                                                    }
-                                                } catch (e) {
-                                                    try { toast.error(String((e as Error).message || e)); } catch { }
-                                                    await fetchCart();
-                                                }
-                                            }}
-                                            className="bg-indigo-600 hover:bg-indigo-700 text-white"
-                                        >
-                                            QR kod
-                                        </Button>
+                                        {/* Removed alternate payment buttons; keep a single To'lash */}
                                         {/* Inline QR preview for this item (shown after successful /api/pay/qrcode) */}
                                         {qrMap[it.id] ? (
                                             <div className="ml-4 flex flex-col items-center">
@@ -613,9 +525,16 @@ export default function OrdersClient() {
                                                 </button>
                                             </div>
                                         ) : null}
+                                        {/* Paid badge */}
+                                        {it.paid ? (
+                                            <span className="ml-3 inline-block px-2 py-1 text-xs font-semibold rounded bg-emerald-700 text-white">
+                                                To’langan
+                                            </span>
+                                        ) : null}
                                     </div>
                                 )}
 
+                                {!it.paid && (
                                 <button
                                     className={
                                         `px-3 py-1 rounded text-white transition-colors duration-150 focus:outline-none ` +
@@ -654,6 +573,7 @@ export default function OrdersClient() {
                                         "O'chirish"
                                     )}
                                 </button>
+                                )}
                             </div>
                         </div>
                     ))}

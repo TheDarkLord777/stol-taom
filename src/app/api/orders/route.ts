@@ -132,7 +132,8 @@ export async function GET(req: NextRequest) {
 
         const body = { items, reservations: mappedReservations };
         // Also include recent orders placed by this user (so paid/checked-out items stay visible)
-        if (!fast) {
+        // Always include a short history, even in fast mode, so paid items persist in UI.
+        {
             try {
                 const recent = await prisma.order.findMany({
                     where: { userId: user.id, createdAt: { gte: new Date(Date.now() - 1000 * 60 * 60 * 24) } },
@@ -154,7 +155,8 @@ export async function GET(req: NextRequest) {
                                 price: it.price ?? null,
                                 addedAt: o.createdAt,
                                 logoUrl: menuMap[it.menuItemId]?.logoUrl ?? undefined,
-                                paid: true,
+                                paid: o.status === 'paid',
+                                status: o.status,
                             });
                         }
                     }
