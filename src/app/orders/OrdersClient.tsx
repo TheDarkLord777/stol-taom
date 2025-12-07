@@ -946,7 +946,7 @@ export default function OrdersClient() {
                                     onClick={() => {
                                         try {
                                             window.open(qrLink, '_blank', 'noopener,noreferrer');
-                                        } catch {}
+                                        } catch { }
                                         setShowQrModal(false);
                                         setQrData(null);
                                         setQrLink(null);
