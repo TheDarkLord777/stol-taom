@@ -80,8 +80,11 @@ model MenuItemOnRestaurant {
   restaurantId String
   createdAt    DateTime @default(now())
 
-  menuItem     MenuItem   @relation(fields: [menuItemId], references: [id])
-  restaurant   Restaurant @relation(fields: [restaurantId], references: [id])
+  // When a MenuItem is deleted, remove the linking rows in MenuItemOnRestaurant
+  // When a Restaurant is deleted, remove its linking rows as well.
+  // This uses referential cascade so you can delete the parent and the links are cleaned automatically.
+  menuItem     MenuItem   @relation(fields: [menuItemId], references: [id], onDelete: Cascade)
+  restaurant   Restaurant @relation(fields: [restaurantId], references: [id], onDelete: Cascade)
 
   @@unique([menuItemId, restaurantId])
 }

@@ -59,6 +59,18 @@ body {
   font-family: Arial, Helvetica, sans-serif;
 }
 
+/* Global button rounding: give buttons a consistent radius across the app */
+@layer base {
+  button {
+    @apply rounded-md;
+  }
+
+  [role="button"],
+  .btn {
+    @apply rounded-md;
+  }
+}
+
 /* Ensure native select/option text is visible in dark mode where possible. */
 select,
 option {

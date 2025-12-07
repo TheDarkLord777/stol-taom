@@ -2,6 +2,7 @@ import type { NextRequest } from "next/server";
 import { NextResponse } from "next/server";
 import { getPrisma } from "@/lib/prisma";
 import { getUserFromRequest } from "@/lib/jwtAuth";
+import { getRedis } from "@/lib/redis";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -22,6 +23,11 @@ export async function DELETE(req: NextRequest) {
         if (!existing || existing.cartId !== cart.id) return NextResponse.json({ error: "Item not found" }, { status: 404 });
 
         await prisma.cartItem.delete({ where: { id: body.id } });
+        // Invalidate per-user orders cache so UI sees removal immediately
+        try {
+            const r = getRedis();
+            if (r) await r.del(`orders:view:${user.id}`);
+        } catch { }
         return NextResponse.json({ success: true });
     } catch (e: unknown) {
         const msg = e instanceof Error ? e.message : String(e);

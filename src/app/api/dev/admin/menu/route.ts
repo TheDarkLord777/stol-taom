@@ -79,7 +79,7 @@ export async function GET(req: NextRequest) {
     try {
         const prisma = getPrisma();
         const rows = await prisma.menuItem.findMany({ orderBy: { name: 'asc' } });
-        const items = rows.map((r) => ({ id: r.id, name: r.name, slug: r.slug, logoUrl: r.logoUrl ?? undefined, createdAt: r.createdAt.getTime() }));
+        const items = rows.map((r: typeof rows[0]) => ({ id: r.id, name: r.name, slug: r.slug, logoUrl: r.logoUrl ?? undefined, createdAt: r.createdAt.getTime() }));
         return NextResponse.json({ items });
     } catch (err) {
         return NextResponse.json({ error: 'Server error' }, { status: 500 });

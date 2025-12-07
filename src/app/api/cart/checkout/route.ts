@@ -2,6 +2,22 @@ import type { NextRequest } from "next/server";
 import { NextResponse } from "next/server";
 import { getUserFromRequest } from "@/lib/jwtAuth";
 import { getPrisma } from "@/lib/prisma";
+import { getRedis } from "@/lib/redis";
+
+function getDemoBaseUrl(req: Request) {
+    // Prefer explicit env; otherwise derive from request headers for portability
+    const envBase = process.env.DEMO_BASE_URL;
+    if (envBase) return envBase.replace(/\/$/, "");
+    const h = (req.headers as any);
+    const host = h.get?.("x-forwarded-host") || h.get?.("host") || "localhost:3000";
+    const proto = h.get?.("x-forwarded-proto") || (host.startsWith("localhost") ? "http" : "http");
+    return `${proto}://${host}`;
+}
+
+function makeSimpleSvgDataUrl(text: string) {
+    // Use external QR generator for a fast, scannable image in demo mode.
+    return `https://api.qrserver.com/v1/create-qr-code/?size=300x300&data=${encodeURIComponent(text)}`;
+}
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -57,6 +73,11 @@ export async function POST(req: NextRequest) {
             if (itemIds.length > 0) await tx.cartItem.deleteMany({ where: { id: { in: itemIds } } });
             return created;
         });
+        // Invalidate per-user orders cache
+        try {
+            const r = getRedis();
+            if (r) await r.del(`orders:view:${user.id}`);
+        } catch { }
 
         // notify via BroadcastChannel (best-effort) so same-browser tabs update
         try {
@@ -65,7 +86,29 @@ export async function POST(req: NextRequest) {
             bc.close();
         } catch { }
 
-        return NextResponse.json({ id: result.id, status: result.status }, { status: 201 });
+        // If the client requested an immediate QR payload for convenience, include it here
+        const extra: any = {};
+        try {
+            const pm = body?.paymentMethod;
+            if (pm === 'qrcode') {
+                // Create one-time confirm token in Redis for demo payment confirmation
+                const r = getRedis();
+                if (r) {
+                    const token = Math.random().toString(36).slice(2) + Date.now().toString(36);
+                    const key = `pay:demo:token:${token}`;
+                    await r.set(key, JSON.stringify({ kind: 'order', id: result.id }), 'EX', 60 * 10); // 10 min ttl
+                    const base = getDemoBaseUrl(req as unknown as Request);
+                    const confirmUrl = `${base}/api/pay/demo/confirm?t=${encodeURIComponent(token)}`;
+                    // Encode the payment URL in QR
+                    extra.qrData = makeSimpleSvgDataUrl(confirmUrl);
+                } else {
+                    // Fallback: encode the raw order id (still scannable URL-less)
+                    extra.qrData = makeSimpleSvgDataUrl(result.id);
+                }
+            }
+        } catch { }
+
+        return NextResponse.json({ id: result.id, status: result.status, ...extra }, { status: 201 });
     } catch (e: unknown) {
         const msg = e instanceof Error ? e.message : String(e);
         console.error('POST /api/cart/checkout error', msg);

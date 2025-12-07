@@ -33,12 +33,19 @@ export default function OrdersClient() {
     const [updatingMap, setUpdatingMap] = useState<Record<string, boolean>>({});
     // fallback/compat: also keep a Set of selected ids for reliable multi-select
     const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+    const [qrData, setQrData] = useState<string | null>(null);
+    const [showQrModal, setShowQrModal] = useState(false);
+    // per-item QR data so we can show QR inline next to the related item
+    const [qrMap, setQrMap] = useState<Record<string, string>>({});
+    const [phoneLoading, setPhoneLoading] = useState<Record<string, boolean>>({});
 
-    const fetchCart = async () => {
-        setLoading(true);
+    const fetchCart = async (opts?: { showLoading?: boolean }) => {
+        const showLoading = opts?.showLoading !== false;
+        if (showLoading) setLoading(true);
         setError(null);
         try {
-            const res = await fetch("/api/orders", { credentials: "same-origin" });
+            // Use fast mode for frequent refreshes (skips heavy recent-orders join)
+            const res = await fetch("/api/orders?fast=1", { credentials: "same-origin" });
             if (res.status === 401) {
                 setItems([]);
                 setError("Siz tizimga kirmagansiz. Iltimos ");
@@ -55,7 +62,7 @@ export default function OrdersClient() {
             const m = e instanceof Error ? e.message : String(e);
             setError(m);
         } finally {
-            setLoading(false);
+            if (showLoading) setLoading(false);
         }
     };
 
@@ -69,10 +76,48 @@ export default function OrdersClient() {
                 if (ev.data && ev.data.type === "orders:update") void fetchCart();
             });
         } catch { }
+        // also refresh on window focus
+        // Throttle focus refreshes and avoid showing loading animation
+        let lastFocusFetch = 0;
+        const onFocus = () => {
+            const now = Date.now();
+            if (now - lastFocusFetch < 3000) return; // throttle to 3s
+            lastFocusFetch = now;
+            void fetchCart({ showLoading: false });
+        };
+        try { window.addEventListener('focus', onFocus); } catch { }
         return () => {
             if (bc) bc.close();
+            try { window.removeEventListener('focus', onFocus); } catch { }
         };
     }, []);
+
+    // While QR modal is open, poll for updates briefly so external confirm reflects quickly
+    useEffect(() => {
+        if (!showQrModal) return;
+        let ticks = 0;
+        const id = setInterval(() => {
+            ticks += 1;
+            void fetchCart();
+            if (ticks >= 20) { // ~60s if 3s interval
+                clearInterval(id);
+            }
+        }, 3000);
+        return () => clearInterval(id);
+    }, [showQrModal]);
+
+    // Auto-close QR modal when payment detected (paid items present or unpaid cleared)
+    useEffect(() => {
+        if (!showQrModal) return;
+        const hasPaid = (items ?? []).some((x) => Boolean((x as LocalItem).paid));
+        const hasUnpaid = (items ?? []).some((x) => !x.paid);
+        if (hasPaid || !hasUnpaid) {
+            setShowQrModal(false);
+            setQrData(null);
+            setQrMap({});
+            try { toast.success("To'lov yakunlandi"); } catch { }
+        }
+    }, [items, showQrModal]);
 
     // Split items into paid vs unpaid and group paid items by date (YYYY-MM-DD)
     const paidItems = (items ?? []).filter((x) => Boolean((x as LocalItem).paid));
@@ -241,7 +286,7 @@ export default function OrdersClient() {
                                     const ids = unpaidItems.filter((x) => selectedIds.has(x.id)).map((x) => x.id);
                                     if (ids.length === 0) return;
                                     setRemovingMap((m) => {
-                                        const next = { ...m };
+                                        const next = { ...m } as Record<string, boolean>;
                                         for (const id of ids) next[id] = true;
                                         return next;
                                     });
@@ -257,6 +302,7 @@ export default function OrdersClient() {
                                     } finally {
                                         await fetchCart();
                                         setRemovingMap({});
+                                        setSelectedIds(new Set());
                                     }
                                 }}
                                 className="h-10 px-3 py-0 flex items-center gap-2 bg-red-500 hover:bg-red-600 text-white"
@@ -410,28 +456,164 @@ export default function OrdersClient() {
                                         ) : null}
                                     </div>
                                 ) : (
-                                    <Button
-                                        onClick={async () => {
-                                            try {
-                                                const res = await fetch('/api/cart/checkout', {
-                                                    method: 'POST',
-                                                    headers: { 'Content-Type': 'application/json' },
-                                                    credentials: 'same-origin',
-                                                    body: JSON.stringify({ ids: [it.id], paymentMethod: 'counter' }),
-                                                });
-                                                const data = await res.json().catch(() => ({}));
-                                                if (!res.ok) throw new Error(data?.error || 'Checkout failed');
-                                                try { toast.success("To'landi"); } catch { }
-                                                await fetchCart();
-                                            } catch (e) {
-                                                try { toast.error(String((e as Error).message || e)); } catch { }
-                                                await fetchCart();
-                                            }
-                                        }}
-                                        className="bg-emerald-600 hover:bg-emerald-700 text-white"
-                                    >
-                                        To'lash
-                                    </Button>
+                                    <div className="flex items-center gap-2">
+                                        <Button
+                                            onClick={async () => {
+                                                // For demo: open QR flow on main To'lash button (creates order then QR)
+                                                try {
+                                                    const checkoutRes = await fetch('/api/cart/checkout', {
+                                                        method: 'POST',
+                                                        headers: { 'Content-Type': 'application/json' },
+                                                        credentials: 'same-origin',
+                                                        body: JSON.stringify({ ids: [it.id], paymentMethod: 'qrcode' }),
+                                                    });
+                                                    const checkoutData = await checkoutRes.json().catch(() => ({}));
+                                                    if (!checkoutRes.ok) throw new Error(checkoutData?.error || 'Checkout failed');
+                                                    const orderId = checkoutData?.id as string | undefined;
+                                                    if (!orderId) throw new Error('Missing order id');
+
+                                                    // If the checkout returned an immediate QR (faster single request), use it.
+                                                    const qrFromCheckout = checkoutData?.qrData ?? null;
+                                                    if (qrFromCheckout) {
+                                                        setQrMap((m) => ({ ...m, [it.id]: qrFromCheckout }));
+                                                        setQrData(qrFromCheckout);
+                                                        setShowQrModal(true);
+                                                        try { toast.success('QR kod tayyor (demo)'); } catch { }
+                                                        await fetchCart();
+                                                    } else {
+                                                        const payRes = await fetch('/api/pay/qrcode', {
+                                                            method: 'POST',
+                                                            headers: { 'Content-Type': 'application/json' },
+                                                            credentials: 'same-origin',
+                                                            body: JSON.stringify({ orderId }),
+                                                        });
+                                                        const payData = await payRes.json().catch(() => ({}));
+                                                        if (!payRes.ok) throw new Error(payData?.error || 'QR init failed');
+                                                        const qr = payData?.paymentRequest?.qrData ?? payData?.qrData ?? null;
+                                                        if (!qr) throw new Error('QR data missing');
+
+                                                        // show inline QR and modal
+                                                        setQrMap((m) => ({ ...m, [it.id]: qr }));
+                                                        setQrData(qr);
+                                                        setShowQrModal(true);
+                                                        try { toast.success('QR kod tayyor (demo)'); } catch { }
+                                                        await fetchCart();
+                                                    }
+                                                } catch (e) {
+                                                    try { toast.error(String((e as Error).message || e)); } catch { }
+                                                    await fetchCart();
+                                                }
+                                            }}
+                                            className="bg-emerald-600 hover:bg-emerald-700 text-white"
+                                        >
+                                            To'lash
+                                        </Button>
+
+                                        <Button
+                                            onClick={async () => {
+                                                // Phone-based payment: create order with paymentMethod 'phone', then call /api/pay/phone
+                                                setPhoneLoading((m) => ({ ...m, [it.id]: true }));
+                                                try {
+                                                    const checkoutRes = await fetch('/api/cart/checkout', {
+                                                        method: 'POST',
+                                                        headers: { 'Content-Type': 'application/json' },
+                                                        credentials: 'same-origin',
+                                                        body: JSON.stringify({ ids: [it.id], paymentMethod: 'phone' }),
+                                                    });
+                                                    const checkoutData = await checkoutRes.json().catch(() => ({}));
+                                                    if (!checkoutRes.ok) throw new Error(checkoutData?.error || 'Checkout failed');
+                                                    const orderId = checkoutData?.id as string | undefined;
+                                                    if (!orderId) throw new Error('Missing order id');
+
+                                                    const phone = window.prompt('Telefon raqamingizni kiriting (masalan +9989...)', '') || undefined;
+                                                    const payRes = await fetch('/api/pay/phone', {
+                                                        method: 'POST',
+                                                        headers: { 'Content-Type': 'application/json' },
+                                                        credentials: 'same-origin',
+                                                        body: JSON.stringify({ orderId, phone }),
+                                                    });
+                                                    const payData = await payRes.json().catch(() => ({}));
+                                                    if (!payRes.ok) throw new Error(payData?.error || 'Payment init failed');
+                                                    try { toast.success('Telefon toʻlovi soʻrovi yuborildi'); } catch { }
+                                                    await fetchCart();
+                                                } catch (e) {
+                                                    try { toast.error(String((e as Error).message || e)); } catch { }
+                                                    await fetchCart();
+                                                } finally {
+                                                    setPhoneLoading((m) => ({ ...m, [it.id]: false }));
+                                                }
+                                            }}
+                                            className="bg-blue-600 hover:bg-blue-700 text-white"
+                                            disabled={Boolean(phoneLoading[it.id])}
+                                        >
+                                            Telefon orqali
+                                        </Button>
+
+                                        <Button
+                                            onClick={async () => {
+                                                // QR-based payment
+                                                try {
+                                                    const checkoutRes = await fetch('/api/cart/checkout', {
+                                                        method: 'POST',
+                                                        headers: { 'Content-Type': 'application/json' },
+                                                        credentials: 'same-origin',
+                                                        body: JSON.stringify({ ids: [it.id], paymentMethod: 'qrcode' }),
+                                                    });
+                                                    const checkoutData = await checkoutRes.json().catch(() => ({}));
+                                                    if (!checkoutRes.ok) throw new Error(checkoutData?.error || 'Checkout failed');
+                                                    const orderId = checkoutData?.id as string | undefined;
+                                                    if (!orderId) throw new Error('Missing order id');
+
+                                                    const qrFromCheckout = checkoutData?.qrData ?? null;
+                                                    if (qrFromCheckout) {
+                                                        setQrMap((m) => ({ ...m, [it.id]: qrFromCheckout }));
+                                                        setQrData(qrFromCheckout);
+                                                        setShowQrModal(true);
+                                                        try { toast.success('QR kod tayyor'); } catch { }
+                                                        await fetchCart();
+                                                    } else {
+                                                        const payRes = await fetch('/api/pay/qrcode', {
+                                                            method: 'POST',
+                                                            headers: { 'Content-Type': 'application/json' },
+                                                            credentials: 'same-origin',
+                                                            body: JSON.stringify({ orderId }),
+                                                        });
+                                                        const payData = await payRes.json().catch(() => ({}));
+                                                        if (!payRes.ok) throw new Error(payData?.error || 'QR init failed');
+                                                        const qr = payData?.paymentRequest?.qrData ?? payData?.qrData ?? null;
+                                                        if (!qr) throw new Error('QR data missing');
+                                                        // show inline next to the item and also keep modal for convenience
+                                                        setQrMap((m) => ({ ...m, [it.id]: qr }));
+                                                        setQrData(qr);
+                                                        setShowQrModal(true);
+                                                        try { toast.success('QR kod tayyor'); } catch { }
+                                                        await fetchCart();
+                                                    }
+                                                } catch (e) {
+                                                    try { toast.error(String((e as Error).message || e)); } catch { }
+                                                    await fetchCart();
+                                                }
+                                            }}
+                                            className="bg-indigo-600 hover:bg-indigo-700 text-white"
+                                        >
+                                            QR kod
+                                        </Button>
+                                        {/* Inline QR preview for this item (shown after successful /api/pay/qrcode) */}
+                                        {qrMap[it.id] ? (
+                                            <div className="ml-4 flex flex-col items-center">
+                                                <div className="border rounded p-2 bg-white dark:bg-gray-800">
+                                                    <img src={qrMap[it.id]} alt="QR" className="h-32 w-32 object-contain" />
+                                                </div>
+                                                <button
+                                                    type="button"
+                                                    className="mt-2 text-sm underline"
+                                                    onClick={() => setQrMap((m) => { const n = { ...m }; delete n[it.id]; return n; })}
+                                                >
+                                                    Yopish
+                                                </button>
+                                            </div>
+                                        ) : null}
+                                    </div>
                                 )}
 
                                 <button
@@ -588,9 +770,69 @@ export default function OrdersClient() {
 
                                 <div className="flex items-center gap-3">
                                     <div className={`text-right mr-2 text-sm ${mutedText}`}>{r.createdAt ? new Date(r.createdAt).toLocaleString() : ""}</div>
-                                    <Button onClick={() => alert('Yaqinda qo`shiladi: bron uchun to`lov')} className="bg-emerald-600 hover:bg-emerald-700 text-white">
+                                    <Button
+                                        onClick={async () => {
+                                            // Reservation QR flow: generate QR for this reservation
+                                            try {
+                                                const res = await fetch('/api/pay/reservation/qrcode', {
+                                                    method: 'POST',
+                                                    headers: { 'Content-Type': 'application/json' },
+                                                    credentials: 'same-origin',
+                                                    body: JSON.stringify({ reservationId: r.id }),
+                                                });
+                                                const data = await res.json().catch(() => ({}));
+                                                if (!res.ok) throw new Error(data?.error || 'QR init failed');
+                                                const qr = data?.paymentRequest?.qrData ?? data?.qrData ?? null;
+                                                if (!qr) throw new Error('QR data missing');
+                                                // show inline and modal
+                                                setQrMap((m) => ({ ...m, [r.id]: qr }));
+                                                setQrData(qr);
+                                                setShowQrModal(true);
+                                                try { toast.success("QR tayyor (bron)"); } catch { }
+                                                // keep reservation list updated
+                                                await fetchCart();
+                                            } catch (e) {
+                                                try { toast.error(String((e as Error).message || e)); } catch { }
+                                            }
+                                        }}
+                                        className="bg-emerald-600 hover:bg-emerald-700 text-white"
+                                    >
                                         To'lash
                                     </Button>
+                                    {/* Inline QR for reservation if present */}
+                                    {qrMap[r.id] ? (
+                                        <div className="ml-4 flex flex-col items-center">
+                                            <div className="border rounded p-2 bg-white dark:bg-gray-800">
+                                                <img src={qrMap[r.id]} alt="QR" className="h-32 w-32 object-contain" />
+                                            </div>
+                                            <button
+                                                type="button"
+                                                className="mt-2 text-sm underline"
+                                                onClick={async () => {
+                                                    // simulate reservation payment via dev endpoint
+                                                    try {
+                                                        const res = await fetch('/api/dev/pay/simulate', {
+                                                            method: 'POST',
+                                                            headers: { 'Content-Type': 'application/json' },
+                                                            credentials: 'same-origin',
+                                                            body: JSON.stringify({ reservationId: r.id }),
+                                                        });
+                                                        const j = await res.json().catch(() => ({}));
+                                                        if (!res.ok) throw new Error(j?.error || 'Simulate failed');
+                                                        try { toast.success('Bron to`lovi simulyatsiya qilindi'); } catch { }
+                                                        setQrMap((m) => { const n = { ...m }; delete n[r.id]; return n; });
+                                                        setShowQrModal(false);
+                                                        setQrData(null);
+                                                        await fetchCart();
+                                                    } catch (e) {
+                                                        try { toast.error(String((e as Error).message || e)); } catch { }
+                                                    }
+                                                }}
+                                            >
+                                                Demo: To'lovni simulyatsiya qilish
+                                            </button>
+                                        </div>
+                                    ) : null}
                                     <button
                                         className={
                                             `px-3 py-1 rounded text-white transition-colors duration-150 focus:outline-none ` +
@@ -618,6 +860,66 @@ export default function OrdersClient() {
                                 </div>
                             </div>
                         ))}
+                    </div>
+                </div>
+            )}
+
+            {/* QR modal */}
+            {showQrModal && qrData && (
+                <div className="fixed inset-0 z-60 flex items-center justify-center">
+                    <div className="fixed inset-0 bg-black/60" onClick={() => setShowQrModal(false)} />
+                    <div className="bg-white dark:bg-gray-900 rounded p-4 z-70 max-w-sm w-full mx-4">
+                        <div className="flex justify-between items-center mb-3">
+                            <div className="font-semibold">QR orqali to'lash</div>
+                            <button onClick={() => setShowQrModal(false)} className="text-sm underline">Yopish</button>
+                        </div>
+                        <div className="flex justify-center">
+                            {/* qrData is a data URL for an SVG (placeholder) */}
+                            <img src={qrData} alt="QR" className="max-w-full h-auto" />
+                        </div>
+                        <div className="mt-3 text-sm text-gray-600">QRni skaner qilib to'lovni amalga oshiring. To'lov amalga oshirilgach, sahifa yangilanadi.</div>
+                        {/* Dev-only: simulate payment button */}
+                        <div className="mt-3">
+                            <button
+                                onClick={async () => {
+                                    // Try to simulate payment using the most recent qrData order if available
+                                    try {
+                                        // We don't have orderId stored globally here; server QR includes orderId in payload in dev flows.
+                                        // As a fallback, attempt to extract an orderId from the displayed qrData (our placeholder encodes orderId).
+                                        let simulatedOrderId: string | null = null;
+                                        try {
+                                            const decoded = decodeURIComponent(qrData.split(',')[1] || '');
+                                            const match = decoded.match(/>([a-z0-9-]+)</i);
+                                            if (match) simulatedOrderId = match[1];
+                                        } catch { }
+
+                                        if (!simulatedOrderId) {
+                                            alert('Order id topilmadi. Avval QRni yaratganingizga ishonch hosil qiling.');
+                                            return;
+                                        }
+
+                                        const res = await fetch('/api/dev/pay/simulate', {
+                                            method: 'POST',
+                                            headers: { 'Content-Type': 'application/json' },
+                                            credentials: 'same-origin',
+                                            body: JSON.stringify({ orderId: simulatedOrderId }),
+                                        });
+                                        const j = await res.json().catch(() => ({}));
+                                        if (!res.ok) throw new Error(j?.error || 'Simulate failed');
+                                        try { toast.success('To`lov muvaffaqiyatli (demo)'); } catch { }
+                                        setShowQrModal(false);
+                                        setQrData(null);
+                                        // refresh orders
+                                        await fetchCart();
+                                    } catch (e) {
+                                        try { toast.error(String((e as Error).message || e)); } catch { }
+                                    }
+                                }}
+                                className="mt-2 rounded bg-blue-600 text-white px-3 py-1"
+                            >
+                                Demo: To'lovni simulyatsiya qilish
+                            </button>
+                        </div>
                     </div>
                 </div>
             )}

@@ -1,7 +1,6 @@
 "use client";
 import React from 'react';
 import { apiFetch } from '@/lib/apiFetch';
-import Image from 'next/image';
 import { useRouter } from 'next/navigation';
 
 function AdminSectionHeader({ children }: { children: React.ReactNode }) {
