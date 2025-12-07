@@ -16,11 +16,11 @@ export async function DELETE(req: NextRequest) {
         if (!body?.id) return NextResponse.json({ error: "Invalid body" }, { status: 400 });
 
         const prisma = getPrisma() as any;
-        const cart = await prisma.cart.findFirst({ where: { userId: user.id } });
-        if (!cart) return NextResponse.json({ error: "Cart not found" }, { status: 404 });
-
-        const existing = await prisma.cartItem.findUnique({ where: { id: body.id } });
-        if (!existing || existing.cartId !== cart.id) return NextResponse.json({ error: "Item not found" }, { status: 404 });
+        // Find the item and ensure it belongs to any cart owned by this user
+        const existing = await prisma.cartItem.findUnique({ where: { id: body.id }, include: { cart: true } });
+        if (!existing || !existing.cart || existing.cart.userId !== user.id) {
+            return NextResponse.json({ error: "Item not found" }, { status: 404 });
+        }
 
         await prisma.cartItem.delete({ where: { id: body.id } });
         // Invalidate per-user orders cache so UI sees removal immediately

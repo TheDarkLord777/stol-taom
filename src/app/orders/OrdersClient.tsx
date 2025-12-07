@@ -35,9 +35,14 @@ export default function OrdersClient() {
     const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
     const [qrData, setQrData] = useState<string | null>(null);
     const [showQrModal, setShowQrModal] = useState(false);
+    const [qrOpenedAt, setQrOpenedAt] = useState<number | null>(null);
+    const [qrCountdown, setQrCountdown] = useState<number>(120);
+    const [pendingCountAtOpen, setPendingCountAtOpen] = useState<number | null>(null);
     // per-item QR data so we can show QR inline next to the related item
     const [qrMap, setQrMap] = useState<Record<string, string>>({});
     const [phoneLoading, setPhoneLoading] = useState<Record<string, boolean>>({});
+
+    const [pendingOrders, setPendingOrders] = useState<Array<{ id: string; status: string; createdAt?: string; items: Array<{ id: string; name: string; quantity: number; price?: number | null; logoUrl?: string }> }> | null>(null);
 
     const fetchCart = async (opts?: { showLoading?: boolean }) => {
         const showLoading = opts?.showLoading !== false;
@@ -56,6 +61,7 @@ export default function OrdersClient() {
             if (!res.ok) throw new Error(data?.error || "Server error");
             setItems(data.items ?? []);
             setReservations(data.reservations ?? []);
+            setPendingOrders(data.pendingOrders ?? []);
             setSelectedMap({});
             setSelectedIds(new Set());
         } catch (e: unknown) {
@@ -106,18 +112,55 @@ export default function OrdersClient() {
         return () => clearInterval(id);
     }, [showQrModal]);
 
-    // Auto-close QR modal when payment detected (paid items present or unpaid cleared)
+    // Countdown for QR validity (2 minutes)
+    useEffect(() => {
+        if (!showQrModal || qrOpenedAt == null) return;
+        const end = qrOpenedAt + 120000;
+        const tick = () => {
+            const remain = Math.max(0, end - Date.now());
+            setQrCountdown(Math.ceil(remain / 1000));
+            if (remain <= 0) {
+                setShowQrModal(false);
+                setQrData(null);
+                try { toast.error("QR vaqti tugadi (2:00)"); } catch { }
+            }
+        };
+        tick();
+        const id = setInterval(tick, 1000);
+        return () => clearInterval(id);
+    }, [showQrModal, qrOpenedAt]);
+
+    // Auto-close QR modal only when payment detected (avoid closing just because cart emptied)
     useEffect(() => {
         if (!showQrModal) return;
-        const hasPaid = (items ?? []).some((x) => Boolean((x as LocalItem).paid));
-        const hasUnpaid = (items ?? []).some((x) => !x.paid);
-        if (hasPaid || !hasUnpaid) {
+        const opened = qrOpenedAt ?? 0;
+        const cartPaid = (items ?? []).some((x) => {
+            const paid = Boolean((x as LocalItem).paid);
+            const ts = (x as any).addedAt || (x as any).createdAt;
+            const t = ts ? new Date(ts).getTime() : 0;
+            return paid && t >= opened;
+        });
+        const reservationsPaid = (reservations ?? []).some((r: any) => {
+            const paid = Boolean(r.paid);
+            const ts = r.updatedAt || r.createdAt || r.fromDate;
+            const t = ts ? new Date(ts).getTime() : 0;
+            return paid && t >= opened;
+        });
+        const pendingDropped = pendingCountAtOpen != null && (pendingOrders?.length ?? 0) < pendingCountAtOpen;
+        if (cartPaid || reservationsPaid || pendingDropped) {
             setShowQrModal(false);
             setQrData(null);
             setQrMap({});
+            setPendingCountAtOpen(null);
             try { toast.success("To'lov yakunlandi"); } catch { }
+            // Play success audio (if available in public/audio)
+            try {
+                const url = (process.env.NEXT_PUBLIC_QR_SUCCESS_AUDIO_URL as string) || '/audio/qr-success.mp3';
+                const a = new Audio(url);
+                void a.play().catch(() => { });
+            } catch { }
         }
-    }, [items, showQrModal]);
+    }, [items, reservations, pendingOrders, showQrModal, qrOpenedAt, pendingCountAtOpen]);
 
     // Split items into paid vs unpaid and group paid items by date (YYYY-MM-DD)
     const paidItems = (items ?? []).filter((x) => Boolean((x as LocalItem).paid));
@@ -233,7 +276,8 @@ export default function OrdersClient() {
                                                     <div className={`text-sm ${subtleText}`}>x{it.quantity} • {it.price ? `${it.price} so'm` : '-'}</div>
                                                 </div>
                                             </div>
-                                            <div className="text-right">
+                                            <div className="text-right flex items-center gap-2">
+                                                <span className="inline-block px-2 py-1 text-xs font-semibold rounded bg-emerald-700 text-white">To’langan</span>
                                                 {it.orderId ? <a href={`/orders?orderId=${it.orderId}`} className="text-sm underline">Buyurtma</a> : <span className="text-sm text-gray-500">—</span>}
                                             </div>
                                         </div>
@@ -251,8 +295,12 @@ export default function OrdersClient() {
                 </div>
             )}
 
+            {/* Empty states: if only paid items exist, show a subtle note; if no items at all, show empty cart */}
+            {items && items.length > 0 && unpaidItems.length === 0 && !loading && (
+                <div className={`text-center ${mutedText}`}>Hammasi to’langan. Tarix yuqorida ko’rinadi.</div>
+            )}
             {items && items.length === 0 && !loading && (
-                <div className={`text-center ${mutedText}`}>Savat bo'sh. / Hech qanday element qo'shilmagan.</div>
+                <div className={`text-center ${mutedText}`}>Savat bo'sh. Hech qanday element qo'shilmagan.</div>
             )}
 
             {/* Orders section */}
@@ -478,6 +526,9 @@ export default function OrdersClient() {
                                                         setQrMap((m) => ({ ...m, [it.id]: qrFromCheckout }));
                                                         setQrData(qrFromCheckout);
                                                         setShowQrModal(true);
+                                                        setQrOpenedAt(Date.now());
+                                                        setQrCountdown(120);
+                                                        setPendingCountAtOpen(pendingOrders?.length ?? 0);
                                                         try { toast.success('QR kod tayyor (demo)'); } catch { }
                                                         await fetchCart();
                                                     } else {
@@ -496,6 +547,9 @@ export default function OrdersClient() {
                                                         setQrMap((m) => ({ ...m, [it.id]: qr }));
                                                         setQrData(qr);
                                                         setShowQrModal(true);
+                                                        setQrOpenedAt(Date.now());
+                                                        setQrCountdown(120);
+                                                        setPendingCountAtOpen(pendingOrders?.length ?? 0);
                                                         try { toast.success('QR kod tayyor (demo)'); } catch { }
                                                         await fetchCart();
                                                     }
@@ -690,35 +744,42 @@ export default function OrdersClient() {
 
                                 <div className="flex items-center gap-3">
                                     <div className={`text-right mr-2 text-sm ${mutedText}`}>{r.createdAt ? new Date(r.createdAt).toLocaleString() : ""}</div>
-                                    <Button
-                                        onClick={async () => {
-                                            // Reservation QR flow: generate QR for this reservation
-                                            try {
-                                                const res = await fetch('/api/pay/reservation/qrcode', {
-                                                    method: 'POST',
-                                                    headers: { 'Content-Type': 'application/json' },
-                                                    credentials: 'same-origin',
-                                                    body: JSON.stringify({ reservationId: r.id }),
-                                                });
-                                                const data = await res.json().catch(() => ({}));
-                                                if (!res.ok) throw new Error(data?.error || 'QR init failed');
-                                                const qr = data?.paymentRequest?.qrData ?? data?.qrData ?? null;
-                                                if (!qr) throw new Error('QR data missing');
-                                                // show inline and modal
-                                                setQrMap((m) => ({ ...m, [r.id]: qr }));
-                                                setQrData(qr);
-                                                setShowQrModal(true);
-                                                try { toast.success("QR tayyor (bron)"); } catch { }
-                                                // keep reservation list updated
-                                                await fetchCart();
-                                            } catch (e) {
-                                                try { toast.error(String((e as Error).message || e)); } catch { }
-                                            }
-                                        }}
-                                        className="bg-emerald-600 hover:bg-emerald-700 text-white"
-                                    >
-                                        To'lash
-                                    </Button>
+                                    {r.paid ? (
+                                        <span className="inline-block px-3 py-1 rounded bg-emerald-600 text-white text-sm">To'langan</span>
+                                    ) : (
+                                        <Button
+                                            onClick={async () => {
+                                                // Reservation QR flow: generate QR for this reservation
+                                                try {
+                                                    const res = await fetch('/api/pay/reservation/qrcode', {
+                                                        method: 'POST',
+                                                        headers: { 'Content-Type': 'application/json' },
+                                                        credentials: 'same-origin',
+                                                        body: JSON.stringify({ reservationId: r.id }),
+                                                    });
+                                                    const data = await res.json().catch(() => ({}));
+                                                    if (!res.ok) throw new Error(data?.error || 'QR init failed');
+                                                    const qr = data?.paymentRequest?.qrData ?? data?.qrData ?? null;
+                                                    if (!qr) throw new Error('QR data missing');
+                                                    // show inline and modal
+                                                    setQrMap((m) => ({ ...m, [r.id]: qr }));
+                                                    setQrData(qr);
+                                                    setShowQrModal(true);
+                                                    setQrOpenedAt(Date.now());
+                                                    setQrCountdown(120);
+                                                    setPendingCountAtOpen(pendingOrders?.length ?? 0);
+                                                    try { toast.success("QR tayyor (bron)"); } catch { }
+                                                    // keep reservation list updated
+                                                    await fetchCart();
+                                                } catch (e) {
+                                                    try { toast.error(String((e as Error).message || e)); } catch { }
+                                                }
+                                            }}
+                                            className="bg-emerald-600 hover:bg-emerald-700 text-white"
+                                        >
+                                            To'lash
+                                        </Button>
+                                    )}
                                     {/* Inline QR for reservation if present */}
                                     {qrMap[r.id] ? (
                                         <div className="ml-4 flex flex-col items-center">
@@ -728,55 +789,104 @@ export default function OrdersClient() {
                                             <button
                                                 type="button"
                                                 className="mt-2 text-sm underline"
-                                                onClick={async () => {
-                                                    // simulate reservation payment via dev endpoint
-                                                    try {
-                                                        const res = await fetch('/api/dev/pay/simulate', {
-                                                            method: 'POST',
-                                                            headers: { 'Content-Type': 'application/json' },
-                                                            credentials: 'same-origin',
-                                                            body: JSON.stringify({ reservationId: r.id }),
-                                                        });
-                                                        const j = await res.json().catch(() => ({}));
-                                                        if (!res.ok) throw new Error(j?.error || 'Simulate failed');
-                                                        try { toast.success('Bron to`lovi simulyatsiya qilindi'); } catch { }
-                                                        setQrMap((m) => { const n = { ...m }; delete n[r.id]; return n; });
-                                                        setShowQrModal(false);
-                                                        setQrData(null);
-                                                        await fetchCart();
-                                                    } catch (e) {
-                                                        try { toast.error(String((e as Error).message || e)); } catch { }
-                                                    }
-                                                }}
+                                                onClick={() => setQrMap((m) => { const n = { ...m }; delete n[r.id]; return n; })}
                                             >
-                                                Demo: To'lovni simulyatsiya qilish
+                                                Yopish
                                             </button>
                                         </div>
                                     ) : null}
-                                    <button
-                                        className={
-                                            `px-3 py-1 rounded text-white transition-colors duration-150 focus:outline-none ` +
-                                            (removingResMap[r.id] ? "bg-red-600 opacity-80 cursor-wait" : "bg-red-500 hover:bg-red-600")
-                                        }
-                                        onClick={async () => {
-                                            setRemovingResMap((m) => ({ ...m, [r.id]: true }));
-                                            try {
-                                                await fetch("/api/reservations/remove", {
-                                                    method: "DELETE",
-                                                    headers: { "Content-Type": "application/json" },
-                                                    credentials: "same-origin",
-                                                    body: JSON.stringify({ id: r.id }),
-                                                });
-                                                await fetchCart();
-                                            } finally {
-                                                setRemovingResMap((m) => ({ ...m, [r.id]: false }));
+                                    {!r.paid && (
+                                        <button
+                                            className={
+                                                `px-3 py-1 rounded text-white transition-colors duration-150 focus:outline-none ` +
+                                                (removingResMap[r.id] ? "bg-red-600 opacity-80 cursor-wait" : "bg-red-500 hover:bg-red-600")
                                             }
-                                        }}
-                                        disabled={Boolean(removingResMap[r.id])}
-                                        aria-busy={Boolean(removingResMap[r.id])}
-                                    >
-                                        {removingResMap[r.id] ? "O'chirilmoqda..." : "O'chirish"}
-                                    </button>
+                                            onClick={async () => {
+                                                setRemovingResMap((m) => ({ ...m, [r.id]: true }));
+                                                try {
+                                                    await fetch("/api/reservations/remove", {
+                                                        method: "DELETE",
+                                                        headers: { "Content-Type": "application/json" },
+                                                        credentials: "same-origin",
+                                                        body: JSON.stringify({ id: r.id }),
+                                                    });
+                                                    await fetchCart();
+                                                } finally {
+                                                    setRemovingResMap((m) => ({ ...m, [r.id]: false }));
+                                                }
+                                            }}
+                                            disabled={Boolean(removingResMap[r.id])}
+                                            aria-busy={Boolean(removingResMap[r.id])}
+                                        >
+                                            {removingResMap[r.id] ? "O'chirilmoqda..." : "O'chirish"}
+                                        </button>
+                                    )}
+                                </div>
+                            </div>
+                        ))}
+                    </div>
+                </div>
+            )}
+
+            {/* Pending orders section */}
+            {pendingOrders && pendingOrders.length > 0 && (
+                <div className="mt-8">
+                    <h2 className="text-xl font-semibold mb-3">Kutilayotgan to'lovlar</h2>
+                    <div className="space-y-3">
+                        {pendingOrders.map((po) => (
+                            <div key={po.id} className={`p-4 rounded shadow ${cardBase}`}>
+                                <div className="flex items-start justify-between">
+                                    <div className="flex-1">
+                                        <div className="text-sm ${mutedText}">{po.createdAt ? new Date(po.createdAt).toLocaleString() : ''}</div>
+                                        <div className="mt-2 space-y-2">
+                                            {po.items.map((it) => (
+                                                <div key={it.id} className="flex items-center justify-between">
+                                                    <div className="flex items-center gap-3 min-w-0">
+                                                        <div className="h-10 w-10 rounded bg-gray-100 flex items-center justify-center overflow-hidden">
+                                                            {it.logoUrl ? (
+                                                                <img src={it.logoUrl} alt={it.name} className="h-full w-full object-cover" />
+                                                            ) : (
+                                                                <ShoppingBasket className="h-5 w-5 text-gray-400" />
+                                                            )}
+                                                        </div>
+                                                        <div className="min-w-0">
+                                                            <div className="font-medium truncate">{it.name}</div>
+                                                            <div className={`text-sm ${subtleText}`}>x{it.quantity} • {it.price ? `${it.price} so'm` : '-'}</div>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            ))}
+                                        </div>
+                                    </div>
+                                    <div className="ml-4 flex flex-col items-end gap-2">
+                                        <span className="inline-block px-2 py-1 text-xs font-semibold rounded bg-amber-600 text-white">To'lov kutilmoqda</span>
+                                        <Button
+                                            onClick={async () => {
+                                                try {
+                                                    const res = await fetch('/api/pay/qrcode', {
+                                                        method: 'POST',
+                                                        headers: { 'Content-Type': 'application/json' },
+                                                        credentials: 'same-origin',
+                                                        body: JSON.stringify({ orderId: po.id }),
+                                                    });
+                                                    const data = await res.json().catch(() => ({}));
+                                                    if (!res.ok) throw new Error(data?.error || 'QR init failed');
+                                                    const qr = data?.paymentRequest?.qrData ?? data?.qrData ?? null;
+                                                    if (!qr) throw new Error('QR data missing');
+                                                    setQrData(qr);
+                                                    setShowQrModal(true);
+                                                    setQrOpenedAt(Date.now());
+                                                    setQrCountdown(120);
+                                                    try { toast.success('QR kod tayyor (buyurtma)'); } catch { }
+                                                } catch (e) {
+                                                    try { toast.error(String((e as Error).message || e)); } catch { }
+                                                }
+                                            }}
+                                            className="bg-emerald-600 hover:bg-emerald-700 text-white"
+                                        >
+                                            QRni qayta ochish
+                                        </Button>
+                                    </div>
                                 </div>
                             </div>
                         ))}
@@ -793,53 +903,13 @@ export default function OrdersClient() {
                             <div className="font-semibold">QR orqali to'lash</div>
                             <button onClick={() => setShowQrModal(false)} className="text-sm underline">Yopish</button>
                         </div>
+                        <div className="mb-2 text-sm">Vaqt: <span className="font-mono">{String(Math.floor(qrCountdown / 60)).padStart(2, '0')}:{String(qrCountdown % 60).padStart(2, '0')}</span></div>
                         <div className="flex justify-center">
                             {/* qrData is a data URL for an SVG (placeholder) */}
                             <img src={qrData} alt="QR" className="max-w-full h-auto" />
                         </div>
-                        <div className="mt-3 text-sm text-gray-600">QRni skaner qilib to'lovni amalga oshiring. To'lov amalga oshirilgach, sahifa yangilanadi.</div>
-                        {/* Dev-only: simulate payment button */}
-                        <div className="mt-3">
-                            <button
-                                onClick={async () => {
-                                    // Try to simulate payment using the most recent qrData order if available
-                                    try {
-                                        // We don't have orderId stored globally here; server QR includes orderId in payload in dev flows.
-                                        // As a fallback, attempt to extract an orderId from the displayed qrData (our placeholder encodes orderId).
-                                        let simulatedOrderId: string | null = null;
-                                        try {
-                                            const decoded = decodeURIComponent(qrData.split(',')[1] || '');
-                                            const match = decoded.match(/>([a-z0-9-]+)</i);
-                                            if (match) simulatedOrderId = match[1];
-                                        } catch { }
-
-                                        if (!simulatedOrderId) {
-                                            alert('Order id topilmadi. Avval QRni yaratganingizga ishonch hosil qiling.');
-                                            return;
-                                        }
-
-                                        const res = await fetch('/api/dev/pay/simulate', {
-                                            method: 'POST',
-                                            headers: { 'Content-Type': 'application/json' },
-                                            credentials: 'same-origin',
-                                            body: JSON.stringify({ orderId: simulatedOrderId }),
-                                        });
-                                        const j = await res.json().catch(() => ({}));
-                                        if (!res.ok) throw new Error(j?.error || 'Simulate failed');
-                                        try { toast.success('To`lov muvaffaqiyatli (demo)'); } catch { }
-                                        setShowQrModal(false);
-                                        setQrData(null);
-                                        // refresh orders
-                                        await fetchCart();
-                                    } catch (e) {
-                                        try { toast.error(String((e as Error).message || e)); } catch { }
-                                    }
-                                }}
-                                className="mt-2 rounded bg-blue-600 text-white px-3 py-1"
-                            >
-                                Demo: To'lovni simulyatsiya qilish
-                            </button>
-                        </div>
+                        <div className="mt-3 text-sm text-gray-600">QRni skaner qilib to'lovni amalga oshiring. QR 2 daqiqa ichida amal qiladi.</div>
+                        {/* No dev simulation button in production UI */}
                     </div>
                 </div>
             )}

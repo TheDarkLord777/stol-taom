@@ -41,9 +41,13 @@ export async function POST(req: NextRequest) {
         try {
             const r = getRedis();
             if (r) {
-                const token = Math.random().toString(36).slice(2) + Date.now().toString(36);
+                // Unique token: hash of time + user + order + random
+                const rand = Math.random().toString(36).slice(2);
+                const basis = `${Date.now()}::${user.id}::${orderId}::${rand}`;
+                const token = Buffer.from(await crypto.subtle.digest('SHA-256', new TextEncoder().encode(basis))).toString('hex').slice(0, 32);
                 const key = `pay:demo:token:${token}`;
-                await r.set(key, JSON.stringify({ kind: 'order', id: orderId }), 'EX', 60 * 10);
+                // Token valid for 2 minutes
+                await r.set(key, JSON.stringify({ kind: 'order', id: orderId }), 'EX', 120);
                 const base = getDemoBaseUrl(req as unknown as Request);
                 const confirmUrl = `${base}/api/pay/demo/confirm?t=${encodeURIComponent(token)}`;
                 qrData = makeSimpleSvgDataUrl(confirmUrl);

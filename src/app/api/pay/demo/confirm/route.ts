@@ -16,7 +16,19 @@ export async function GET(req: NextRequest) {
         if (!r) return NextResponse.json({ error: "Redis disabled" }, { status: 500 });
         const key = `pay:demo:token:${t}`;
         const raw = await r.get(key);
-        if (!raw) return NextResponse.json({ error: "invalid or expired token" }, { status: 404 });
+        const ttl = await r.ttl(key).catch(() => -2);
+        if (!raw || ttl <= 0) {
+            // Show a friendly expired page and do NOT mark paid
+            const html = `<!doctype html><html><head><meta charset=\"utf-8\"><meta name=\"viewport\" content=\"width=device-width,initial-scale=1\"><title>QR muddati tugadi</title>
+<style>body{font-family:system-ui;display:flex;align-items:center;justify-content:center;min-height:100vh;background:#111827;color:#fff;margin:0} .badge{display:inline-block;background:#ef4444;color:#fff;border-radius:9999px;padding:6px 10px;font-weight:700} .hint{margin-top:12px;color:#d1d5db}</style>
+</head><body>
+    <div style=\"text-align:center\">
+        <div class=\"badge\">QR muddati tugadi</div>
+        <p class=\"hint\">Iltimos, ilovada yangi QR yaratib qayta urining.</p>
+    </div>
+</body></html>`;
+            return new NextResponse(html, { headers: { "content-type": "text/html; charset=utf-8" }, status: 410 });
+        }
         const data = JSON.parse(raw) as { kind: "order" | "reservation"; id: string };
 
         const prisma = getPrisma() as any;
@@ -43,8 +55,25 @@ export async function GET(req: NextRequest) {
         // one-time token: delete after use
         await r.del(key);
 
-        // Return a tiny HTML page for demo UX
-        const html = `<!doctype html><html><head><meta charset="utf-8"><title>Paid</title></head><body style="font-family:system-ui;display:flex;align-items:center;justify-content:center;min-height:100vh;background:#0b1020;color:#fff"><div style="text-align:center"><h1>To'lov yakunlandi (demo)</h1><p>ID: ${data.id}</p><p>Uygulama oynasini tekshiring.</p></div></body></html>`;
+        // Return a tiny HTML page for demo UX (with optional audio on scan)
+        const audioUrl = process.env.QR_SUCCESS_AUDIO_URL || "/audio/qr-success.mp3";
+        const html = `<!doctype html><html><head><meta charset=\"utf-8\"><meta name=\"viewport\" content=\"width=device-width,initial-scale=1\"><title>Paid</title>
+<style>body{font-family:system-ui;display:flex;align-items:center;justify-content:center;min-height:100vh;background:#0b1020;color:#fff;margin:0} .btn{background:#10b981;color:#fff;border:none;border-radius:8px;padding:10px 14px;font-weight:600;cursor:pointer} .row{margin-top:12px}</style>
+</head><body>
+    <div style=\"text-align:center\">
+        <h1>To'lov yakunlandi (demo)</h1>
+        <p>ID: ${data.id}</p>
+        <p>Uygulama oynasini tekshiring.</p>
+        <div class=\"row\">
+            <audio id=\"qr-audio\" src=\"${audioUrl}\" preload=\"auto\" autoplay playsinline></audio>
+            <button class=\"btn\" onclick=\"(async()=>{try{await document.getElementById('qr-audio').play()}catch(e){alert('Audio ijrosi bloklandi. Iltimos ruxsat bering yoki qayta urining.')}})()\">Ovoz ijro etish</button>
+        </div>
+    </div>
+    <script>
+        // Try autoplay politely; some browsers block without user gesture
+        (async()=>{try{const a=document.getElementById('qr-audio');if(a){a.volume=1.0;await a.play()}}catch(e){/* ignore */}})();
+    </script>
+</body></html>`;
         return new NextResponse(html, { headers: { "content-type": "text/html; charset=utf-8" } });
     } catch (err: unknown) {
         const msg = err instanceof Error ? err.message : String(err);

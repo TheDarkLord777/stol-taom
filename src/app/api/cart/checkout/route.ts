@@ -91,12 +91,15 @@ export async function POST(req: NextRequest) {
         try {
             const pm = body?.paymentMethod;
             if (pm === 'qrcode') {
-                // Create one-time confirm token in Redis for demo payment confirmation
+                // Create one-time confirm token in Redis for demo payment confirmation (unique, time+user+order+random)
                 const r = getRedis();
                 if (r) {
-                    const token = Math.random().toString(36).slice(2) + Date.now().toString(36);
+                    const rand = Math.random().toString(36).slice(2);
+                    const basis = `${Date.now()}::${user.id}::${result.id}::${rand}`;
+                    const token = Buffer.from(await crypto.subtle.digest('SHA-256', new TextEncoder().encode(basis))).toString('hex').slice(0, 32);
                     const key = `pay:demo:token:${token}`;
-                    await r.set(key, JSON.stringify({ kind: 'order', id: result.id }), 'EX', 60 * 10); // 10 min ttl
+                    // Token valid for 2 minutes
+                    await r.set(key, JSON.stringify({ kind: 'order', id: result.id }), 'EX', 120);
                     const base = getDemoBaseUrl(req as unknown as Request);
                     const confirmUrl = `${base}/api/pay/demo/confirm?t=${encodeURIComponent(token)}`;
                     // Encode the payment URL in QR

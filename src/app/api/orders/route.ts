@@ -130,13 +130,13 @@ export async function GET(req: NextRequest) {
             };
         });
 
-        const body = { items, reservations: mappedReservations };
+        const body: any = { items, reservations: mappedReservations };
         // Also include recent orders placed by this user (so paid/checked-out items stay visible)
         // Always include a short history, even in fast mode, so paid items persist in UI.
         {
             try {
                 const recent = await prisma.order.findMany({
-                    where: { userId: user.id, createdAt: { gte: new Date(Date.now() - 1000 * 60 * 60 * 24) } },
+                    where: { userId: user.id, status: 'paid', createdAt: { gte: new Date(Date.now() - 1000 * 60 * 60 * 24) } },
                     include: { items: true },
                     orderBy: { createdAt: 'desc' },
                     take: 50,
@@ -155,8 +155,8 @@ export async function GET(req: NextRequest) {
                                 price: it.price ?? null,
                                 addedAt: o.createdAt,
                                 logoUrl: menuMap[it.menuItemId]?.logoUrl ?? undefined,
-                                paid: o.status === 'paid',
-                                status: o.status,
+                                paid: true,
+                                status: 'paid',
                             });
                         }
                     }
@@ -164,6 +164,36 @@ export async function GET(req: NextRequest) {
                 }
             } catch {
                 // ignore errors here
+            }
+        }
+        // Include pending orders (recent) so items don't disappear during QR payment
+        {
+            try {
+                const pend = await prisma.order.findMany({
+                    where: { userId: user.id, status: 'pending', createdAt: { gte: new Date(Date.now() - 1000 * 60 * 60 * 24) } },
+                    include: { items: true },
+                    orderBy: { createdAt: 'desc' },
+                    take: 50,
+                });
+                if (pend && pend.length > 0) {
+                    body.pendingOrders = pend.map((o: any) => ({
+                        id: o.id,
+                        status: o.status,
+                        createdAt: o.createdAt ? new Date(o.createdAt).toISOString() : undefined,
+                        items: (o.items ?? []).map((it: any) => ({
+                            id: `orderitem:${it.id}`,
+                            menuItemId: it.menuItemId,
+                            name: it.name,
+                            quantity: it.quantity,
+                            price: it.price ?? null,
+                            logoUrl: menuMap[it.menuItemId]?.logoUrl ?? undefined,
+                        })),
+                    }));
+                } else {
+                    body.pendingOrders = [];
+                }
+            } catch {
+                body.pendingOrders = [];
             }
         }
         // Store in cache with very short TTL
