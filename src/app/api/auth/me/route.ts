@@ -25,6 +25,7 @@
  */
 import type { NextRequest } from "next/server";
 import { NextResponse } from "next/server";
+import { prisma } from "@/lib/prisma";
 import {
   ACCESS_TOKEN_NAME,
   ACCESS_TTL_SEC,
@@ -35,15 +36,41 @@ import {
 export async function GET(req: NextRequest) {
   try {
     // Try access token
-    const user = await getUserFromRequest(req);
-    if (user) return NextResponse.json({ authenticated: true, user });
+    const tokenUser = await getUserFromRequest(req);
+    if (tokenUser) {
+      const dbUser = await prisma.user.findUnique({
+        where: { id: tokenUser.id },
+        select: { id: true, phone: true, name: true, email: true },
+      });
+      if (dbUser)
+        return NextResponse.json({
+          authenticated: true,
+          user: {
+            id: dbUser.id,
+            phone: dbUser.phone,
+            name: dbUser.name,
+            email: dbUser.email,
+          },
+        });
+    }
 
     // Try refresh to mint new access (without using NextResponse.next in app routes)
     const refreshed = await refreshAccessToken(req);
     if (refreshed?.user) {
+      const dbUser = await prisma.user.findUnique({
+        where: { id: refreshed.user.id },
+        select: { id: true, phone: true, name: true, email: true },
+      });
+      if (!dbUser)
+        return NextResponse.json({ authenticated: false }, { status: 401 });
       const res = NextResponse.json({
         authenticated: true,
-        user: refreshed.user,
+        user: {
+          id: dbUser.id,
+          phone: dbUser.phone,
+          name: dbUser.name,
+          email: dbUser.email,
+        },
         refreshed: true,
       });
       // Set cookies on this response

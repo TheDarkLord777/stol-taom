@@ -88,7 +88,10 @@ export default function RootLayout({
             </Script>
           ) : null}
           {process.env.NODE_ENV !== "production" ? (
-            <Script id="silence-hydration-warnings" strategy="beforeInteractive">
+            <Script
+              id="silence-hydration-warnings"
+              strategy="beforeInteractive"
+            >
               {`
               (function(){
                 try {

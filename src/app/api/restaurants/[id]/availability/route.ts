@@ -20,20 +20,30 @@ export const dynamic = "force-dynamic";
  *  - Each restaurant has a simple capacity model: 5 tables per size (2,4,6,8).
  *  - Existing reservations overlapping [from, to] reduce availability based on their partySize -> mapped to closest size bucket.
  */
-export async function GET(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
+export async function GET(
+  req: NextRequest,
+  { params }: { params: Promise<{ id: string }> },
+) {
   const { id: restaurantId } = await params;
   const url = new URL(req.url);
   const fromStr = url.searchParams.get("from");
   const toStr = url.searchParams.get("to");
 
   if (!restaurantId || !fromStr) {
-    return NextResponse.json({ error: "restaurant id and from are required" }, { status: 400 });
+    return NextResponse.json(
+      { error: "restaurant id and from are required" },
+      { status: 400 },
+    );
   }
   try {
     // Try read-through cache first
     const redis = getRedis();
     const fromISO = new Date(fromStr).toISOString();
-    const toISO = toStr ? new Date(toStr).toISOString() : new Date(new Date(fromStr).getTime() + 24 * 60 * 60 * 1000).toISOString();
+    const toISO = toStr
+      ? new Date(toStr).toISOString()
+      : new Date(
+          new Date(fromStr).getTime() + 24 * 60 * 60 * 1000,
+        ).toISOString();
     const cacheKey = `availability:${restaurantId}:from:${fromISO}:to:${toISO}`;
     const ttlMs = Number(process.env.AVAILABILITY_CACHE_TTL_MS ?? 10000);
     if (redis) {
@@ -49,7 +59,9 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ id: 
       }
     }
     const fromDate = new Date(fromStr);
-    const toDate = toStr ? new Date(toStr) : new Date(fromDate.getTime() + 24 * 60 * 60 * 1000);
+    const toDate = toStr
+      ? new Date(toStr)
+      : new Date(fromDate.getTime() + 24 * 60 * 60 * 1000);
     if (Number.isNaN(fromDate.getTime()) || Number.isNaN(toDate.getTime())) {
       return NextResponse.json({ error: "invalid from/to" }, { status: 400 });
     }
@@ -75,10 +87,7 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ id: 
         AND: [
           { fromDate: { lt: toDate } },
           {
-            OR: [
-              { toDate: null },
-              { toDate: { gt: fromDate } },
-            ],
+            OR: [{ toDate: null }, { toDate: { gt: fromDate } }],
           },
         ],
       },
@@ -94,7 +103,10 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ id: 
     }
 
     const sizes: Record<string, number> = Object.fromEntries(
-      Object.keys(capacities).map((k) => [k, Math.max(0, (capacities as any)[k] - (used as any)[k])]),
+      Object.keys(capacities).map((k) => [
+        k,
+        Math.max(0, (capacities as any)[k] - (used as any)[k]),
+      ]),
     );
 
     // store in cache (best-effort)
@@ -110,8 +122,9 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ id: 
   } catch (e: unknown) {
     const msg = e instanceof Error ? e.message : String(e);
     console.error("GET /api/restaurants/[id]/availability error", msg);
-    return NextResponse.json({ error: "Server error", detail: msg }, { status: 500 });
+    return NextResponse.json(
+      { error: "Server error", detail: msg },
+      { status: 500 },
+    );
   }
 }
-
-

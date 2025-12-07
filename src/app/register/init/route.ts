@@ -26,7 +26,8 @@ const TELEGRAM_GATEWAY_MOCK =
 
 // If we're running in non-production and no token is provided, default to mock
 const TELEGRAM_GATEWAY_TOKEN = process.env.TELEGRAM_GATEWAY_TOKEN;
-const USE_MOCK_FALLBACK = !TELEGRAM_GATEWAY_TOKEN && process.env.NODE_ENV !== "production";
+const USE_MOCK_FALLBACK =
+  !TELEGRAM_GATEWAY_TOKEN && process.env.NODE_ENV !== "production";
 
 async function gatewayPost(
   endpoint: string,

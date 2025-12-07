@@ -59,7 +59,8 @@ export default function RegistrationPage() {
     return withoutLeadingZeros.startsWith("998")
       ? "+" + withoutLeadingZeros
       : PHONE_PREFIX + withoutLeadingZeros;
-  } async function onSubmit() {
+  }
+  async function onSubmit() {
     setError(null);
     if (cooldown > 0) return;
     const p = normalizePhone(normalizeForPrefix(phone));
@@ -186,7 +187,8 @@ export default function RegistrationPage() {
                       let v = e.target.value;
                       v = v.replace(/[^\d+]/g, "");
                       if (v.indexOf("+") > 0) v = v.replace(/\+/g, "");
-                      if ((v.match(/\+/g) || []).length > 1) v = v.replace(/\+/g, "+");
+                      if ((v.match(/\+/g) || []).length > 1)
+                        v = v.replace(/\+/g, "+");
                       setPhone(v);
                     }}
                     onBlur={(e) => {

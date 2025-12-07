@@ -14,7 +14,7 @@ const sampleRestaurants = [
 // Optional: per-restaurant capacities for tables (2/4/6/8 people).
 // If a restaurant name is not present here, defaults will be used.
 const capacityByName = {
-  "LOOOK": { table2: 6, table4: 8, table6: 4, table8: 2 },
+  LOOOK: { table2: 6, table4: 8, table6: 4, table8: 2 },
   "OQTEPA LAVASH": { table2: 10, table4: 6, table6: 3, table8: 1 },
   "Bellissimo PIZZA": { table2: 8, table4: 10, table6: 4, table8: 2 },
 };
@@ -32,7 +32,11 @@ const sampleMenu = [
   { name: "Beshbarmoq", slug: "beshbarmoq", logoUrl: "/photo/beshbarmoq.jpg" },
   { name: "Norin", slug: "norin", logoUrl: "/photo/norin.jpg" },
   { name: "Hasb", slug: "hasb", logoUrl: "/photo/hasb.jpg" },
-  { name: "Tandir go'shti", slug: "tandir-goshti", logoUrl: "/photo/tandirgosht.jpg" },
+  {
+    name: "Tandir go'shti",
+    slug: "tandir-goshti",
+    logoUrl: "/photo/tandirgosht.jpg",
+  },
   { name: "Grill", slug: "grill", logoUrl: "/photo/grill.jpg" },
   { name: "Mampar", slug: "mampar", logoUrl: "/photo/mampar.jpg" },
 ];
@@ -53,7 +57,12 @@ async function main() {
     select: { id: true, name: true },
   });
   for (const r of allRestaurants) {
-    const caps = capacityByName[r.name] || { table2: 5, table4: 5, table6: 5, table8: 5 };
+    const caps = capacityByName[r.name] || {
+      table2: 5,
+      table4: 5,
+      table6: 5,
+      table8: 5,
+    };
     await prisma.restaurantCapacity.upsert({
       where: { restaurantId: r.id },
       update: {
@@ -131,7 +140,10 @@ async function main() {
     // 6. Lag'mon
     lagmon: [
       { name: "Cho'zma xamir (un, suv, tuz)", mandatory: true },
-      { name: "Qayla (go'sht, piyoz, sabzi, tomat, ziravorlar)", mandatory: true },
+      {
+        name: "Qayla (go'sht, piyoz, sabzi, tomat, ziravorlar)",
+        mandatory: true,
+      },
       { name: "Sabzavotlar (balg'ari, selderey, kabilarda)", mandatory: false },
     ],
     // 7. Manti
@@ -154,7 +166,10 @@ async function main() {
     ],
     // 10. Hasib
     hasib: [
-      { name: "Go'sht (ichki a'zolar: jigar, o'pka, buyrak, taloq)", mandatory: true },
+      {
+        name: "Go'sht (ichki a'zolar: jigar, o'pka, buyrak, taloq)",
+        mandatory: true,
+      },
       { name: "Yog'", mandatory: false },
       { name: "Guruch yoki yorma", mandatory: false },
       { name: "Ichak (ichiga solish uchun)", mandatory: true },
@@ -173,7 +188,10 @@ async function main() {
     ],
     // 13. Grill
     grill: [
-      { name: "Asosiy mahsulot (Go'sht, Parranda, Baliq yoki Sabzavot)", mandatory: true },
+      {
+        name: "Asosiy mahsulot (Go'sht, Parranda, Baliq yoki Sabzavot)",
+        mandatory: true,
+      },
       { name: "Tuz, ziravorlar", mandatory: false },
       { name: "Yog' va marinad", mandatory: false },
     ],
@@ -187,8 +205,14 @@ async function main() {
     ],
     // 15. Shashlik (Yangi qo'shildi)
     shashlik: [
-      { name: "Go'sht (qo'y, mol, tovuq, baliq) yoki sabzavot", mandatory: true },
-      { name: "Marinad (piyoz, ziravorlar, o'simlik yog'i/sirka)", mandatory: true },
+      {
+        name: "Go'sht (qo'y, mol, tovuq, baliq) yoki sabzavot",
+        mandatory: true,
+      },
+      {
+        name: "Marinad (piyoz, ziravorlar, o'simlik yog'i/sirka)",
+        mandatory: true,
+      },
       { name: "Tuz", mandatory: true },
       { name: "Dud (ko'mir)", mandatory: true },
     ],

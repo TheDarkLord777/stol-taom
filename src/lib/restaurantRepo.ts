@@ -23,7 +23,9 @@ let lastCacheStatus = "MISS";
 
 export const restaurantRepo = {
   async list(): Promise<RestaurantDTO[]> {
-    const ttlMs = Number(process.env.MENU_CACHE_TTL_MS ?? 3 * 24 * 60 * 60 * 1000);
+    const ttlMs = Number(
+      process.env.MENU_CACHE_TTL_MS ?? 3 * 24 * 60 * 60 * 1000,
+    );
 
     // Check memory cache first
     if (restaurantsCache.value && Date.now() - restaurantsCache.ts < ttlMs) {
@@ -85,7 +87,9 @@ export const restaurantRepo = {
         const version = ver ? parseInt(ver, 10) : 0;
         const redisKey = `menu:restaurants:v:${version}`;
         await r.set(redisKey, JSON.stringify(result), "PX", ttlMs);
-        logger.info("[restaurantRepo:cache] cached to redis", { key: redisKey });
+        logger.info("[restaurantRepo:cache] cached to redis", {
+          key: redisKey,
+        });
         try {
           await setLastSync();
         } catch (err) {
@@ -118,17 +122,30 @@ export const restaurantRepo = {
       try {
         // bump version and write full restaurants list under the new version
         const newVer = await r.incr("menu:restaurants:version");
-        const rows = await dbTry(() => prisma.restaurant.findMany({ orderBy: { name: "asc" } }));
-        const payload = (rows as { id: string; name: string; logoUrl?: string | null; createdAt: Date }[]).map((r) => ({
+        const rows = await dbTry(() =>
+          prisma.restaurant.findMany({ orderBy: { name: "asc" } }),
+        );
+        const payload = (
+          rows as {
+            id: string;
+            name: string;
+            logoUrl?: string | null;
+            createdAt: Date;
+          }[]
+        ).map((r) => ({
           id: r.id,
           name: r.name,
           logoUrl: r.logoUrl ?? undefined,
           createdAt: r.createdAt.getTime(),
         }));
         const redisKey = `menu:restaurants:v:${newVer}`;
-        const ttlMs = Number(process.env.MENU_CACHE_TTL_MS ?? 3 * 24 * 60 * 60 * 1000);
+        const ttlMs = Number(
+          process.env.MENU_CACHE_TTL_MS ?? 3 * 24 * 60 * 60 * 1000,
+        );
         await r.set(redisKey, JSON.stringify(payload), "PX", ttlMs);
-        logger.info("[restaurantRepo:cache] write-through wrote", { key: redisKey });
+        logger.info("[restaurantRepo:cache] write-through wrote", {
+          key: redisKey,
+        });
         try {
           await setLastSync();
         } catch (err) {

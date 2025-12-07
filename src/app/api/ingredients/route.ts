@@ -13,14 +13,14 @@ export const dynamic = "force-dynamic";
  * 3. Database (source of truth)
  */
 export async function GET(req: NextRequest) {
-    try {
-        const ingredients = await ingredientRepo.list();
-        return NextResponse.json({ ingredients }, { status: 200 });
-    } catch (err) {
-        logger.error("[api:ingredients] GET error", err);
-        return NextResponse.json(
-            { error: "Failed to fetch ingredients" },
-            { status: 500 },
-        );
-    }
+  try {
+    const ingredients = await ingredientRepo.list();
+    return NextResponse.json({ ingredients }, { status: 200 });
+  } catch (err) {
+    logger.error("[api:ingredients] GET error", err);
+    return NextResponse.json(
+      { error: "Failed to fetch ingredients" },
+      { status: 500 },
+    );
+  }
 }

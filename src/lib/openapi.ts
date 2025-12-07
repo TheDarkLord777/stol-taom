@@ -43,9 +43,16 @@ export function getSwaggerSpec() {
   specAny.components.schemas = specAny.components.schemas ?? {};
 
   // ReservationRequest schema (client sends `tablesCount`)
-  specAny.components.schemas.ReservationRequest = specAny.components.schemas.ReservationRequest ?? {
+  specAny.components.schemas.ReservationRequest = specAny.components.schemas
+    .ReservationRequest ?? {
     type: "object",
-    required: ["restaurantId", "fromDate", "toDate", "partySize", "tablesCount"],
+    required: [
+      "restaurantId",
+      "fromDate",
+      "toDate",
+      "partySize",
+      "tablesCount",
+    ],
     properties: {
       restaurantId: { type: "string" },
       fromDate: { type: "string", format: "date-time" },
@@ -56,7 +63,8 @@ export function getSwaggerSpec() {
   };
 
   // Availability response schema
-  specAny.components.schemas.AvailabilityResponse = specAny.components.schemas.AvailabilityResponse ?? {
+  specAny.components.schemas.AvailabilityResponse = specAny.components.schemas
+    .AvailabilityResponse ?? {
     type: "object",
     properties: {
       sizes: {
@@ -81,14 +89,33 @@ export function getSwaggerSpec() {
         description:
           "Return how many tables of each size are available within the requested window. Query parameters `from` and `to` are required ISO datetimes.",
         parameters: [
-          { name: "id", in: "path", required: true, schema: { type: "string" } },
-          { name: "from", in: "query", required: true, schema: { type: "string", format: "date-time" } },
-          { name: "to", in: "query", required: true, schema: { type: "string", format: "date-time" } },
+          {
+            name: "id",
+            in: "path",
+            required: true,
+            schema: { type: "string" },
+          },
+          {
+            name: "from",
+            in: "query",
+            required: true,
+            schema: { type: "string", format: "date-time" },
+          },
+          {
+            name: "to",
+            in: "query",
+            required: true,
+            schema: { type: "string", format: "date-time" },
+          },
         ],
         responses: {
           "200": {
             description: "Availability response",
-            content: { "application/json": { schema: { $ref: "#/components/schemas/AvailabilityResponse" } } },
+            content: {
+              "application/json": {
+                schema: { $ref: "#/components/schemas/AvailabilityResponse" },
+              },
+            },
           },
         },
       },
@@ -96,14 +123,38 @@ export function getSwaggerSpec() {
   }
 
   // Ensure the reservations path has a request schema
-  if (!specAny.paths["/api/reservations"] || !specAny.paths["/api/reservations"].post) {
-    specAny.paths["/api/reservations"] = specAny.paths["/api/reservations"] ?? {};
+  if (
+    !specAny.paths["/api/reservations"] ||
+    !specAny.paths["/api/reservations"].post
+  ) {
+    specAny.paths["/api/reservations"] =
+      specAny.paths["/api/reservations"] ?? {};
     specAny.paths["/api/reservations"].post = {
       summary: "Create a reservation",
-      requestBody: { required: true, content: { "application/json": { schema: { $ref: "#/components/schemas/ReservationRequest" } } } },
+      requestBody: {
+        required: true,
+        content: {
+          "application/json": {
+            schema: { $ref: "#/components/schemas/ReservationRequest" },
+          },
+        },
+      },
       responses: {
-        "201": { description: "Created", content: { "application/json": { schema: { type: "object" } } } },
-        "409": { description: "Conflict (no availability)", content: { "application/json": { schema: { type: "object", properties: { error: { type: "string" } } } } } },
+        "201": {
+          description: "Created",
+          content: { "application/json": { schema: { type: "object" } } },
+        },
+        "409": {
+          description: "Conflict (no availability)",
+          content: {
+            "application/json": {
+              schema: {
+                type: "object",
+                properties: { error: { type: "string" } },
+              },
+            },
+          },
+        },
       },
     };
   }

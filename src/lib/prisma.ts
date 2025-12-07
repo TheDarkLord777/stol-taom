@@ -22,7 +22,9 @@ if (process.env.PRISMA_LOG_QUERIES === "1") {
     // eslint-disable-next-line no-console
     console.info(`[prisma:query] ${e.query}`);
     // eslint-disable-next-line no-console
-    console.info(`[prisma:params] ${JSON.stringify(e.params)} duration:${e.duration ?? "-"}ms`);
+    console.info(
+      `[prisma:params] ${JSON.stringify(e.params)} duration:${e.duration ?? "-"}ms`,
+    );
   });
 }
 
@@ -35,12 +37,15 @@ prisma.$use(async (params, next) => {
   const slowThreshold = Number(process.env.PRISMA_SLOW_MS || 100);
   if (duration >= slowThreshold) {
     // eslint-disable-next-line no-console
-    console.warn(`[prisma] slow query: ${params.model}.${params.action} took ${duration}ms`, {
-      model: params.model,
-      action: params.action,
-      duration,
-      // Do not log args by default to avoid PII — enable manually if needed
-    });
+    console.warn(
+      `[prisma] slow query: ${params.model}.${params.action} took ${duration}ms`,
+      {
+        model: params.model,
+        action: params.action,
+        duration,
+        // Do not log args by default to avoid PII — enable manually if needed
+      },
+    );
   }
 
   return result;
@@ -49,7 +54,14 @@ prisma.$use(async (params, next) => {
 // Invalidate Redis cache for known models on write operations.
 prisma.$use(async (params, next) => {
   // only act on write operations
-  const writeActions = ["create", "update", "delete", "upsert", "updateMany", "deleteMany"];
+  const writeActions = [
+    "create",
+    "update",
+    "delete",
+    "upsert",
+    "updateMany",
+    "deleteMany",
+  ];
   const res = await next(params);
   try {
     if (writeActions.includes(params.action)) {
@@ -96,10 +108,18 @@ prisma.$use(async (params, next) => {
             })();
             if (keys.length > 0) {
               await delKeys(keys);
-              logger.info("prisma:cache:invalidated", { model, pattern: p, keys: keys.length });
+              logger.info("prisma:cache:invalidated", {
+                model,
+                pattern: p,
+                keys: keys.length,
+              });
             }
           } catch (err) {
-            logger.warn("prisma:cache:invalidate:error", { model, pattern: p, err });
+            logger.warn("prisma:cache:invalidate:error", {
+              model,
+              pattern: p,
+              err,
+            });
           }
         }
         await setLastSync();
@@ -116,7 +136,7 @@ export function resetPrisma() {
   try {
     // eslint-disable-next-line @typescript-eslint/no-floating-promises
     prisma?.$disconnect?.();
-  } catch { }
+  } catch {}
   prisma = new PrismaClient({
     log: ["error", "warn"],
   });

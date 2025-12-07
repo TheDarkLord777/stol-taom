@@ -34,9 +34,10 @@ export default function OrdersClient() {
     // fallback/compat: also keep a Set of selected ids for reliable multi-select
     const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
     const [qrData, setQrData] = useState<string | null>(null);
+    const [qrLink, setQrLink] = useState<string | null>(null);
     const [showQrModal, setShowQrModal] = useState(false);
     const [qrOpenedAt, setQrOpenedAt] = useState<number | null>(null);
-    const [qrCountdown, setQrCountdown] = useState<number>(120);
+    const [qrCountdown, setQrCountdown] = useState<number>(180);
     const [pendingCountAtOpen, setPendingCountAtOpen] = useState<number | null>(null);
     // per-item QR data so we can show QR inline next to the related item
     const [qrMap, setQrMap] = useState<Record<string, string>>({});
@@ -44,13 +45,16 @@ export default function OrdersClient() {
 
     const [pendingOrders, setPendingOrders] = useState<Array<{ id: string; status: string; createdAt?: string; items: Array<{ id: string; name: string; quantity: number; price?: number | null; logoUrl?: string }> }> | null>(null);
 
-    const fetchCart = async (opts?: { showLoading?: boolean }) => {
+    const fetchCart = async (opts?: { showLoading?: boolean; refresh?: boolean }) => {
         const showLoading = opts?.showLoading !== false;
         if (showLoading) setLoading(true);
         setError(null);
         try {
+            const url = new URL('/api/orders', window.location.origin);
+            url.searchParams.set('fast', '1');
+            if (opts?.refresh) url.searchParams.set('refresh', '1');
             // Use fast mode for frequent refreshes (skips heavy recent-orders join)
-            const res = await fetch("/api/orders?fast=1", { credentials: "same-origin" });
+            const res = await fetch(url.toString(), { credentials: "same-origin" });
             if (res.status === 401) {
                 setItems([]);
                 setError("Siz tizimga kirmagansiz. Iltimos ");
@@ -98,30 +102,33 @@ export default function OrdersClient() {
         };
     }, []);
 
-    // While QR modal is open, poll for updates briefly so external confirm reflects quickly
+    // While QR modal is open, keep polling so external confirm reflects quickly (up to ~2m)
     useEffect(() => {
         if (!showQrModal) return;
-        let ticks = 0;
+        const startedAt = qrOpenedAt ?? Date.now();
+        const maxRunMs = 130000; // slightly over 2 minutes window
         const id = setInterval(() => {
-            ticks += 1;
-            void fetchCart();
-            if (ticks >= 20) { // ~60s if 3s interval
+            const elapsed = Date.now() - startedAt;
+            if (elapsed > maxRunMs) {
                 clearInterval(id);
+                return;
             }
+            void fetchCart({ showLoading: false, refresh: true });
         }, 3000);
         return () => clearInterval(id);
-    }, [showQrModal]);
+    }, [showQrModal, qrOpenedAt]);
 
     // Countdown for QR validity (2 minutes)
     useEffect(() => {
         if (!showQrModal || qrOpenedAt == null) return;
-        const end = qrOpenedAt + 120000;
+        const end = qrOpenedAt + 180000; // 3 minutes to match backend token TTL
         const tick = () => {
             const remain = Math.max(0, end - Date.now());
             setQrCountdown(Math.ceil(remain / 1000));
             if (remain <= 0) {
                 setShowQrModal(false);
                 setQrData(null);
+                setQrLink(null);
                 try { toast.error("QR vaqti tugadi (2:00)"); } catch { }
             }
         };
@@ -136,7 +143,7 @@ export default function OrdersClient() {
         const opened = qrOpenedAt ?? 0;
         const cartPaid = (items ?? []).some((x) => {
             const paid = Boolean((x as LocalItem).paid);
-            const ts = (x as any).addedAt || (x as any).createdAt;
+            const ts = (x as any).updatedAt || (x as any).addedAt || (x as any).createdAt;
             const t = ts ? new Date(ts).getTime() : 0;
             return paid && t >= opened;
         });
@@ -150,6 +157,7 @@ export default function OrdersClient() {
         if (cartPaid || reservationsPaid || pendingDropped) {
             setShowQrModal(false);
             setQrData(null);
+            setQrLink(null);
             setQrMap({});
             setPendingCountAtOpen(null);
             try { toast.success("To'lov yakunlandi"); } catch { }
@@ -522,12 +530,14 @@ export default function OrdersClient() {
 
                                                     // If the checkout returned an immediate QR (faster single request), use it.
                                                     const qrFromCheckout = checkoutData?.qrData ?? null;
+                                                    const linkFromCheckout = checkoutData?.paymentRequest?.confirmUrl ?? checkoutData?.paymentRequest?.qrUrl ?? checkoutData?.confirmUrl ?? null;
                                                     if (qrFromCheckout) {
                                                         setQrMap((m) => ({ ...m, [it.id]: qrFromCheckout }));
                                                         setQrData(qrFromCheckout);
+                                                        setQrLink(linkFromCheckout);
                                                         setShowQrModal(true);
                                                         setQrOpenedAt(Date.now());
-                                                        setQrCountdown(120);
+                                                        setQrCountdown(180);
                                                         setPendingCountAtOpen(pendingOrders?.length ?? 0);
                                                         try { toast.success('QR kod tayyor (demo)'); } catch { }
                                                         await fetchCart();
@@ -541,14 +551,16 @@ export default function OrdersClient() {
                                                         const payData = await payRes.json().catch(() => ({}));
                                                         if (!payRes.ok) throw new Error(payData?.error || 'QR init failed');
                                                         const qr = payData?.paymentRequest?.qrData ?? payData?.qrData ?? null;
+                                                        const qrLinkFromPay = payData?.paymentRequest?.confirmUrl ?? payData?.paymentRequest?.qrUrl ?? payData?.confirmUrl ?? null;
                                                         if (!qr) throw new Error('QR data missing');
 
                                                         // show inline QR and modal
                                                         setQrMap((m) => ({ ...m, [it.id]: qr }));
                                                         setQrData(qr);
+                                                        setQrLink(qrLinkFromPay);
                                                         setShowQrModal(true);
                                                         setQrOpenedAt(Date.now());
-                                                        setQrCountdown(120);
+                                                        setQrCountdown(180);
                                                         setPendingCountAtOpen(pendingOrders?.length ?? 0);
                                                         try { toast.success('QR kod tayyor (demo)'); } catch { }
                                                         await fetchCart();
@@ -760,13 +772,15 @@ export default function OrdersClient() {
                                                     const data = await res.json().catch(() => ({}));
                                                     if (!res.ok) throw new Error(data?.error || 'QR init failed');
                                                     const qr = data?.paymentRequest?.qrData ?? data?.qrData ?? null;
+                                                    const qrLinkFromResv = data?.paymentRequest?.confirmUrl ?? data?.paymentRequest?.qrUrl ?? data?.confirmUrl ?? null;
                                                     if (!qr) throw new Error('QR data missing');
                                                     // show inline and modal
                                                     setQrMap((m) => ({ ...m, [r.id]: qr }));
                                                     setQrData(qr);
+                                                    setQrLink(qrLinkFromResv);
                                                     setShowQrModal(true);
                                                     setQrOpenedAt(Date.now());
-                                                    setQrCountdown(120);
+                                                    setQrCountdown(180);
                                                     setPendingCountAtOpen(pendingOrders?.length ?? 0);
                                                     try { toast.success("QR tayyor (bron)"); } catch { }
                                                     // keep reservation list updated
@@ -872,11 +886,13 @@ export default function OrdersClient() {
                                                     const data = await res.json().catch(() => ({}));
                                                     if (!res.ok) throw new Error(data?.error || 'QR init failed');
                                                     const qr = data?.paymentRequest?.qrData ?? data?.qrData ?? null;
+                                                    const qrLinkFromPending = data?.paymentRequest?.confirmUrl ?? data?.paymentRequest?.qrUrl ?? data?.confirmUrl ?? null;
                                                     if (!qr) throw new Error('QR data missing');
                                                     setQrData(qr);
+                                                    setQrLink(qrLinkFromPending);
                                                     setShowQrModal(true);
                                                     setQrOpenedAt(Date.now());
-                                                    setQrCountdown(120);
+                                                    setQrCountdown(180);
                                                     try { toast.success('QR kod tayyor (buyurtma)'); } catch { }
                                                 } catch (e) {
                                                     try { toast.error(String((e as Error).message || e)); } catch { }
@@ -897,17 +913,50 @@ export default function OrdersClient() {
             {/* QR modal */}
             {showQrModal && qrData && (
                 <div className="fixed inset-0 z-60 flex items-center justify-center">
-                    <div className="fixed inset-0 bg-black/60" onClick={() => setShowQrModal(false)} />
+                    <div
+                        className="fixed inset-0 bg-black/60"
+                        onClick={() => {
+                            setShowQrModal(false);
+                            setQrData(null);
+                            setQrLink(null);
+                        }}
+                    />
                     <div className="bg-white dark:bg-gray-900 rounded p-4 z-70 max-w-sm w-full mx-4">
                         <div className="flex justify-between items-center mb-3">
                             <div className="font-semibold">QR orqali to'lash</div>
-                            <button onClick={() => setShowQrModal(false)} className="text-sm underline">Yopish</button>
+                            <button
+                                onClick={() => {
+                                    setShowQrModal(false);
+                                    setQrData(null);
+                                    setQrLink(null);
+                                }}
+                                className="text-sm underline"
+                            >
+                                Yopish
+                            </button>
                         </div>
                         <div className="mb-2 text-sm">Vaqt: <span className="font-mono">{String(Math.floor(qrCountdown / 60)).padStart(2, '0')}:{String(qrCountdown % 60).padStart(2, '0')}</span></div>
                         <div className="flex justify-center">
                             {/* qrData is a data URL for an SVG (placeholder) */}
                             <img src={qrData} alt="QR" className="max-w-full h-auto" />
                         </div>
+                        {qrLink ? (
+                            <div className="mt-3 flex justify-center">
+                                <Button
+                                    onClick={() => {
+                                        try {
+                                            window.open(qrLink, '_blank', 'noopener,noreferrer');
+                                        } catch {}
+                                        setShowQrModal(false);
+                                        setQrData(null);
+                                        setQrLink(null);
+                                    }}
+                                    className="bg-emerald-600 hover:bg-emerald-700 text-white"
+                                >
+                                    QR linkni ochish
+                                </Button>
+                            </div>
+                        ) : null}
                         <div className="mt-3 text-sm text-gray-600">QRni skaner qilib to'lovni amalga oshiring. QR 2 daqiqa ichida amal qiladi.</div>
                         {/* No dev simulation button in production UI */}
                     </div>

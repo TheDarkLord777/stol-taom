@@ -3,7 +3,7 @@ import Image from "next/image";
 import * as React from "react";
 import TiltedCard from "@/components/ui/TiltedCard";
 import { useRouter } from "next/navigation";
-import { toast } from 'sonner';
+import { toast } from "sonner";
 import { addToCart, enqueueAndTrySync } from "@/lib/cart";
 
 export type MenuItem = {
@@ -43,7 +43,12 @@ export default function MenuGrid({
   const [detail, setDetail] = React.useState<{
     restaurants?: Array<{ id: string; name: string }>;
     description?: string;
-    ingredients?: Array<{ id: string; name: string; mandatory: boolean; selected?: boolean }>;
+    ingredients?: Array<{
+      id: string;
+      name: string;
+      mandatory: boolean;
+      selected?: boolean;
+    }>;
     quantity?: number;
   } | null>(null);
   const [fetched, setFetched] = React.useState<MenuItem[] | null>(null);
@@ -102,7 +107,7 @@ export default function MenuGrid({
       >
         <div className="w-full">
           <TiltedCard
-            imageSrc={(it.imageUrl ?? it.logoUrl) ?? undefined}
+            imageSrc={it.imageUrl ?? it.logoUrl ?? undefined}
             altText={it.name}
             captionText={it.name}
             containerHeight="14rem"
@@ -118,7 +123,9 @@ export default function MenuGrid({
         <div className="p-4 flex flex-col gap-2">
           <h3 className="text-base font-semibold text-gray-800">{it.name}</h3>
           {it.description ? (
-            <p className="text-sm text-gray-600 line-clamp-3">{it.description}</p>
+            <p className="text-sm text-gray-600 line-clamp-3">
+              {it.description}
+            </p>
           ) : null}
           <div className="mt-2 flex items-center justify-between">
             <div className="text-sm text-gray-500">{it.price ?? ""}</div>
@@ -145,13 +152,24 @@ export default function MenuGrid({
     setDetailLoading(true);
 
     // fetch detail and ingredients in parallel and merge
-    const detailP = fetch(`/api/menu/${it.id}`).then((r) => (r.ok ? r.json() : null)).catch(() => null);
-    const ingP = fetch(`/api/menu/${it.id}/ingredients`).then((r) => (r.ok ? r.json() : null)).catch(() => null);
+    const detailP = fetch(`/api/menu/${it.id}`)
+      .then((r) => (r.ok ? r.json() : null))
+      .catch(() => null);
+    const ingP = fetch(`/api/menu/${it.id}/ingredients`)
+      .then((r) => (r.ok ? r.json() : null))
+      .catch(() => null);
 
     Promise.all([detailP, ingP])
       .then(([d, ing]) => {
         const base = d ?? { description: undefined, restaurants: [] };
-        const ingredients = Array.isArray(ing?.ingredients) ? ing.ingredients.map((x: any) => ({ id: String(x.id), name: x.name, mandatory: Boolean(x.mandatory), selected: Boolean(x.mandatory) })) : [];
+        const ingredients = Array.isArray(ing?.ingredients)
+          ? ing.ingredients.map((x: any) => ({
+              id: String(x.id),
+              name: x.name,
+              mandatory: Boolean(x.mandatory),
+              selected: Boolean(x.mandatory),
+            }))
+          : [];
         setDetail({ ...base, ingredients });
       })
       .catch(() => setDetail(null))
@@ -181,7 +199,9 @@ export default function MenuGrid({
       return {
         ...prevDetail,
         ingredients: prevDetail.ingredients.map((ingredient) =>
-          ingredient.id === id ? { ...ingredient, selected: !ingredient.selected } : ingredient
+          ingredient.id === id
+            ? { ...ingredient, selected: !ingredient.selected }
+            : ingredient,
         ),
       };
     });
@@ -199,7 +219,10 @@ export default function MenuGrid({
   const removeIngredient = (id: string) => {
     setDetail((prev) => {
       if (!prev || !prev.ingredients) return prev;
-      return { ...prev, ingredients: prev.ingredients.filter((i) => i.id !== id) };
+      return {
+        ...prev,
+        ingredients: prev.ingredients.filter((i) => i.id !== id),
+      };
     });
   };
 
@@ -212,7 +235,10 @@ export default function MenuGrid({
     if (!detail) return;
     setSaving(true);
     try {
-      const payload = (detail.ingredients ?? []).map((i) => ({ name: i.name, mandatory: Boolean(i.mandatory) }));
+      const payload = (detail.ingredients ?? []).map((i) => ({
+        name: i.name,
+        mandatory: Boolean(i.mandatory),
+      }));
       const res = await fetch(`/api/menu/${selected.id}/ingredients`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -221,7 +247,19 @@ export default function MenuGrid({
       if (!res.ok) throw new Error("save-failed");
       const data = await res.json();
       // normalize ids from server
-      setDetail((prev) => (prev ? { ...prev, ingredients: (data.ingredients ?? []).map((x: any) => ({ id: String(x.id), name: x.name, mandatory: Boolean(x.mandatory), selected: Boolean(x.mandatory) })) } : prev));
+      setDetail((prev) =>
+        prev
+          ? {
+              ...prev,
+              ingredients: (data.ingredients ?? []).map((x: any) => ({
+                id: String(x.id),
+                name: x.name,
+                mandatory: Boolean(x.mandatory),
+                selected: Boolean(x.mandatory),
+              })),
+            }
+          : prev,
+      );
     } catch (e) {
       console.error("Failed saving ingredients", e);
       // optionally show toast
@@ -287,7 +325,9 @@ export default function MenuGrid({
                 )}
               </div>
               <div className="p-6">
-                <h2 className="mb-2 text-2xl font-bold text-gray-800">{selected.name}</h2>
+                <h2 className="mb-2 text-2xl font-bold text-gray-800">
+                  {selected.name}
+                </h2>
                 <div className="mb-4 text-sm text-gray-600">
                   {detailLoading ? (
                     <span>Yuklanmoqda…</span>
@@ -318,7 +358,9 @@ export default function MenuGrid({
                 </div>
 
                 {/* Ingredients Section */}
-                <h3 className="mt-4 mb-2 text-lg font-semibold text-gray-700">Ingredientlar</h3>
+                <h3 className="mt-4 mb-2 text-lg font-semibold text-gray-700">
+                  Ingredientlar
+                </h3>
                 <div className="space-y-2">
                   {detailLoading ? (
                     <div className="h-3 w-40 rounded bg-gray-200 shimmer" />
@@ -333,7 +375,10 @@ export default function MenuGrid({
                           onChange={() => handleIngredientChange(ingredient.id)}
                           className="mr-2"
                         />
-                        <label htmlFor={`ingredient-${ingredient.id}`} className="text-gray-700">
+                        <label
+                          htmlFor={`ingredient-${ingredient.id}`}
+                          className="text-gray-700"
+                        >
                           {ingredient.name}
                         </label>
                       </div>
@@ -352,7 +397,10 @@ export default function MenuGrid({
                       onClick={() => {
                         setDetail((prev) => {
                           if (!prev) return prev;
-                          return { ...prev, quantity: Math.max(1, (prev.quantity ?? 1) - 1) } as any;
+                          return {
+                            ...prev,
+                            quantity: Math.max(1, (prev.quantity ?? 1) - 1),
+                          } as any;
                         });
                       }}
                       className="h-10 w-10 rounded border bg-white"
@@ -362,10 +410,12 @@ export default function MenuGrid({
                     <input
                       type="number"
                       min={1}
-                      value={(detail?.quantity ?? 1)}
+                      value={detail?.quantity ?? 1}
                       onChange={(e) => {
                         const v = Math.max(1, Number(e.target.value || 1));
-                        setDetail((prev) => (prev ? { ...prev, quantity: v } : prev));
+                        setDetail((prev) =>
+                          prev ? { ...prev, quantity: v } : prev,
+                        );
                       }}
                       className="w-16 text-center rounded border px-2 py-1"
                     />
@@ -374,7 +424,10 @@ export default function MenuGrid({
                       onClick={() => {
                         setDetail((prev) => {
                           if (!prev) return prev;
-                          return { ...prev, quantity: (prev.quantity ?? 1) + 1 } as any;
+                          return {
+                            ...prev,
+                            quantity: (prev.quantity ?? 1) + 1,
+                          } as any;
                         });
                       }}
                       className="h-10 w-10 rounded border bg-white"
@@ -397,103 +450,141 @@ export default function MenuGrid({
                           ingredients: (detail?.ingredients ?? [])
                             // include ingredients that are either selected by the user
                             // or mandatory (always included)
-                            .filter((i) => Boolean(i.selected) || Boolean(i.mandatory))
+                            .filter(
+                              (i) =>
+                                Boolean(i.selected) || Boolean(i.mandatory),
+                            )
                             .map((i) => ({ id: i.id, name: i.name })),
                           quantity: detail?.quantity ?? 1,
                         };
 
                         try {
-                          const res = await fetch('/api/cart/add', {
-                            method: 'POST',
-                            headers: { 'Content-Type': 'application/json' },
-                            credentials: 'same-origin',
+                          const res = await fetch("/api/cart/add", {
+                            method: "POST",
+                            headers: { "Content-Type": "application/json" },
+                            credentials: "same-origin",
                             body: JSON.stringify(payload),
                           });
                           if (res.status === 401) {
                             // user is not authenticated or token expired -> redirect to login
                             // do NOT add to cart locally to avoid losing intent
-                            router.push('/login');
+                            router.push("/login");
                             return;
                           }
                           if (!res.ok) {
                             const data = await res.json().catch(() => ({}));
-                            throw new Error(data?.error || 'Failed adding to cart');
+                            throw new Error(
+                              data?.error || "Failed adding to cart",
+                            );
                           }
                           const data = await res.json();
-                          console.log('Added to server cart', data);
+                          console.log("Added to server cart", data);
                           // notify other tabs/pages to refresh orders
                           try {
-                            const bc = new BroadcastChannel('orders');
-                            bc.postMessage({ type: 'orders:update' });
+                            const bc = new BroadcastChannel("orders");
+                            bc.postMessage({ type: "orders:update" });
                             bc.close();
-                          } catch { }
+                          } catch {}
                           try {
                             toast.success("Taom savatga qo'shildi.", {
-                              description: "Buyurtmalar sahifasida ko'rishingiz mumkin.",
+                              description:
+                                "Buyurtmalar sahifasida ko'rishingiz mumkin.",
                               action: {
                                 label: "Orders-ga o'tish",
-                                onClick: () => router.push('/orders'),
+                                onClick: () => router.push("/orders"),
                               },
                             });
-                          } catch { }
+                          } catch {}
                           closeDetail();
                         } catch (e) {
-                          console.error('Add to cart error', e);
+                          console.error("Add to cart error", e);
                           // network or other error -> fallback to offline queue
                           try {
                             const r = await enqueueAndTrySync(payload as any);
                             // if enqueue synced immediately (we managed to reach server), notify others
                             if (r?.synced) {
                               try {
-                                const bc = new BroadcastChannel('orders');
-                                bc.postMessage({ type: 'orders:update' });
+                                const bc = new BroadcastChannel("orders");
+                                bc.postMessage({ type: "orders:update" });
                                 bc.close();
-                              } catch { }
+                              } catch {}
                             }
                             try {
-                              toast.success("Taom savatga qo'shildi (offline).", {
-                                description: "Buyurtmalar sahifasida ko'rishingiz mumkin.",
-                                action: {
-                                  label: "Orders-ga o'tish",
-                                  onClick: () => router.push('/orders'),
+                              toast.success(
+                                "Taom savatga qo'shildi (offline).",
+                                {
+                                  description:
+                                    "Buyurtmalar sahifasida ko'rishingiz mumkin.",
+                                  action: {
+                                    label: "Orders-ga o'tish",
+                                    onClick: () => router.push("/orders"),
+                                  },
                                 },
-                              });
-                            } catch { }
+                              );
+                            } catch {}
                             closeDetail();
                           } catch {
                             // if even enqueue fails, as absolute last resort write to local cart
                             try {
                               addToCart(payload as any);
                               try {
-                                toast.success("Taom savatga qo'shildi (offline).", {
-                                  description: "Buyurtmalar sahifasida ko'rishingiz mumkin.",
-                                  action: {
-                                    label: "Orders-ga o'tish",
-                                    onClick: () => router.push('/orders'),
+                                toast.success(
+                                  "Taom savatga qo'shildi (offline).",
+                                  {
+                                    description:
+                                      "Buyurtmalar sahifasida ko'rishingiz mumkin.",
+                                    action: {
+                                      label: "Orders-ga o'tish",
+                                      onClick: () => router.push("/orders"),
+                                    },
                                   },
-                                });
-                              } catch { }
+                                );
+                              } catch {}
                               closeDetail();
-                            } catch { }
+                            } catch {}
                           }
                         } finally {
                           // clear adding state for this item
-                          if (selected) setAddingMap((m) => ({ ...m, [selected.id]: false }));
+                          if (selected)
+                            setAddingMap((m) => ({
+                              ...m,
+                              [selected.id]: false,
+                            }));
                         }
                       }}
-                      disabled={selected ? Boolean(addingMap[selected.id]) : false}
-                      aria-busy={selected ? Boolean(addingMap[selected.id]) : false}
+                      disabled={
+                        selected ? Boolean(addingMap[selected.id]) : false
+                      }
+                      aria-busy={
+                        selected ? Boolean(addingMap[selected.id]) : false
+                      }
                     >
                       {selected && addingMap[selected.id] ? (
                         <>
-                          <svg className="animate-spin -ml-1 mr-2 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                            <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                            <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z"></path>
+                          <svg
+                            className="animate-spin -ml-1 mr-2 h-5 w-5 text-white"
+                            xmlns="http://www.w3.org/2000/svg"
+                            fill="none"
+                            viewBox="0 0 24 24"
+                          >
+                            <circle
+                              className="opacity-25"
+                              cx="12"
+                              cy="12"
+                              r="10"
+                              stroke="currentColor"
+                              strokeWidth="4"
+                            ></circle>
+                            <path
+                              className="opacity-75"
+                              fill="currentColor"
+                              d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z"
+                            ></path>
                           </svg>
                           Qo'shilmoqda...
                         </>
                       ) : (
-                        'Savatga qo\'shish'
+                        "Savatga qo'shish"
                       )}
                     </button>
                   </div>
@@ -501,9 +592,8 @@ export default function MenuGrid({
               </div>
             </div>
           </div>
-        </div >
-      ) : null
-      }
+        </div>
+      ) : null}
     </>
   );
 }

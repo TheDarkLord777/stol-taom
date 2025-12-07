@@ -4,9 +4,9 @@ import { getRedis } from "./redis";
 import { logger } from "./logger";
 
 export type IngredientDTO = {
-    id: string;
-    name: string;
-    createdAt: number;
+  id: string;
+  name: string;
+  createdAt: number;
 };
 
 /**
@@ -15,121 +15,129 @@ export type IngredientDTO = {
 let ingredientsCache = { value: null as IngredientDTO[] | null, ts: 0 };
 
 export const ingredientRepo = {
-    /**
-     * List all ingredients with Redis + memory caching
-     * Strategy:
-     * - Check memory cache first (fast)
-     * - Fall back to Redis (if available)
-     * - Finally query database and refresh caches
-     */
-    async list(): Promise<IngredientDTO[]> {
-        const ttlMs = Number(process.env.INGREDIENTS_CACHE_TTL_MS ?? 3 * 24 * 60 * 60 * 1000); // 3 days default
+  /**
+   * List all ingredients with Redis + memory caching
+   * Strategy:
+   * - Check memory cache first (fast)
+   * - Fall back to Redis (if available)
+   * - Finally query database and refresh caches
+   */
+  async list(): Promise<IngredientDTO[]> {
+    const ttlMs = Number(
+      process.env.INGREDIENTS_CACHE_TTL_MS ?? 3 * 24 * 60 * 60 * 1000,
+    ); // 3 days default
 
-        // Check memory cache first
-        if (ingredientsCache.value && Date.now() - ingredientsCache.ts < ttlMs) {
-            logger.info("[ingredientRepo:cache] HIT memory");
-            return ingredientsCache.value;
+    // Check memory cache first
+    if (ingredientsCache.value && Date.now() - ingredientsCache.ts < ttlMs) {
+      logger.info("[ingredientRepo:cache] HIT memory");
+      return ingredientsCache.value;
+    }
+
+    const r = getRedis();
+
+    // Try Redis if available
+    if (r) {
+      try {
+        const verRaw = await r.get("ingredients:version");
+        const ver = verRaw ? Number(verRaw) : 0;
+        const redisKey = `ingredients:v:${ver}`;
+        const cached = await r.get(redisKey);
+        if (cached) {
+          const parsed = JSON.parse(cached) as IngredientDTO[];
+          ingredientsCache.value = parsed;
+          ingredientsCache.ts = Date.now();
+          logger.info("[ingredientRepo:cache] HIT redis", { key: redisKey });
+          return parsed;
         }
+      } catch (err) {
+        logger.warn("[ingredientRepo:cache] Redis read failed", err);
+      }
+    }
 
-        const r = getRedis();
+    // Cache miss — query database
+    logger.info("[ingredientRepo:cache] MISS, querying database");
+    const rows = await dbTry(() =>
+      prisma.ingredient.findMany({ orderBy: { name: "asc" } }),
+    );
 
-        // Try Redis if available
-        if (r) {
-            try {
-                const verRaw = await r.get("ingredients:version");
-                const ver = verRaw ? Number(verRaw) : 0;
-                const redisKey = `ingredients:v:${ver}`;
-                const cached = await r.get(redisKey);
-                if (cached) {
-                    const parsed = JSON.parse(cached) as IngredientDTO[];
-                    ingredientsCache.value = parsed;
-                    ingredientsCache.ts = Date.now();
-                    logger.info("[ingredientRepo:cache] HIT redis", { key: redisKey });
-                    return parsed;
-                }
-            } catch (err) {
-                logger.warn("[ingredientRepo:cache] Redis read failed", err);
-            }
-        }
+    const result = (
+      rows as {
+        id: string;
+        name: string;
+        createdAt: Date;
+      }[]
+    ).map((ing) => ({
+      id: ing.id,
+      name: ing.name,
+      createdAt: ing.createdAt.getTime(),
+    }));
 
-        // Cache miss — query database
-        logger.info("[ingredientRepo:cache] MISS, querying database");
-        const rows = await dbTry(() =>
-            prisma.ingredient.findMany({ orderBy: { name: "asc" } }),
-        );
+    // Update caches
+    ingredientsCache.value = result;
+    ingredientsCache.ts = Date.now();
 
-        const result = (
-            rows as {
-                id: string;
-                name: string;
-                createdAt: Date;
-            }[]
-        ).map((ing) => ({
-            id: ing.id,
-            name: ing.name,
-            createdAt: ing.createdAt.getTime(),
-        }));
+    if (r) {
+      try {
+        const verRaw = await r.get("ingredients:version");
+        const ver = verRaw ? Number(verRaw) : 0;
+        const redisKey = `ingredients:v:${ver}`;
+        await r.set(redisKey, JSON.stringify(result), "PX", ttlMs);
+        logger.info("[ingredientRepo:cache] cached to redis", {
+          key: redisKey,
+        });
+      } catch (err) {
+        logger.warn("[ingredientRepo:cache] Redis write failed", err);
+      }
+    }
 
-        // Update caches
-        ingredientsCache.value = result;
-        ingredientsCache.ts = Date.now();
+    return result;
+  },
 
-        if (r) {
-            try {
-                const verRaw = await r.get("ingredients:version");
-                const ver = verRaw ? Number(verRaw) : 0;
-                const redisKey = `ingredients:v:${ver}`;
-                await r.set(redisKey, JSON.stringify(result), "PX", ttlMs);
-                logger.info("[ingredientRepo:cache] cached to redis", { key: redisKey });
-            } catch (err) {
-                logger.warn("[ingredientRepo:cache] Redis write failed", err);
-            }
-        }
+  /**
+   * Invalidate and refresh ingredient cache
+   * (Called after any ingredient CREATE/UPDATE/DELETE operations)
+   */
+  async invalidateCache(): Promise<void> {
+    const r = getRedis();
+    if (!r) return;
 
-        return result;
-    },
+    try {
+      // Bump version
+      const newVer = await r.incr("ingredients:version");
+      logger.info("[ingredientRepo:cache] invalidated, new version", {
+        ver: newVer,
+      });
 
-    /**
-     * Invalidate and refresh ingredient cache
-     * (Called after any ingredient CREATE/UPDATE/DELETE operations)
-     */
-    async invalidateCache(): Promise<void> {
-        const r = getRedis();
-        if (!r) return;
+      // Refresh database and cache under new version
+      const rows = await dbTry(() =>
+        prisma.ingredient.findMany({ orderBy: { name: "asc" } }),
+      );
 
-        try {
-            // Bump version
-            const newVer = await r.incr("ingredients:version");
-            logger.info("[ingredientRepo:cache] invalidated, new version", { ver: newVer });
+      const result = (
+        rows as {
+          id: string;
+          name: string;
+          createdAt: Date;
+        }[]
+      ).map((ing) => ({
+        id: ing.id,
+        name: ing.name,
+        createdAt: ing.createdAt.getTime(),
+      }));
 
-            // Refresh database and cache under new version
-            const rows = await dbTry(() =>
-                prisma.ingredient.findMany({ orderBy: { name: "asc" } }),
-            );
+      const redisKey = `ingredients:v:${newVer}`;
+      const ttlMs = Number(
+        process.env.INGREDIENTS_CACHE_TTL_MS ?? 3 * 24 * 60 * 60 * 1000,
+      );
+      await r.set(redisKey, JSON.stringify(result), "PX", ttlMs);
 
-            const result = (
-                rows as {
-                    id: string;
-                    name: string;
-                    createdAt: Date;
-                }[]
-            ).map((ing) => ({
-                id: ing.id,
-                name: ing.name,
-                createdAt: ing.createdAt.getTime(),
-            }));
+      // Update memory cache
+      ingredientsCache.value = result;
+      ingredientsCache.ts = Date.now();
 
-            const redisKey = `ingredients:v:${newVer}`;
-            const ttlMs = Number(process.env.INGREDIENTS_CACHE_TTL_MS ?? 3 * 24 * 60 * 60 * 1000);
-            await r.set(redisKey, JSON.stringify(result), "PX", ttlMs);
-
-            // Update memory cache
-            ingredientsCache.value = result;
-            ingredientsCache.ts = Date.now();
-
-            logger.info("[ingredientRepo:cache] refreshed", { key: redisKey });
-        } catch (err) {
-            logger.warn("[ingredientRepo:cache] invalidateCache failed", err);
-        }
-    },
+      logger.info("[ingredientRepo:cache] refreshed", { key: redisKey });
+    } catch (err) {
+      logger.warn("[ingredientRepo:cache] invalidateCache failed", err);
+    }
+  },
 };

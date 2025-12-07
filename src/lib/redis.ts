@@ -63,7 +63,13 @@ export async function listKeys(pattern = "*") {
   let cursor = "0";
   do {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const [nextCursor, arr] = (await (r as any).scan(cursor, "MATCH", pattern, "COUNT", 100)) as any;
+    const [nextCursor, arr] = (await (r as any).scan(
+      cursor,
+      "MATCH",
+      pattern,
+      "COUNT",
+      100,
+    )) as any;
     cursor = String(nextCursor);
     for (const k of arr) keys.push(k);
   } while (cursor !== "0");

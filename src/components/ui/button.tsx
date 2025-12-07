@@ -45,7 +45,7 @@ type ButtonBaseProps = VariantProps<typeof buttonVariants> & {
 type ButtonProps =
   | (React.ComponentProps<"button"> & ButtonBaseProps)
   | (Omit<React.ComponentProps<typeof Link>, "href"> &
-    ButtonBaseProps & { href: string });
+      ButtonBaseProps & { href: string });
 
 function Button(props: ButtonProps) {
   const {

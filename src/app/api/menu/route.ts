@@ -8,7 +8,9 @@ export async function GET() {
 
   // Respect MENU_CACHE_TTL_MS for CDN/edge caching when present. Use
   // a short browser max-age but allow CDNs (s-maxage) to cache longer.
-  const ttlMs = Number(process.env.MENU_CACHE_TTL_MS ?? 3 * 24 * 60 * 60 * 1000);
+  const ttlMs = Number(
+    process.env.MENU_CACHE_TTL_MS ?? 3 * 24 * 60 * 60 * 1000,
+  );
   const sMaxAge = Math.max(0, Math.floor(ttlMs / 1000));
   const cacheControl = `public, max-age=60, s-maxage=${sMaxAge}, stale-while-revalidate=60`;
 

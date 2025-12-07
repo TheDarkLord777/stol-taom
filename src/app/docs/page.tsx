@@ -11,10 +11,20 @@ const SwaggerUI = dynamic(
 export default function ApiDocsPage() {
   return (
     <div style={{ minHeight: "100vh", background: "#fff" }}>
-      <header style={{ padding: 16, borderBottom: "1px solid #eee", display: "flex", gap: 12, alignItems: "center" }}>
+      <header
+        style={{
+          padding: 16,
+          borderBottom: "1px solid #eee",
+          display: "flex",
+          gap: 12,
+          alignItems: "center",
+        }}
+      >
         <h1 style={{ margin: 0, fontSize: 18 }}>API Documentation</h1>
         <nav style={{ marginLeft: 12 }}>
-          <Link href="/docs" style={{ marginRight: 12 }}>Swagger UI</Link>
+          <Link href="/docs" style={{ marginRight: 12 }}>
+            Swagger UI
+          </Link>
           <Link href="/docs/reservations">Reservations (human docs)</Link>
         </nav>
       </header>

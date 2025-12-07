@@ -169,19 +169,17 @@ export default function Galaxy({
   className,
   focal = [0.5, 0.5],
   rotation = [1.0, 0.0],
-  starSpeed = 0.5,           // Star Speed
-  density = 1,               // Density
-  hueShift = 140,            // Hue Shift
-  speed = 1.0,               // Animation Speed
-  mouseInteraction = true,   // Mouse Interaction
-  glowIntensity = 0.3,       // Glow Intensity
-  saturation = 0,            // Saturation
-  mouseRepulsion = true,     // Mouse Repulsion
-  twinkleIntensity = 0.3,    // Twinkle Intensity
-  rotationSpeed = 0.1,       // Rotation Speed
-  repulsionStrength = 2,     // Repulsion Strength
-
-
+  starSpeed = 0.5, // Star Speed
+  density = 1, // Density
+  hueShift = 140, // Hue Shift
+  speed = 1.0, // Animation Speed
+  mouseInteraction = true, // Mouse Interaction
+  glowIntensity = 0.3, // Glow Intensity
+  saturation = 0, // Saturation
+  mouseRepulsion = true, // Mouse Repulsion
+  twinkleIntensity = 0.3, // Twinkle Intensity
+  rotationSpeed = 0.1, // Rotation Speed
+  repulsionStrength = 2, // Repulsion Strength
 }: GalaxyProps) {
   const ctnDom = useRef<HTMLDivElement>(null);
   const targetMousePos = useRef({ x: 0.5, y: 0.5 });
@@ -198,7 +196,6 @@ export default function Galaxy({
     gl.blendFunc(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA);
     gl.clearColor(0, 0, 0, 0);
 
-
     const dpr = Math.min(window.devicePixelRatio || 1, 2);
     function resize() {
       renderer.setSize(ctn.offsetWidth * dpr, ctn.offsetHeight * dpr);
@@ -214,7 +211,9 @@ export default function Galaxy({
       fragment: fragmentShader,
       uniforms: {
         uTime: { value: 0 },
-        uResolution: { value: new Float32Array([gl.canvas.width, gl.canvas.height]) },
+        uResolution: {
+          value: new Float32Array([gl.canvas.width, gl.canvas.height]),
+        },
         uFocal: { value: new Float32Array(focal) },
         uRotation: { value: new Float32Array(rotation) },
         uStarSpeed: { value: starSpeed },
@@ -269,11 +268,17 @@ export default function Galaxy({
       program.uniforms.uTime.value = t * 0.001;
 
       // yumuq harakat (lerp)
-      smoothMousePos.current.x += (targetMousePos.current.x - smoothMousePos.current.x) * 0.05;
-      smoothMousePos.current.y += (targetMousePos.current.y - smoothMousePos.current.y) * 0.05;
-      smoothMouseActive.current += (targetMouseActive.current - smoothMouseActive.current) * 0.05;
+      smoothMousePos.current.x +=
+        (targetMousePos.current.x - smoothMousePos.current.x) * 0.05;
+      smoothMousePos.current.y +=
+        (targetMousePos.current.y - smoothMousePos.current.y) * 0.05;
+      smoothMouseActive.current +=
+        (targetMouseActive.current - smoothMouseActive.current) * 0.05;
 
-      program.uniforms.uMouse.value.set([smoothMousePos.current.x, smoothMousePos.current.y]);
+      program.uniforms.uMouse.value.set([
+        smoothMousePos.current.x,
+        smoothMousePos.current.y,
+      ]);
       program.uniforms.uMouseActiveFactor.value = smoothMouseActive.current;
 
       renderer.render({ scene: mesh });
@@ -305,8 +310,10 @@ export default function Galaxy({
     repulsionStrength,
   ]);
 
-return  <div
-    ref={ctnDom}
-    className={`w-full h-full relative pointer-events-none ${className || ""}`}
-  />
+  return (
+    <div
+      ref={ctnDom}
+      className={`w-full h-full relative pointer-events-none ${className || ""}`}
+    />
+  );
 }

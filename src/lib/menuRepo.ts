@@ -14,7 +14,9 @@ export const menuRepo = {
   // in-memory cache for menu list
   // TTL (ms) configurable via MENU_CACHE_TTL_MS (default 3 days)
   async list(limit = 100): Promise<MenuItemDTO[]> {
-    const ttlMs = Number(process.env.MENU_CACHE_TTL_MS ?? 3 * 24 * 60 * 60 * 1000);
+    const ttlMs = Number(
+      process.env.MENU_CACHE_TTL_MS ?? 3 * 24 * 60 * 60 * 1000,
+    );
     // module-scoped cache (defined below)
     if (menuListCache.value && Date.now() - menuListCache.ts < ttlMs) {
       lastCacheStatus = "HIT:memory";
@@ -26,7 +28,9 @@ export const menuRepo = {
     const r = getRedis();
 
     // Stale-while-revalidate: use versioned redis keys (menu:list:v:<ver>:limit:<limit>)
-    const refreshAheadMs = Number(process.env.MENU_CACHE_REFRESH_AHEAD_MS ?? 2 * 60 * 1000);
+    const refreshAheadMs = Number(
+      process.env.MENU_CACHE_REFRESH_AHEAD_MS ?? 2 * 60 * 1000,
+    );
 
     // Try Redis first when available
     if (r) {
@@ -57,7 +61,13 @@ export const menuRepo = {
                       prisma.menuItem.findMany({
                         take: limit,
                         orderBy: { name: "asc" },
-                        select: { id: true, name: true, slug: true, logoUrl: true, createdAt: true },
+                        select: {
+                          id: true,
+                          name: true,
+                          slug: true,
+                          logoUrl: true,
+                          createdAt: true,
+                        },
                       }),
                     )) as {
                       id: string;
@@ -77,9 +87,17 @@ export const menuRepo = {
                     const verRaw2 = await r.get("menu:list:version");
                     const ver2 = verRaw2 ? Number(verRaw2) : 0;
                     const redisKey2 = `menu:list:v:${ver2}:limit:${limit}`;
-                    await r.set(redisKey2, JSON.stringify(freshResult), "PX", ttlMs);
+                    await r.set(
+                      redisKey2,
+                      JSON.stringify(freshResult),
+                      "PX",
+                      ttlMs,
+                    );
                     // eslint-disable-next-line no-console
-                    console.info("[menuRepo:cache] refresh wrote redis", redisKey2);
+                    console.info(
+                      "[menuRepo:cache] refresh wrote redis",
+                      redisKey2,
+                    );
                     // Also update local in-memory cache so subsequent requests on this process benefit
                     menuListCache.value = freshResult;
                     menuListCache.ts = Date.now();
@@ -89,7 +107,7 @@ export const menuRepo = {
                   } finally {
                     try {
                       await r.del(lockKey);
-                    } catch { }
+                    } catch {}
                   }
                 })();
               }
@@ -183,7 +201,13 @@ export const menuRepo = {
           prisma.menuItem.findMany({
             take: 100,
             orderBy: { name: "asc" },
-            select: { id: true, name: true, slug: true, logoUrl: true, createdAt: true },
+            select: {
+              id: true,
+              name: true,
+              slug: true,
+              logoUrl: true,
+              createdAt: true,
+            },
           }),
         )) as {
           id: string;
@@ -199,7 +223,9 @@ export const menuRepo = {
           logoUrl: m.logoUrl ?? undefined,
           createdAt: m.createdAt.getTime(),
         }));
-        const ttlMs = Number(process.env.MENU_CACHE_TTL_MS ?? 3 * 24 * 60 * 60 * 1000);
+        const ttlMs = Number(
+          process.env.MENU_CACHE_TTL_MS ?? 3 * 24 * 60 * 60 * 1000,
+        );
         const redisKey = `menu:list:v:${newVer}:limit:100`;
         await r.set(redisKey, JSON.stringify(freshResult), "PX", ttlMs);
         // also update in-memory cache for this process
@@ -211,7 +237,7 @@ export const menuRepo = {
         // fallback to invalidation if write-through fails
         try {
           invalidateMenuListCache();
-        } catch { }
+        } catch {}
         // eslint-disable-next-line no-console
         console.warn("[menuRepo:cache] write-through error", err);
       }

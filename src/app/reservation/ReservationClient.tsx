@@ -3,11 +3,11 @@ import Image from "next/image";
 import React from "react";
 import { useRouter } from "next/navigation";
 import { ArrowBigLeft, ShieldPlus } from "lucide-react";
-import { toast, Toaster } from 'sonner';
-import { useTheme } from '@/lib/theme-context';
+import { toast, Toaster } from "sonner";
+import { useTheme } from "@/lib/theme-context";
 import type { DateRange } from "react-day-picker";
 import Combobox from "@/components/ui/combobox";
-import TiltedCard from '@/components/ui/TiltedCard';
+import TiltedCard from "@/components/ui/TiltedCard";
 import { DatePicker, DateRangePicker } from "@/components/ui/datepicker";
 import { Button } from "@/components/ui/button";
 import Shimmer from "@/components/ui/Shimmer";
@@ -17,7 +17,7 @@ type Option = { value: string; label: string; logo?: string };
 
 export default function ReservationClient() {
   // Apply per-page theme from localStorage (default: light for /reservation)
-  usePageTheme('/reservation');
+  usePageTheme("/reservation");
   const router = useRouter();
   const { theme } = useTheme();
   const [selected, setSelected] = React.useState<string | undefined>();
@@ -38,11 +38,21 @@ export default function ReservationClient() {
   }, []);
   const [durationMinutes, setDurationMinutes] = React.useState<number>(60);
   // earliest-availability helpers
-  const [searchingEarliest, setSearchingEarliest] = React.useState<boolean>(false);
-  const [earliestAvailable, setEarliestAvailable] = React.useState<string | null>(null); // ISO time string
-  const [suggestedDurations, setSuggestedDurations] = React.useState<number[]>([]);
+  const [searchingEarliest, setSearchingEarliest] =
+    React.useState<boolean>(false);
+  const [earliestAvailable, setEarliestAvailable] = React.useState<
+    string | null
+  >(null); // ISO time string
+  const [suggestedDurations, setSuggestedDurations] = React.useState<number[]>(
+    [],
+  );
   // per-size table counts (2,4,6,8)
-  const [sizeCounts, setSizeCounts] = React.useState<Record<string, number>>({ "2": 0, "4": 0, "6": 0, "8": 0 });
+  const [sizeCounts, setSizeCounts] = React.useState<Record<string, number>>({
+    "2": 0,
+    "4": 0,
+    "6": 0,
+    "8": 0,
+  });
   const [submitLoading, setSubmitLoading] = React.useState(false);
   const [error, setError] = React.useState<string | null>(null);
   const [success, setSuccess] = React.useState<string | null>(null);
@@ -73,7 +83,7 @@ export default function ReservationClient() {
         }));
         setRestaurants(opts);
       })
-      .catch(() => { })
+      .catch(() => {})
       .finally(() => {
         if (!mounted) return;
         const elapsed = Date.now() - start;
@@ -106,10 +116,20 @@ export default function ReservationClient() {
   }
 
   // Check availability for a specific window and return sizes object or null on error
-  async function fetchWindowSizes(restaurantId: string, fromIso: string, toIso?: string) {
+  async function fetchWindowSizes(
+    restaurantId: string,
+    fromIso: string,
+    toIso?: string,
+  ) {
     try {
-      const qs = new URLSearchParams({ from: fromIso, ...(toIso ? { to: toIso } : {}) });
-      const res = await fetch(`/api/restaurants/${restaurantId}/availability?` + qs.toString(), { cache: 'no-store' });
+      const qs = new URLSearchParams({
+        from: fromIso,
+        ...(toIso ? { to: toIso } : {}),
+      });
+      const res = await fetch(
+        `/api/restaurants/${restaurantId}/availability?` + qs.toString(),
+        { cache: "no-store" },
+      );
       if (!res.ok) return null;
       const j = await res.json().catch(() => null);
       return j?.sizes ?? null;
@@ -138,7 +158,11 @@ export default function ReservationClient() {
       close.setHours(closeHour, 0, 0, 0);
 
       // iterate start times
-      for (let t = new Date(open); t.getTime() + 1 <= close.getTime(); t.setMinutes(t.getMinutes() + stepMinutes)) {
+      for (
+        let t = new Date(open);
+        t.getTime() + 1 <= close.getTime();
+        t.setMinutes(t.getMinutes() + stepMinutes)
+      ) {
         const startIso = t.toISOString();
         // check for at least one duration option to be available
         let anyAvailable = false;
@@ -147,11 +171,18 @@ export default function ReservationClient() {
           const end = new Date(t.getTime() + d * 60_000);
           if (end.getTime() > close.getTime()) continue; // can't exceed close
           const endIso = end.toISOString();
-          const sizesObj = await fetchWindowSizes(selected, startIso, endIso) as Record<string, number> | null;
+          const sizesObj = (await fetchWindowSizes(
+            selected,
+            startIso,
+            endIso,
+          )) as Record<string, number> | null;
           if (sizesObj) {
             // sum available tables (coerce types for TS)
             const vals = Object.values(sizesObj) as number[];
-            const totalAvailable = vals.reduce((s, v) => s + (Number(v) || 0), 0);
+            const totalAvailable = vals.reduce(
+              (s, v) => s + (Number(v) || 0),
+              0,
+            );
             if (totalAvailable > 0) {
               anyAvailable = true;
               availableDurations.push(d);
@@ -162,8 +193,8 @@ export default function ReservationClient() {
           setEarliestAvailable(startIso);
           setSuggestedDurations(availableDurations);
           // set fromTime to the found time's HH:MM for convenience
-          const hh = String(t.getHours()).padStart(2, '0');
-          const mm = String(t.getMinutes()).padStart(2, '0');
+          const hh = String(t.getHours()).padStart(2, "0");
+          const mm = String(t.getMinutes()).padStart(2, "0");
           setFromTime(`${hh}:${mm}`);
           break;
         }
@@ -190,13 +221,19 @@ export default function ReservationClient() {
     // Otherwise compute `to` from `from` + selected durationMinutes.
     const toComputed = baseTo
       ? applyTimeToDate(baseTo, fromTime).toISOString()
-      : new Date(applyTimeToDate(baseFrom, fromTime).getTime() + durationMinutes * 60_000).toISOString();
+      : new Date(
+          applyTimeToDate(baseFrom, fromTime).getTime() +
+            durationMinutes * 60_000,
+        ).toISOString();
     if (!from) return;
     setAvailabilityLoading(true);
     setSizes(null);
     setChosenSize(null);
     setError(null);
-    const qs = new URLSearchParams({ from, ...(toComputed ? { to: toComputed } : {}) });
+    const qs = new URLSearchParams({
+      from,
+      ...(toComputed ? { to: toComputed } : {}),
+    });
     fetch(`/api/restaurants/${selected}/availability?` + qs.toString())
       .then((r) => r.json())
       .then((d) => {
@@ -210,7 +247,10 @@ export default function ReservationClient() {
       .finally(() => setAvailabilityLoading(false));
   }, [selected, date, range?.from, range?.to, fromTime, durationMinutes]);
 
-  const totalTablesSelected = React.useMemo(() => Object.values(sizeCounts).reduce((s, v) => s + (v || 0), 0), [sizeCounts]);
+  const totalTablesSelected = React.useMemo(
+    () => Object.values(sizeCounts).reduce((s, v) => s + (v || 0), 0),
+    [sizeCounts],
+  );
   const totalPeople = React.useMemo(() => {
     let sum = 0;
     for (const key of Object.keys(sizeCounts)) {
@@ -223,8 +263,21 @@ export default function ReservationClient() {
 
   const canSubmit = React.useMemo(() => {
     const baseFrom = date ?? range?.from;
-    return Boolean(selected && baseFrom && totalTablesSelected > 0 && totalPeople > 0 && !submitLoading);
-  }, [selected, date, range?.from, totalTablesSelected, totalPeople, submitLoading]);
+    return Boolean(
+      selected &&
+        baseFrom &&
+        totalTablesSelected > 0 &&
+        totalPeople > 0 &&
+        !submitLoading,
+    );
+  }, [
+    selected,
+    date,
+    range?.from,
+    totalTablesSelected,
+    totalPeople,
+    submitLoading,
+  ]);
 
   const submitReservation = async () => {
     if (!selected) return;
@@ -239,7 +292,10 @@ export default function ReservationClient() {
       // Always compute reservation end (`toDate`) from the chosen start time + duration.
       // The `range` is used only for availability filtering and should not drive the
       // actual booking end time unless we add an explicit 'booking range' UI.
-      const toIso = new Date(applyTimeToDate(baseFrom, fromTime).getTime() + durationMinutes * 60_000).toISOString();
+      const toIso = new Date(
+        applyTimeToDate(baseFrom, fromTime).getTime() +
+          durationMinutes * 60_000,
+      ).toISOString();
       const payload = {
         restaurantId: selected,
         fromDate: fromIso,
@@ -265,18 +321,18 @@ export default function ReservationClient() {
             label: "Orders-ga o'tish",
             onClick: () => {
               try {
-                router.push('/orders');
-              } catch { }
+                router.push("/orders");
+              } catch {}
             },
           },
         });
-      } catch { }
+      } catch {}
       // notify orders page to refresh
       try {
         const bc = new BroadcastChannel("orders");
         bc.postMessage({ type: "orders:update" });
         bc.close();
-      } catch { }
+      } catch {}
     } catch (e: unknown) {
       setError(e instanceof Error ? e.message : String(e));
     } finally {
@@ -288,10 +344,12 @@ export default function ReservationClient() {
     <main className="mx-auto max-w-6xl p-6">
       {/* Desktop-only fixed back button (top-left). Visible on md+ screens, stays while scrolling. */}
       <Button
-        onClick={() => router.push('/home')}
+        onClick={() => router.push("/home")}
         className={
           `fixed top-4 left-4 z-50 hidden md:flex h-10 w-10 p-0 items-center justify-center shadow-md cursor-pointer hover:opacity-90 ` +
-          (theme === 'light' ? 'bg-white text-black border border-gray-200' : 'bg-black text-white')
+          (theme === "light"
+            ? "bg-white text-black border border-gray-200"
+            : "bg-black text-white")
         }
         aria-label="Orqaga"
         title="Orqaga"
@@ -327,7 +385,9 @@ export default function ReservationClient() {
               tabIndex={0}
               className="flex flex-col overflow-hidden rounded-lg border bg-linear-to-br from-gray-50 to-gray-100 shadow-md hover:shadow-lg hover:scale-105 transition-transform duration-200 cursor-pointer text-left"
               onClick={() => setSelected(r.value)}
-              onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') setSelected(r.value); }}
+              onKeyDown={(e) => {
+                if (e.key === "Enter" || e.key === " ") setSelected(r.value);
+              }}
             >
               <div className="w-full">
                 <TiltedCard
@@ -343,27 +403,28 @@ export default function ReservationClient() {
                 />
               </div>
               <div className="p-3">
-                <div className="text-sm font-semibold text-gray-800">{r.label}</div>
+                <div className="text-sm font-semibold text-gray-800">
+                  {r.label}
+                </div>
               </div>
             </div>
           ))}
         </div>
-      ) : (
-        loading ? (
-          <div className="space-y-6" aria-busy>
-            <div className="grid gap-6 grid-cols-1 sm:grid-cols-2 md:grid-cols-3">
-              {[1, 2, 3].map((n) => (
-                <div key={n} className="p-4 bg-white/80 rounded shadow">
-                  <Shimmer className="h-40 w-full rounded" />
-                </div>
-              ))}
-            </div>
+      ) : loading ? (
+        <div className="space-y-6" aria-busy>
+          <div className="grid gap-6 grid-cols-1 sm:grid-cols-2 md:grid-cols-3">
+            {[1, 2, 3].map((n) => (
+              <div key={n} className="p-4 bg-white/80 rounded shadow">
+                <Shimmer className="h-40 w-full rounded" />
+              </div>
+            ))}
           </div>
-        ) : (
-          <div className="text-center text-gray-600">Hech qanday restoran topilmadi.</div>
-        )
+        </div>
+      ) : (
+        <div className="text-center text-gray-600">
+          Hech qanday restoran topilmadi.
+        </div>
       )}
-
 
       {selected && (
         <div className="flex items-center gap-2 text-sm text-gray-700">
@@ -412,11 +473,15 @@ export default function ReservationClient() {
                     className="object-cover rounded-t-lg"
                   />
                 ) : (
-                  <div className="h-full w-full flex items-center justify-center text-gray-500">Rasm yo'q</div>
+                  <div className="h-full w-full flex items-center justify-center text-gray-500">
+                    Rasm yo'q
+                  </div>
                 )}
               </div>
               <div className="p-6">
-                <h2 className="mb-2 text-2xl font-bold text-gray-800">{selectedOption?.label}</h2>
+                <h2 className="mb-2 text-2xl font-bold text-gray-800">
+                  {selectedOption?.label}
+                </h2>
 
                 <section className="space-y-2">
                   <div className="text-sm font-medium">Sana tanlash</div>
@@ -426,7 +491,9 @@ export default function ReservationClient() {
                     fromDate={today}
                     toDate={inOneYear}
                   />
-                  <div className="text-sm text-gray-600">{date ? date.toDateString() : '—'}</div>
+                  <div className="text-sm text-gray-600">
+                    {date ? date.toDateString() : "—"}
+                  </div>
                 </section>
 
                 {/*
@@ -443,42 +510,87 @@ export default function ReservationClient() {
                 */}
 
                 <section className="space-y-2 mt-4">
-
                   <div className="flex flex-col gap-3">
                     <div className="flex flex-col md:flex-row md:items-center gap-3">
                       <label className="flex items-center gap-2">
                         <span className="text-sm">Boshlanish:</span>
-                        <input type="time" value={fromTime} onChange={(e) => setFromTime(e.target.value)} className="rounded border px-2 py-1 text-sm" />
+                        <input
+                          type="time"
+                          value={fromTime}
+                          onChange={(e) => setFromTime(e.target.value)}
+                          className="rounded border px-2 py-1 text-sm"
+                        />
                       </label>
                       {/* `toTime` removed; duration controls drive the end time */}
                       <label className="flex items-center gap-2">
                         <span className="text-sm">Davomiylik:</span>
-                        <select value={String(durationMinutes)} onChange={(e) => setDurationMinutes(parseInt(e.target.value, 10))} className="rounded border px-2 py-1 text-sm">
+                        <select
+                          value={String(durationMinutes)}
+                          onChange={(e) =>
+                            setDurationMinutes(parseInt(e.target.value, 10))
+                          }
+                          className="rounded border px-2 py-1 text-sm"
+                        >
                           {durationOptions.map((d) => (
-                            <option key={d} value={String(d)}>{d % 60 === 0 ? `${d / 60} soat` : `${d} min`}</option>
+                            <option key={d} value={String(d)}>
+                              {d % 60 === 0 ? `${d / 60} soat` : `${d} min`}
+                            </option>
                           ))}
                         </select>
                       </label>
                       {/* helper button removed - no longer needed */}
                     </div>
 
-
                     {earliestAvailable ? (
                       <div className="mt-2 p-3 rounded border bg-gray-50">
-                        <div className="text-sm">Eng erta mavjud start: <span className="font-medium">{new Date(earliestAvailable).toLocaleString()}</span></div>
+                        <div className="text-sm">
+                          Eng erta mavjud start:{" "}
+                          <span className="font-medium">
+                            {new Date(earliestAvailable).toLocaleString()}
+                          </span>
+                        </div>
                         <div className="mt-2 flex gap-2">
-                          {suggestedDurations.length > 0 ? suggestedDurations.map((d) => (
-                            <button key={d} type="button" onClick={() => { setDurationMinutes(d); const dt = new Date(earliestAvailable); const hh = String(dt.getHours()).padStart(2, '0'); const mm = String(dt.getMinutes()).padStart(2, '0'); setFromTime(`${hh}:${mm}`); }} className="rounded border px-2 py-1 text-sm bg-white hover:bg-gray-50">{d % 60 === 0 ? `${d / 60} soat` : `${d} min`}</button>
-                          )) : <div className="text-sm text-gray-500">Variant topilmadi.</div>}
+                          {suggestedDurations.length > 0 ? (
+                            suggestedDurations.map((d) => (
+                              <button
+                                key={d}
+                                type="button"
+                                onClick={() => {
+                                  setDurationMinutes(d);
+                                  const dt = new Date(earliestAvailable);
+                                  const hh = String(dt.getHours()).padStart(
+                                    2,
+                                    "0",
+                                  );
+                                  const mm = String(dt.getMinutes()).padStart(
+                                    2,
+                                    "0",
+                                  );
+                                  setFromTime(`${hh}:${mm}`);
+                                }}
+                                className="rounded border px-2 py-1 text-sm bg-white hover:bg-gray-50"
+                              >
+                                {d % 60 === 0 ? `${d / 60} soat` : `${d} min`}
+                              </button>
+                            ))
+                          ) : (
+                            <div className="text-sm text-gray-500">
+                              Variant topilmadi.
+                            </div>
+                          )}
                         </div>
                       </div>
                     ) : null}
                   </div>
 
-                  <div className="text-sm font-medium mt-3">Bo'sh stol o'lchamlari va miqdori</div>
+                  <div className="text-sm font-medium mt-3">
+                    Bo'sh stol o'lchamlari va miqdori
+                  </div>
                   {availabilityLoading ? (
                     <div className="flex flex-wrap gap-2" aria-busy>
-                      {[2, 4, 6, 8].map((s) => (<Shimmer key={s} className="h-9 w-28 rounded" />))}
+                      {[2, 4, 6, 8].map((s) => (
+                        <Shimmer key={s} className="h-9 w-28 rounded" />
+                      ))}
                     </div>
                   ) : sizes ? (
                     <div className="space-y-3">
@@ -486,26 +598,60 @@ export default function ReservationClient() {
                         const left = sizes[String(s)] ?? 0;
                         const count = sizeCounts[String(s)] ?? 0;
                         return (
-                          <div key={s} className="flex items-center justify-between gap-3">
+                          <div
+                            key={s}
+                            className="flex items-center justify-between gap-3"
+                          >
                             <div className="flex items-center gap-3">
-                              <div className="text-sm font-medium">{s} kishilik</div>
-                              <div className="text-sm"><span className={left <= 0 ? 'text-red-600 font-medium' : 'text-green-600 font-medium'}>{left}</span> <span className="text-gray-500">ta mavjud</span></div>
+                              <div className="text-sm font-medium">
+                                {s} kishilik
+                              </div>
+                              <div className="text-sm">
+                                <span
+                                  className={
+                                    left <= 0
+                                      ? "text-red-600 font-medium"
+                                      : "text-green-600 font-medium"
+                                  }
+                                >
+                                  {left}
+                                </span>{" "}
+                                <span className="text-gray-500">ta mavjud</span>
+                              </div>
                             </div>
                             <div className="inline-flex items-center gap-2">
                               <button
                                 type="button"
-                                onClick={() => setSizeCounts((prev) => ({ ...prev, [String(s)]: Math.max(0, (prev[String(s)] || 0) - 1) }))}
+                                onClick={() =>
+                                  setSizeCounts((prev) => ({
+                                    ...prev,
+                                    [String(s)]: Math.max(
+                                      0,
+                                      (prev[String(s)] || 0) - 1,
+                                    ),
+                                  }))
+                                }
                                 className="rounded border px-3 py-1 text-sm"
                                 aria-label={`Kamaytir ${s}`}
                               >
                                 -
                               </button>
-                              <div className="w-10 text-center text-sm">{count}</div>
+                              <div className="w-10 text-center text-sm">
+                                {count}
+                              </div>
                               <button
                                 type="button"
-                                onClick={() => setSizeCounts((prev) => ({ ...prev, [String(s)]: Math.min(left, (prev[String(s)] || 0) + 1) }))}
+                                onClick={() =>
+                                  setSizeCounts((prev) => ({
+                                    ...prev,
+                                    [String(s)]: Math.min(
+                                      left,
+                                      (prev[String(s)] || 0) + 1,
+                                    ),
+                                  }))
+                                }
                                 className="rounded border px-3 py-1 text-sm"
-                                disabled={left <= 0 || (count >= left)}
+                                disabled={left <= 0 || count >= left}
                                 aria-label={`Ko'paytir ${s}`}
                               >
                                 +
@@ -516,12 +662,25 @@ export default function ReservationClient() {
                       })}
 
                       <div className="pt-2 text-sm">
-                        Tanlangan stol soni: <span className="font-medium">{totalTablesSelected}</span> — Umumiy odamlar: <span className="font-medium">{totalPeople}</span>
+                        Tanlangan stol soni:{" "}
+                        <span className="font-medium">
+                          {totalTablesSelected}
+                        </span>{" "}
+                        — Umumiy odamlar:{" "}
+                        <span className="font-medium">{totalPeople}</span>
                       </div>
                     </div>
                   ) : null}
-                  {error && <div className="mt-2 rounded border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">{error}</div>}
-                  {success && <div className="mt-2 rounded border border-green-200 bg-green-50 px-3 py-2 text-sm text-green-700">{success}</div>}
+                  {error && (
+                    <div className="mt-2 rounded border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">
+                      {error}
+                    </div>
+                  )}
+                  {success && (
+                    <div className="mt-2 rounded border border-green-200 bg-green-50 px-3 py-2 text-sm text-green-700">
+                      {success}
+                    </div>
+                  )}
                 </section>
 
                 <div className="mt-6">
@@ -533,23 +692,43 @@ export default function ReservationClient() {
                   >
                     {submitLoading ? (
                       <span className="inline-flex items-center gap-2">
-                        <svg className="animate-spin -ml-1 mr-1 h-4 w-4 text-black" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                          <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                          <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z"></path>
+                        <svg
+                          className="animate-spin -ml-1 mr-1 h-4 w-4 text-black"
+                          xmlns="http://www.w3.org/2000/svg"
+                          fill="none"
+                          viewBox="0 0 24 24"
+                        >
+                          <circle
+                            className="opacity-25"
+                            cx="12"
+                            cy="12"
+                            r="10"
+                            stroke="currentColor"
+                            strokeWidth="4"
+                          ></circle>
+                          <path
+                            className="opacity-75"
+                            fill="currentColor"
+                            d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z"
+                          ></path>
                         </svg>
                         Yuborilmoqda…
                       </span>
                     ) : (
-                      'Joy band qilish'
+                      "Joy band qilish"
                     )}
                   </Button>
                   <button
                     type="button"
                     onClick={() => {
                       try {
-                        if (selected) router.push('/menu?restaurant=' + encodeURIComponent(String(selected)));
-                        else router.push('/menu');
-                      } catch { }
+                        if (selected)
+                          router.push(
+                            "/menu?restaurant=" +
+                              encodeURIComponent(String(selected)),
+                          );
+                        else router.push("/menu");
+                      } catch {}
                     }}
                     className="ml-3 inline-flex items-center rounded-md border px-3 py-2 text-sm bg-white hover:bg-gray-50"
                   >

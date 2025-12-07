@@ -5,7 +5,7 @@ import Combobox from "@/components/ui/combobox";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { ArrowBigLeft } from "lucide-react";
-import { useTheme } from '@/lib/theme-context';
+import { useTheme } from "@/lib/theme-context";
 
 type Option = { value: string; label: string; logo?: string };
 
@@ -55,7 +55,7 @@ export default function ExplorerClient({
         }));
         setMeals(opts);
       })
-      .catch(() => { })
+      .catch(() => {})
       .finally(() => {
         if (!mounted) return;
         const elapsed = Date.now() - start;
@@ -73,12 +73,12 @@ export default function ExplorerClient({
     <div className="max-w-3xl mx-auto p-6 space-y-8">
       {/* Desktop-only fixed back button (top-left). Visible on md+ screens, stays while scrolling. */}
       <Button
-        onClick={() => router.push('/home')}
+        onClick={() => router.push("/home")}
         className={
           `fixed top-4 left-4 z-50 hidden md:flex h-10 w-10 p-0 items-center justify-center shadow-md cursor-pointer hover:opacity-90 ` +
-          (theme === 'light'
-            ? 'bg-white text-black border border-gray-200'
-            : 'bg-black text-white')
+          (theme === "light"
+            ? "bg-white text-black border border-gray-200"
+            : "bg-black text-white")
         }
         aria-label="Orqaga"
         title="Orqaga"
@@ -105,9 +105,9 @@ export default function ExplorerClient({
           inputPlaceholder="Taom nomini kiriting"
           loading={loading}
           inputClassName={
-            theme === 'light'
-              ? 'w-full rounded border border-gray-300 px-3 py-2 text-sm bg-white placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-gray-300 text-black'
-              : 'w-full rounded border border-gray-700 px-3 py-2 text-sm bg-gray-800 placeholder:text-gray-500 focus:outline-none dark:focus:ring-2 dark:focus:ring-gray-700 text-gray-100'
+            theme === "light"
+              ? "w-full rounded border border-gray-300 px-3 py-2 text-sm bg-white placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-gray-300 text-black"
+              : "w-full rounded border border-gray-700 px-3 py-2 text-sm bg-gray-800 placeholder:text-gray-500 focus:outline-none dark:focus:ring-2 dark:focus:ring-gray-700 text-gray-100"
           }
         />
       </div>

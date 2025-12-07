@@ -25,7 +25,9 @@ export default function Login() {
   const [forgotNewPassword, setForgotNewPassword] = useState("");
   const [forgotMessage, setForgotMessage] = useState<string | null>(null);
   const [forgotLoading, setForgotLoading] = useState(false);
-  const [forgotMessageType, setForgotMessageType] = useState<"success" | "error" | null>(null);
+  const [forgotMessageType, setForgotMessageType] = useState<
+    "success" | "error" | null
+  >(null);
   const forgotId = useId();
 
   function normalizePhone(input: string) {
@@ -145,11 +147,17 @@ export default function Login() {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         credentials: "same-origin",
-        body: JSON.stringify({ requestId: forgotRequestId, code: forgotCode, newPassword: forgotNewPassword }),
+        body: JSON.stringify({
+          requestId: forgotRequestId,
+          code: forgotCode,
+          newPassword: forgotNewPassword,
+        }),
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || "Xatolik");
-      setForgotMessage("Parol muvaffaqiyatli o'zgartirildi. Endi kirishingiz mumkin.");
+      setForgotMessage(
+        "Parol muvaffaqiyatli o'zgartirildi. Endi kirishingiz mumkin.",
+      );
       setForgotMessageType("success");
       // reset modal state after success
       setTimeout(() => {
@@ -237,7 +245,8 @@ export default function Login() {
                       // remove stray pluses not at start
                       if (v.indexOf("+") > 0) v = v.replace(/\+/g, "");
                       // ensure only one leading plus
-                      if ((v.match(/\+/g) || []).length > 1) v = v.replace(/\+/g, "+");
+                      if ((v.match(/\+/g) || []).length > 1)
+                        v = v.replace(/\+/g, "+");
                       setPhone(v);
                     }}
                     onBlur={(e) => {
@@ -357,7 +366,9 @@ export default function Login() {
           <div className="w-full max-w-md rounded bg-white p-6">
             <h2 className="text-xl font-semibold mb-4">Parolni tiklash</h2>
             {forgotMessage ? (
-              <div className={`mb-4 ${forgotMessageType === "error" ? "text-red-600" : "text-green-700"}`}>
+              <div
+                className={`mb-4 ${forgotMessageType === "error" ? "text-red-600" : "text-green-700"}`}
+              >
                 {forgotMessage}
               </div>
             ) : null}
@@ -378,8 +389,18 @@ export default function Login() {
                   placeholder="+998901234567"
                 />
                 <div className="flex gap-2 justify-end">
-                  <Button type="button" onClick={() => setShowForgot(false)} className="bg-gray-200 text-black">Bekor</Button>
-                  <Button type="button" onClick={() => void sendForgotRequest()} disabled={forgotLoading}>
+                  <Button
+                    type="button"
+                    onClick={() => setShowForgot(false)}
+                    className="bg-gray-200 text-black"
+                  >
+                    Bekor
+                  </Button>
+                  <Button
+                    type="button"
+                    onClick={() => void sendForgotRequest()}
+                    disabled={forgotLoading}
+                  >
                     {forgotLoading ? "Yuborilmoqda..." : "Kod yuborish"}
                   </Button>
                 </div>
@@ -399,10 +420,32 @@ export default function Login() {
                   placeholder="6 xonali kod"
                 />
                 <label className="block text-sm">Yangi parol</label>
-                <Input type="password" value={forgotNewPassword} onChange={(e) => setForgotNewPassword(e.target.value)} placeholder="Yangi parol" />
+                <Input
+                  type="password"
+                  value={forgotNewPassword}
+                  onChange={(e) => setForgotNewPassword(e.target.value)}
+                  placeholder="Yangi parol"
+                />
                 <div className="flex gap-2 justify-end">
-                  <Button type="button" onClick={() => { setForgotRequestId(null); setForgotCode(""); setForgotNewPassword(""); setForgotMessage(null); }} className="bg-gray-200 text-black">Ortga</Button>
-                  <Button type="button" onClick={() => void verifyForgot()} disabled={forgotLoading}>Tasdiqlash</Button>
+                  <Button
+                    type="button"
+                    onClick={() => {
+                      setForgotRequestId(null);
+                      setForgotCode("");
+                      setForgotNewPassword("");
+                      setForgotMessage(null);
+                    }}
+                    className="bg-gray-200 text-black"
+                  >
+                    Ortga
+                  </Button>
+                  <Button
+                    type="button"
+                    onClick={() => void verifyForgot()}
+                    disabled={forgotLoading}
+                  >
+                    Tasdiqlash
+                  </Button>
                 </div>
               </div>
             )}

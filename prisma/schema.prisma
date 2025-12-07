@@ -66,7 +66,7 @@ model Reservation {
   restaurantId  String
   restaurant    Restaurant @relation(fields: [restaurantId], references: [id])
   userId        String?
-  user          User?     @relation(fields: [userId], references: [id])
+  user          User?     @relation(fields: [userId], references: [id], onDelete: Cascade)
   fromDate      DateTime
   toDate        DateTime?
   partySize     Int?
@@ -109,7 +109,7 @@ model RestaurantManager {
   createdAt    DateTime @default(now())
 
   restaurant   Restaurant @relation(fields: [restaurantId], references: [id])
-  user         User       @relation(fields: [userId], references: [id])
+  user         User       @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@unique([restaurantId, userId])
   @@index([userId])
@@ -149,7 +149,7 @@ model CartItem {
 model Order {
   id           String      @id @default(cuid())
   userId       String?
-  user         User?       @relation(fields: [userId], references: [id])
+  user         User?       @relation(fields: [userId], references: [id], onDelete: Cascade)
   status       String      @default("pending")
   paymentMethod String?
   total        String?

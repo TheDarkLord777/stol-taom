@@ -1,18 +1,20 @@
-import { createContext, useContext } from 'react';
+import { createContext, useContext } from "react";
 
-export type ThemeMode = 'dark' | 'light';
+export type ThemeMode = "dark" | "light";
 
 export interface ThemeContextType {
-    theme: ThemeMode;
-    setTheme: (theme: ThemeMode) => void;
+  theme: ThemeMode;
+  setTheme: (theme: ThemeMode) => void;
 }
 
-export const ThemeContext = createContext<ThemeContextType | undefined>(undefined);
+export const ThemeContext = createContext<ThemeContextType | undefined>(
+  undefined,
+);
 
 export function useTheme(): ThemeContextType {
-    const ctx = useContext(ThemeContext);
-    if (!ctx) {
-        throw new Error('useTheme must be used within ThemeProvider');
-    }
-    return ctx;
+  const ctx = useContext(ThemeContext);
+  if (!ctx) {
+    throw new Error("useTheme must be used within ThemeProvider");
+  }
+  return ctx;
 }

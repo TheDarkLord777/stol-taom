@@ -3,7 +3,7 @@ import * as Tabs from "@radix-ui/react-tabs";
 import * as React from "react";
 import { useRouter } from "next/navigation";
 import { ArrowBigLeft } from "lucide-react";
-import { useTheme } from '@/lib/theme-context';
+import { useTheme } from "@/lib/theme-context";
 import AuthSessionTimer from "@/components/AuthSessionTimer";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -43,7 +43,12 @@ export default function ProfileClient() {
   const { theme } = useTheme();
 
   React.useEffect(() => {
-    console.log('[ProfileClient] Mounted, current theme:', localStorage.getItem('app-theme'), 'HTML classes:', document.documentElement.className);
+    console.log(
+      "[ProfileClient] Mounted, current theme:",
+      localStorage.getItem("app-theme"),
+      "HTML classes:",
+      document.documentElement.className,
+    );
   }, []);
 
   // Account state
@@ -115,20 +120,20 @@ export default function ProfileClient() {
   const handleLogout = async () => {
     try {
       await fetch("/api/auth/logout", { method: "POST" });
-    } catch { }
+    } catch {}
     window.location.href = "/login";
   };
-
-
 
   return (
     <div className="mx-auto max-w-4xl p-6">
       {/* Desktop-only fixed back button (top-left). Visible on md+ screens, stays while scrolling. */}
       <Button
-        onClick={() => router.push('/home')}
+        onClick={() => router.push("/home")}
         className={
           `fixed top-4 left-4 z-50 hidden md:flex h-10 w-10 p-0 items-center justify-center shadow-md cursor-pointer hover:opacity-90 ` +
-          (theme === 'light' ? 'bg-white text-black border border-gray-200' : 'bg-black text-white')
+          (theme === "light"
+            ? "bg-white text-black border border-gray-200"
+            : "bg-black text-white")
         }
         aria-label="Orqaga"
         title="Orqaga"
@@ -325,11 +330,11 @@ export default function ProfileClient() {
                               setMe((prev) =>
                                 prev
                                   ? {
-                                    ...prev,
-                                    name: editName,
-                                    email: editEmail,
-                                    phone: editPhone,
-                                  }
+                                      ...prev,
+                                      name: editName,
+                                      email: editEmail,
+                                      phone: editPhone,
+                                    }
                                   : prev,
                               );
                               setEditing(false);
@@ -382,7 +387,9 @@ export default function ProfileClient() {
         <Tabs.Content value="premium" className="space-y-4">
           <Section title="Premium obuna">
             <div className="space-y-3 text-sm text-gray-300">
-              <p>Premium foydalanuvchilar quyidagi imkoniyatlarga ega bo'ladi:</p>
+              <p>
+                Premium foydalanuvchilar quyidagi imkoniyatlarga ega bo'ladi:
+              </p>
               <ul className="list-disc pl-5 space-y-1">
                 <li>Tezroq buyurtma va bron ustuvorligi</li>
                 <li>Maxsus chegirmalar va aksiyalar</li>

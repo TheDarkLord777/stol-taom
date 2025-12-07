@@ -8,7 +8,8 @@ const MOCK =
   process.env.TELEGRAM_GATEWAY_MOCK === "1";
 
 // If we're running in non-production and no token is provided, default to mock
-const USE_MOCK_FALLBACK = !process.env.TELEGRAM_GATEWAY_TOKEN && process.env.NODE_ENV !== "production";
+const USE_MOCK_FALLBACK =
+  !process.env.TELEGRAM_GATEWAY_TOKEN && process.env.NODE_ENV !== "production";
 
 function getToken() {
   const token = process.env.TELEGRAM_GATEWAY_TOKEN;
@@ -68,7 +69,7 @@ async function gatewayRequest<T = unknown>(
     console.log(`[Gateway] ${endpoint} Request:`, {
       url: `${TELEGRAM_GATEWAY_URL}/${endpoint}`,
       headers: {
-        Authorization: 'Bearer [hidden]',
+        Authorization: "Bearer [hidden]",
         "Content-Type": "application/json",
       },
       body,
@@ -140,7 +141,7 @@ function normalizePhoneForGateway(phone: string): string {
     original: phone,
     normalized: withPlus,
     alternateFormat: withoutPlus,
-    digitsOnly: normalized
+    digitsOnly: normalized,
   });
 
   // Try without + first as some gateways prefer this
@@ -152,12 +153,16 @@ export async function checkSendAbility(phone: string) {
 
   try {
     // First try without +
-    const result = await gatewayRequest("checkSendAbility", { phone_number: normalized });
+    const result = await gatewayRequest("checkSendAbility", {
+      phone_number: normalized,
+    });
     return result;
   } catch (error) {
     // If that fails, try with +
     console.log("[Gateway] First attempt failed, trying with + prefix");
-    return gatewayRequest("checkSendAbility", { phone_number: "+" + normalized });
+    return gatewayRequest("checkSendAbility", {
+      phone_number: "+" + normalized,
+    });
   }
 }
 

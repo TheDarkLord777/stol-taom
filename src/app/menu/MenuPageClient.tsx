@@ -1,86 +1,88 @@
-'use client';
+"use client";
 
-import React from 'react';
-import { Toaster } from 'sonner';
-import { BookOpenCheck } from 'lucide-react';
-import { usePageTheme } from '@/lib/use-page-theme';
-import MenuGrid, { type MenuItem } from '@/components/MenuGrid';
-import ExplorerClient from './ExplorerClient';
+import React from "react";
+import { Toaster } from "sonner";
+import { BookOpenCheck } from "lucide-react";
+import { usePageTheme } from "@/lib/use-page-theme";
+import MenuGrid, { type MenuItem } from "@/components/MenuGrid";
+import ExplorerClient from "./ExplorerClient";
 
 export default function MenuPageClient() {
-    // Apply per-page theme from localStorage (default: light for /menu)
-    usePageTheme('/menu');
+  // Apply per-page theme from localStorage (default: light for /menu)
+  usePageTheme("/menu");
 
-    const [query, setQuery] = React.useState('');
-    const [items, setItems] = React.useState<MenuItem[] | null>(null);
-    const [loading, setLoading] = React.useState(true);
+  const [query, setQuery] = React.useState("");
+  const [items, setItems] = React.useState<MenuItem[] | null>(null);
+  const [loading, setLoading] = React.useState(true);
 
-    React.useEffect(() => {
-        let mounted = true;
-        setLoading(true);
+  React.useEffect(() => {
+    let mounted = true;
+    setLoading(true);
 
-        // If a restaurant query param is present, fetch menu for that restaurant
-        const params = new URLSearchParams(window.location.search);
-        const restaurantId = params.get('restaurant');
-        const url = restaurantId ? `/api/restaurants/${restaurantId}/menu` : '/api/menu';
+    // If a restaurant query param is present, fetch menu for that restaurant
+    const params = new URLSearchParams(window.location.search);
+    const restaurantId = params.get("restaurant");
+    const url = restaurantId
+      ? `/api/restaurants/${restaurantId}/menu`
+      : "/api/menu";
 
-        fetch(url)
-            .then((r) => r.json())
-            .then((d) => {
-                if (!mounted) return;
-                const list = (d.items || []) as Array<{
-                    id: string;
-                    name: string;
-                    slug?: string;
-                    logoUrl?: string;
-                    createdAt?: number;
-                }>;
-                const mapped: MenuItem[] = list.map((it) => ({
-                    id: it.id,
-                    name: it.name,
-                    slug: it.slug,
-                    logoUrl: it.logoUrl,
-                    createdAt: it.createdAt,
-                }));
-                setItems(mapped);
-            })
-            .catch(() => {
-                if (!mounted) return;
-                setItems([]);
-            })
-            .finally(() => {
-                if (!mounted) return;
-                setLoading(false);
-            });
+    fetch(url)
+      .then((r) => r.json())
+      .then((d) => {
+        if (!mounted) return;
+        const list = (d.items || []) as Array<{
+          id: string;
+          name: string;
+          slug?: string;
+          logoUrl?: string;
+          createdAt?: number;
+        }>;
+        const mapped: MenuItem[] = list.map((it) => ({
+          id: it.id,
+          name: it.name,
+          slug: it.slug,
+          logoUrl: it.logoUrl,
+          createdAt: it.createdAt,
+        }));
+        setItems(mapped);
+      })
+      .catch(() => {
+        if (!mounted) return;
+        setItems([]);
+      })
+      .finally(() => {
+        if (!mounted) return;
+        setLoading(false);
+      });
 
-        return () => {
-            mounted = false;
-        };
-    }, []);
+    return () => {
+      mounted = false;
+    };
+  }, []);
 
-    return (
-        <main className="mx-auto max-w-6xl p-6">
-            <h1 className="mb-6 text-2xl font-bold flex items-center gap-2">
-                <BookOpenCheck className="h-6 w-6" />
-                <span>Menyu</span>
-            </h1>
-            <Toaster position="top-right" />
-            {/* Show the previous explorer/search UI first so it's visible at the top */}
-            <ExplorerClient
-                onQueryChange={setQuery}
-                items={items?.map((it) => ({
-                    value: it.id,
-                    label: it.name,
-                    logo: it.logoUrl,
-                }))}
-                loading={loading}
-            />
-            <MenuGrid
-                items={items ?? undefined}
-                query={query}
-                loading={loading}
-                columns={3}
-            />
-        </main>
-    );
+  return (
+    <main className="mx-auto max-w-6xl p-6">
+      <h1 className="mb-6 text-2xl font-bold flex items-center gap-2">
+        <BookOpenCheck className="h-6 w-6" />
+        <span>Menyu</span>
+      </h1>
+      <Toaster position="top-right" />
+      {/* Show the previous explorer/search UI first so it's visible at the top */}
+      <ExplorerClient
+        onQueryChange={setQuery}
+        items={items?.map((it) => ({
+          value: it.id,
+          label: it.name,
+          logo: it.logoUrl,
+        }))}
+        loading={loading}
+      />
+      <MenuGrid
+        items={items ?? undefined}
+        query={query}
+        loading={loading}
+        columns={3}
+      />
+    </main>
+  );
 }

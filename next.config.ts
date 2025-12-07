@@ -65,35 +65,47 @@ const nextConfig: NextConfig = {
       { key: "Content-Security-Policy", value: csp },
       { key: "X-Frame-Options", value: "DENY" },
       { key: "Referrer-Policy", value: "no-referrer" },
-      { key: "Permissions-Policy", value: "camera=(), microphone=(), geolocation=()" },
+      {
+        key: "Permissions-Policy",
+        value: "camera=(), microphone=(), geolocation=()",
+      },
       { key: "X-Content-Type-Options", value: "nosniff" },
       { key: "Cross-Origin-Opener-Policy", value: "same-origin" },
       { key: "Cross-Origin-Resource-Policy", value: "same-origin" },
       // HSTS only in production and when served via HTTPS
       ...(isProd
         ? [
-          {
-            key: "Strict-Transport-Security",
-            value: "max-age=31536000; includeSubDomains; preload",
-          },
-        ]
+            {
+              key: "Strict-Transport-Security",
+              value: "max-age=31536000; includeSubDomains; preload",
+            },
+          ]
         : []),
     ];
 
-    const headers: Array<{ source: string; headers: { key: string; value: string }[] }> = [];
+    const headers: Array<{
+      source: string;
+      headers: { key: string; value: string }[];
+    }> = [];
 
     if (!isProd) {
       headers.push(
         {
           source: "/_next/image(.*)",
           headers: [
-            { key: "Cache-Control", value: "no-cache, no-store, must-revalidate" },
+            {
+              key: "Cache-Control",
+              value: "no-cache, no-store, must-revalidate",
+            },
           ],
         },
         {
           source: "/photo/:path*",
           headers: [
-            { key: "Cache-Control", value: "no-cache, no-store, must-revalidate" },
+            {
+              key: "Cache-Control",
+              value: "no-cache, no-store, must-revalidate",
+            },
           ],
         },
       );
@@ -115,7 +127,10 @@ const nextConfig: NextConfig = {
       "http://0.0.0.0:3000",
     ];
     // Allow extra origins via comma-separated env var DEV_ALLOWED_ORIGINS
-    const extra = (process.env.DEV_ALLOWED_ORIGINS || "").split(",").map((s) => s.trim()).filter(Boolean);
+    const extra = (process.env.DEV_ALLOWED_ORIGINS || "")
+      .split(",")
+      .map((s) => s.trim())
+      .filter(Boolean);
     return Array.from(new Set([...defaults, ...extra]));
   })(),
 };
