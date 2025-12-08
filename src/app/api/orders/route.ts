@@ -77,18 +77,15 @@ export async function GET(req: NextRequest) {
             include: { items: true },
         });
         const rawItems = cart?.items ?? [];
-        // enrich with menu item media (logoUrl) for thumbnails
-        const menuIds: string[] = Array.from(
-            new Set(rawItems.map((it: any) => it.menuItemId as string)),
-        ).filter((id): id is string => typeof id === "string" && id !== "");
-        const menuMap: Record<string, { logoUrl?: string | null }> = {};
-        if (menuIds.length > 0) {
-            const menuRows = await prisma.menuItem.findMany({
-                where: { id: { in: menuIds } },
-                select: { id: true, logoUrl: true },
-            });
-            for (const m of menuRows) menuMap[m.id] = { logoUrl: m.logoUrl };
+        // collect menu ids from cart; we'll merge order ids later before looking up logos
+        const menuIds = new Set<string>();
+        for (const it of rawItems) {
+            if (typeof it.menuItemId === "string" && it.menuItemId) {
+                menuIds.add(it.menuItemId);
+            }
         }
+        // we will build menuMap after fetching orders so paid items get logos too
+        const menuMap: Record<string, { logoUrl?: string | null }> = {};
         const items = rawItems.map((it: any) => ({
             id: it.id,
             menuItemId: it.menuItemId,
@@ -101,7 +98,7 @@ export async function GET(req: NextRequest) {
             quantity: it.quantity,
             price: it.price,
             addedAt: it.addedAt,
-            logoUrl: menuMap[it.menuItemId]?.logoUrl ?? undefined,
+            logoUrl: undefined, // filled after menuMap is built (cart + order items)
         }));
 
         const reservations = await prisma.reservation.findMany({
@@ -183,19 +180,35 @@ export async function GET(req: NextRequest) {
                     const orderItemsFlattened = [] as any[];
                     for (const o of recent) {
                         for (const it of o.items ?? []) {
+                            if (typeof it.menuItemId === "string" && it.menuItemId) {
+                                menuIds.add(it.menuItemId);
+                            }
+                            const paidAtIso = o.updatedAt
+                                ? new Date(o.updatedAt).toISOString()
+                                : o.createdAt
+                                    ? new Date(o.createdAt).toISOString()
+                                    : new Date().toISOString();
+                            const ing = (() => {
+                                if (typeof it.ingredients === "string") {
+                                    try {
+                                        return JSON.parse(it.ingredients);
+                                    } catch {
+                                        return it.ingredients;
+                                    }
+                                }
+                                return it.ingredients ?? undefined;
+                            })();
                             orderItemsFlattened.push({
                                 id: `orderitem:${it.id}`,
                                 orderId: o.id,
                                 menuItemId: it.menuItemId,
                                 name: it.name,
-                                ingredients: it.ingredients ?? undefined,
+                                ingredients: ing,
                                 quantity: it.quantity,
                                 price: it.price ?? null,
-                                addedAt:
-                                    (o as any).updatedAt?.toISOString?.() ||
-                                    (o as any).updatedAt ||
-                                    o.createdAt,
-                                logoUrl: menuMap[it.menuItemId]?.logoUrl ?? undefined,
+                                addedAt: paidAtIso,
+                                paidAt: paidAtIso,
+                                logoUrl: undefined, // filled after menu lookup
                                 paid: true,
                                 status: "paid",
                             });
@@ -228,14 +241,19 @@ export async function GET(req: NextRequest) {
                             ? new Date(o.createdAt).toISOString()
                             : undefined,
                         updatedAt: o.updatedAt ? new Date(o.updatedAt).toISOString() : undefined,
-                        items: (o.items ?? []).map((it: any) => ({
-                            id: `orderitem:${it.id}`,
-                            menuItemId: it.menuItemId,
-                            name: it.name,
-                            quantity: it.quantity,
-                            price: it.price ?? null,
-                            logoUrl: menuMap[it.menuItemId]?.logoUrl ?? undefined,
-                        })),
+                        items: (o.items ?? []).map((it: any) => {
+                            if (typeof it.menuItemId === "string" && it.menuItemId) {
+                                menuIds.add(it.menuItemId);
+                            }
+                            return {
+                                id: `orderitem:${it.id}`,
+                                menuItemId: it.menuItemId,
+                                name: it.name,
+                                quantity: it.quantity,
+                                price: it.price ?? null,
+                                logoUrl: undefined, // filled after menu lookup
+                            };
+                        }),
                     }));
                 } else {
                     body.pendingOrders = [];
@@ -243,6 +261,29 @@ export async function GET(req: NextRequest) {
             } catch {
                 body.pendingOrders = [];
             }
+        }
+        // build menu map after collecting all menu ids from cart + orders so logos show everywhere
+        if (menuIds.size > 0) {
+            const menuRows = await prisma.menuItem.findMany({
+                where: { id: { in: Array.from(menuIds) } },
+                select: { id: true, logoUrl: true },
+            });
+            for (const m of menuRows) menuMap[m.id] = { logoUrl: m.logoUrl };
+        }
+        // hydrate logos for cart items
+        body.items = (body.items ?? []).map((it: any) => ({
+            ...it,
+            logoUrl: menuMap[it.menuItemId]?.logoUrl ?? it.logoUrl,
+        }));
+        // hydrate logos for pending orders
+        if (body.pendingOrders) {
+            body.pendingOrders = body.pendingOrders.map((o: any) => ({
+                ...o,
+                items: (o.items ?? []).map((it: any) => ({
+                    ...it,
+                    logoUrl: menuMap[it.menuItemId]?.logoUrl ?? it.logoUrl,
+                })),
+            }));
         }
         // Store in cache with very short TTL
         try {

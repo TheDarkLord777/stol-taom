@@ -281,12 +281,39 @@ export default function OrdersClient() {
                                                 </div>
                                                 <div className="min-w-0">
                                                     <div className="font-medium truncate">{it.name}</div>
-                                                    <div className={`text-sm ${subtleText}`}>x{it.quantity} • {it.price ? `${it.price} so'm` : '-'}</div>
+                                                    <div className={`text-sm ${subtleText}`}>
+                                                        Soni: {it.quantity ?? 1} dona • {it.price ? `${it.price} so'm` : '-'}
+                                                    </div>
+                                                    {/* show ingredients if present */}
+                                                    {Array.isArray((it as any).ingredients) && (it as any).ingredients.length > 0 ? (
+                                                        <div className="mt-1 flex flex-wrap gap-1 text-xs text-gray-500">
+                                                            {(it as any).ingredients.map((ing: any, idx: number) => (
+                                                                <span key={idx} className="rounded bg-gray-200/70 px-2 py-0.5 text-gray-700">
+                                                                    {typeof ing === 'string' ? ing : ing?.name ?? 'Ingredient'}
+                                                                </span>
+                                                            ))}
+                                                        </div>
+                                                    ) : null}
+                                                    {/* paid timestamp */}
+                                                    {(it as any).paidAt ? (
+                                                        <div className={`text-xs ${mutedText} mt-1`}>
+                                                            {(it as any).paidAt ? new Date((it as any).paidAt).toLocaleString() : ''}
+                                                        </div>
+                                                    ) : null}
                                                 </div>
                                             </div>
                                             <div className="text-right flex items-center gap-2">
                                                 <span className="inline-block px-2 py-1 text-xs font-semibold rounded bg-emerald-700 text-white">To’langan</span>
-                                                {it.orderId ? <a href={`/orders?orderId=${it.orderId}`} className="text-sm underline">Buyurtma</a> : <span className="text-sm text-gray-500">—</span>}
+                                                {it.menuItemId ? (
+                                                    <Link
+                                                        href={`/menu?query=${encodeURIComponent(it.name)}`}
+                                                        className="text-sm underline"
+                                                    >
+                                                        Menyu
+                                                    </Link>
+                                                ) : (
+                                                    <span className="text-sm text-gray-500">—</span>
+                                                )}
                                             </div>
                                         </div>
                                     ))}

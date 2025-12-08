@@ -169,7 +169,7 @@ model OrderItem {
   quantity     Int      @default(1)
   price        String?
 
-  order Order @relation(fields: [orderId], references: [id])
+  order Order @relation(fields: [orderId], references: [id], onDelete: Cascade)
 
   @@index([orderId])
   @@index([restaurantId])

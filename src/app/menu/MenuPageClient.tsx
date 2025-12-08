@@ -16,11 +16,14 @@ export default function MenuPageClient() {
   const [loading, setLoading] = React.useState(true);
 
   React.useEffect(() => {
+    // parse URL params once at effect start
+    const params = new URLSearchParams(window.location.search);
+    const initialQuery = params.get("query") ?? "";
+    if (initialQuery) setQuery(initialQuery);
+
     let mounted = true;
     setLoading(true);
 
-    // If a restaurant query param is present, fetch menu for that restaurant
-    const params = new URLSearchParams(window.location.search);
     const restaurantId = params.get("restaurant");
     const url = restaurantId
       ? `/api/restaurants/${restaurantId}/menu`
