@@ -282,7 +282,7 @@ export default function OrdersClient() {
                                                 <div className="min-w-0">
                                                     <div className="font-medium truncate">{it.name}</div>
                                                     <div className={`text-sm ${subtleText}`}>
-                                                        Soni: {it.quantity ?? 1} dona • {it.price ? `${it.price} so'm` : '-'}
+                                                        Soni: {it.quantity ?? 1} dona • Narxi: {it.price ? `${it.price} so'm` : '-'}
                                                     </div>
                                                     {/* show ingredients if present */}
                                                     {Array.isArray((it as any).ingredients) && (it as any).ingredients.length > 0 ? (
@@ -338,12 +338,22 @@ export default function OrdersClient() {
                 <div className={`text-center ${mutedText}`}>Savat bo'sh. Hech qanday element qo'shilmagan.</div>
             )}
 
-            {/* Orders section */}
-            {/* (paid items will be rendered below after reservations) */}
+
+            {/* Section header matching Reservations ('Bronlar') style */}
+            <div className="mt-8">
+                <div className="flex items-center justify-between mb-3">
+                    <h2 className="text-xl font-semibold flex items-center gap-2">
+                        <ShoppingBasket className="h-5 w-5" />
+                        <span>Savat</span>
+                    </h2>
+                </div>
+            </div>
 
             {unpaidItems && unpaidItems.length > 0 && (
+
                 <div className="space-y-4">
                     <div className="flex items-center justify-between">
+
                         <label className="flex items-center gap-2 text-sm">
                             <input
                                 type="checkbox"
@@ -361,7 +371,8 @@ export default function OrdersClient() {
                                     }
                                 }}
                             />
-                            <span>Hammasini tanlash (faqat savat bo'limi)</span>
+
+                            <span>Hammasini tanlash </span>
                         </label>
                         <div className="flex items-center gap-2">
                             <Button
