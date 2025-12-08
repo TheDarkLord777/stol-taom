@@ -164,11 +164,11 @@ export default function MenuGrid({
         const base = d ?? { description: undefined, restaurants: [] };
         const ingredients = Array.isArray(ing?.ingredients)
           ? ing.ingredients.map((x: any) => ({
-              id: String(x.id),
-              name: x.name,
-              mandatory: Boolean(x.mandatory),
-              selected: Boolean(x.mandatory),
-            }))
+            id: String(x.id),
+            name: x.name,
+            mandatory: Boolean(x.mandatory),
+            selected: Boolean(x.mandatory),
+          }))
           : [];
         setDetail({ ...base, ingredients });
       })
@@ -250,14 +250,14 @@ export default function MenuGrid({
       setDetail((prev) =>
         prev
           ? {
-              ...prev,
-              ingredients: (data.ingredients ?? []).map((x: any) => ({
-                id: String(x.id),
-                name: x.name,
-                mandatory: Boolean(x.mandatory),
-                selected: Boolean(x.mandatory),
-              })),
-            }
+            ...prev,
+            ingredients: (data.ingredients ?? []).map((x: any) => ({
+              id: String(x.id),
+              name: x.name,
+              mandatory: Boolean(x.mandatory),
+              selected: Boolean(x.mandatory),
+            })),
+          }
           : prev,
       );
     } catch (e) {
@@ -484,7 +484,7 @@ export default function MenuGrid({
                             const bc = new BroadcastChannel("orders");
                             bc.postMessage({ type: "orders:update" });
                             bc.close();
-                          } catch {}
+                          } catch { }
                           try {
                             toast.success("Taom savatga qo'shildi.", {
                               description:
@@ -494,7 +494,7 @@ export default function MenuGrid({
                                 onClick: () => router.push("/orders"),
                               },
                             });
-                          } catch {}
+                          } catch { }
                           closeDetail();
                         } catch (e) {
                           console.error("Add to cart error", e);
@@ -507,7 +507,7 @@ export default function MenuGrid({
                                 const bc = new BroadcastChannel("orders");
                                 bc.postMessage({ type: "orders:update" });
                                 bc.close();
-                              } catch {}
+                              } catch { }
                             }
                             try {
                               toast.success(
@@ -521,7 +521,7 @@ export default function MenuGrid({
                                   },
                                 },
                               );
-                            } catch {}
+                            } catch { }
                             closeDetail();
                           } catch {
                             // if even enqueue fails, as absolute last resort write to local cart
@@ -539,9 +539,9 @@ export default function MenuGrid({
                                     },
                                   },
                                 );
-                              } catch {}
+                              } catch { }
                               closeDetail();
-                            } catch {}
+                            } catch { }
                           }
                         } finally {
                           // clear adding state for this item
@@ -553,13 +553,37 @@ export default function MenuGrid({
                         }
                       }}
                       disabled={
-                        selected ? Boolean(addingMap[selected.id]) : false
+                        selected ? Boolean(addingMap[selected.id]) || detailLoading : false
                       }
                       aria-busy={
-                        selected ? Boolean(addingMap[selected.id]) : false
+                        selected ? Boolean(addingMap[selected.id]) || detailLoading : false
                       }
                     >
-                      {selected && addingMap[selected.id] ? (
+                      {detailLoading ? (
+                        <>
+                          <svg
+                            className="animate-spin -ml-1 mr-2 h-5 w-5 text-white"
+                            xmlns="http://www.w3.org/2000/svg"
+                            fill="none"
+                            viewBox="0 0 24 24"
+                          >
+                            <circle
+                              className="opacity-25"
+                              cx="12"
+                              cy="12"
+                              r="10"
+                              stroke="currentColor"
+                              strokeWidth="4"
+                            ></circle>
+                            <path
+                              className="opacity-75"
+                              fill="currentColor"
+                              d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z"
+                            ></path>
+                          </svg>
+                          Yuklanmoqda...
+                        </>
+                      ) : selected && addingMap[selected.id] ? (
                         <>
                           <svg
                             className="animate-spin -ml-1 mr-2 h-5 w-5 text-white"

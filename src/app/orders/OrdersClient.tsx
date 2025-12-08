@@ -404,30 +404,7 @@ export default function OrdersClient() {
                                 <Trash className="h-4 w-4" />
                                 <span className="text-sm">Tanlanganlarni o'chirish</span>
                             </Button>
-                            <Button
-                                onClick={async () => {
-                                    // simple Pay-at-Counter checkout for selected items or whole cart
-                                    const ids = unpaidItems.filter((x) => selectedIds.has(x.id)).map((x) => x.id);
-                                    try {
-                                        const res = await fetch('/api/cart/checkout', {
-                                            method: 'POST',
-                                            headers: { 'Content-Type': 'application/json' },
-                                            credentials: 'same-origin',
-                                            body: JSON.stringify({ ids: ids.length > 0 ? ids : undefined, paymentMethod: 'counter' }),
-                                        });
-                                        const data = await res.json().catch(() => ({}));
-                                        if (!res.ok) throw new Error(data?.error || 'Checkout failed');
-                                        try { toast.success("Buyurtma qabul qilindi. Menedjerga ko‘rinadi."); } catch { }
-                                        await fetchCart();
-                                    } catch (e) {
-                                        try { toast.error(String((e as Error).message || e)); } catch { }
-                                        await fetchCart();
-                                    }
-                                }}
-                                className="bg-emerald-600 hover:bg-emerald-700 text-white"
-                            >
-                                Tanlanganlarni to'lash (Joyida to'lash)
-                            </Button>
+
                         </div>
                     </div>
                     {unpaidItems.map((it) => (
