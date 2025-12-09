@@ -1,6 +1,8 @@
 import { type JWTPayload, jwtVerify, SignJWT } from "jose";
 import type { NextRequest } from "next/server";
 import { NextResponse } from "next/server";
+import { getPrisma } from "./prisma";
+import { getRedis } from "./redis";
 
 // Cookie names and TTLs
 export const ACCESS_TOKEN_NAME = "access_token";
@@ -119,6 +121,73 @@ export async function getUserFromRequest(
   } catch {
     return null;
   }
+}
+
+// ----- Role loading and helpers -----
+export type LoadedUserRole = {
+  name: string; // role name from Role.name
+  scopeType: string; // 'global' | 'restaurant' | 'branch'
+  scopeId?: string | null;
+};
+
+const ROLE_CACHE_TTL_SEC = Number(process.env.ROLE_CACHE_TTL_SECONDS || "60");
+
+export async function getUserRoles(userId: string): Promise<LoadedUserRole[]> {
+  const r = getRedis();
+  const cacheKey = `userroles:${userId}`;
+  if (r) {
+    try {
+      const raw = await r.get(cacheKey);
+      if (raw) return JSON.parse(raw) as LoadedUserRole[];
+    } catch {
+      // ignore cache errors
+    }
+  }
+  const prisma = getPrisma();
+  const rows = await prisma.userRole.findMany({
+    where: { userId },
+    include: { role: true },
+  });
+  const out: LoadedUserRole[] = rows.map((rr) => ({
+    name: rr.role.name,
+    scopeType: rr.scopeType,
+    scopeId: rr.scopeId ?? null,
+  }));
+  if (r) {
+    try {
+      await r.set(cacheKey, JSON.stringify(out), "EX", Math.max(10, ROLE_CACHE_TTL_SEC));
+    } catch {
+      // ignore cache set errors
+    }
+  }
+  return out;
+}
+
+export function userHasRole(
+  roles: LoadedUserRole[],
+  roleName: string,
+  opts?: { scopeType?: string; scopeId?: string | null },
+): boolean {
+  for (const r of roles) {
+    if (r.name !== roleName) continue;
+    if (!opts || !opts.scopeType) return true; // any-scope match
+    if (r.scopeType === "global") return true; // global role overrides
+    if (r.scopeType === opts.scopeType) {
+      // if scopeId not provided, match any within the scopeType
+      if (!opts.scopeId) return true;
+      if (r.scopeId && opts.scopeId && r.scopeId === opts.scopeId) return true;
+    }
+  }
+  return false;
+}
+
+export async function hasRoleForUser(
+  userId: string,
+  roleName: string,
+  opts?: { scopeType?: string; scopeId?: string | null },
+): Promise<boolean> {
+  const roles = await getUserRoles(userId);
+  return userHasRole(roles, roleName, opts);
 }
 
 export async function issueAndSetAuthCookies(

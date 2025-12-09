@@ -31,6 +31,7 @@ import {
   ACCESS_TTL_SEC,
   getUserFromRequest,
   refreshAccessToken,
+  getUserRoles,
 } from "@/lib/jwtAuth";
 
 export async function GET(req: NextRequest) {
@@ -42,7 +43,8 @@ export async function GET(req: NextRequest) {
         where: { id: tokenUser.id },
         select: { id: true, phone: true, name: true, email: true },
       });
-      if (dbUser)
+      if (dbUser) {
+        const roles = await getUserRoles(tokenUser.id).catch(() => []);
         return NextResponse.json({
           authenticated: true,
           user: {
@@ -50,8 +52,10 @@ export async function GET(req: NextRequest) {
             phone: dbUser.phone,
             name: dbUser.name,
             email: dbUser.email,
+            roles,
           },
         });
+      }
     }
 
     // Try refresh to mint new access (without using NextResponse.next in app routes)
@@ -63,6 +67,7 @@ export async function GET(req: NextRequest) {
       });
       if (!dbUser)
         return NextResponse.json({ authenticated: false }, { status: 401 });
+      const roles = await getUserRoles(String(refreshed.user.id)).catch(() => []);
       const res = NextResponse.json({
         authenticated: true,
         user: {
@@ -70,6 +75,7 @@ export async function GET(req: NextRequest) {
           phone: dbUser.phone,
           name: dbUser.name,
           email: dbUser.email,
+          roles,
         },
         refreshed: true,
       });

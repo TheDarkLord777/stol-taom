@@ -237,7 +237,7 @@ export default function RestaurantManagementPage() {
               </button>
               <button
                 type="button"
-                className="rounded bg-gray-200 px-3 py-1"
+                className="rounded bg-gray-200 dark:bg-gray-700 px-3 py-1 text-gray-800 dark:text-gray-100"
                 onClick={() => router.push("/management")}
               >
                 Back
@@ -305,7 +305,7 @@ export default function RestaurantManagementPage() {
             </button>
             <button
               type="button"
-              className="rounded bg-gray-200 px-3 py-1 text-sm"
+              className="rounded bg-gray-200 dark:bg-gray-700 px-3 py-1 text-sm text-gray-800 dark:text-gray-100"
               onClick={() => setShowRaw((s) => !s)}
             >
               {showRaw ? "Hide raw" : "Show raw"}

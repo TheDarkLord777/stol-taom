@@ -33,6 +33,8 @@ model Restaurant {
   reservations Reservation[]
   menuItems MenuItemOnRestaurant[]
   capacity RestaurantCapacity?
+  // Branches (physical locations)
+  branches Branch[]
   // Managers (many-to-many via RestaurantManager)
   managers RestaurantManager[]
 }
@@ -79,12 +81,16 @@ model MenuItemOnRestaurant {
   menuItemId   String
   restaurantId String
   createdAt    DateTime @default(now())
-
   // When a MenuItem is deleted, remove the linking rows in MenuItemOnRestaurant
   // When a Restaurant is deleted, remove its linking rows as well.
   // This uses referential cascade so you can delete the parent and the links are cleaned automatically.
   menuItem     MenuItem   @relation(fields: [menuItemId], references: [id], onDelete: Cascade)
   restaurant   Restaurant @relation(fields: [restaurantId], references: [id], onDelete: Cascade)
+
+  // per-restaurant override price (string to keep parity with existing price strings)
+  priceOverride  String?
+  // whether this item is available at this restaurant/branch
+  available      Boolean  @default(true)
 
   @@unique([menuItemId, restaurantId])
 }
@@ -174,3 +180,63 @@ model OrderItem {
   @@index([orderId])
   @@index([restaurantId])
 }
+
+// Branch model: represents a physical location / filial belonging to a Restaurant
+model Branch {
+  id           String   @id @default(cuid())
+  name         String
+  restaurantId String
+  restaurant   Restaurant @relation(fields: [restaurantId], references: [id])
+  address      String?
+  phone        String?
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  // relations
+  // roles assigned scoped to this branch are stored in UserRole
+  userRoles    UserRole[] @relation("branch_roles")
+  tableAssignments TableAssignment[]
+
+  @@index([restaurantId])
+}
+
+// Role definitions (seed core roles: OWNER, ADMIN, MANAGER, CHEF, KITCHEN, WAITER, CASHIER)
+model Role {
+  id          String   @id @default(cuid())
+  name        String   @unique
+  description String?
+  createdAt   DateTime @default(now())
+
+  userRoles   UserRole[]
+}
+
+// UserRole: grants a Role to a user with an optional scope (global / restaurant / branch)
+model UserRole {
+  id        String   @id @default(cuid())
+  userId    String
+  roleId    String
+  role      Role     @relation(fields: [roleId], references: [id])
+  scopeType String   // 'global' | 'restaurant' | 'branch'
+  scopeId   String?  // when scopeType != 'global' this references the id of the scope (restaurantId or branchId)
+  createdAt DateTime @default(now())
+
+  // optional relation helper to Branch when scopeType='branch'
+  branch    Branch?  @relation("branch_roles", fields: [scopeId], references: [id])
+
+  @@index([userId, scopeType, scopeId])
+}
+
+// TableAssignment: assign a waiter to a table in a branch (auditable)
+model TableAssignment {
+  id        String   @id @default(cuid())
+  branchId  String
+  tableName String
+  waiterId  String
+  active    Boolean  @default(true)
+  createdAt DateTime @default(now())
+
+  branch    Branch   @relation(fields: [branchId], references: [id])
+  @@index([branchId])
+  @@index([waiterId])
+}
+
