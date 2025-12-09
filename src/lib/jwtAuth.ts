@@ -1,8 +1,13 @@
-import { type JWTPayload, jwtVerify, SignJWT } from "jose";
+import type { JWTPayload } from "jose";
 import type { NextRequest } from "next/server";
 import { NextResponse } from "next/server";
 import { getPrisma } from "./prisma";
 import { getRedis } from "./redis";
+
+// Lazy import jose to avoid issues in Edge Runtime
+async function getJose() {
+  return await import("jose");
+}
 
 // Cookie names and TTLs
 export const ACCESS_TOKEN_NAME = "access_token";
@@ -26,10 +31,24 @@ export const REFRESH_TTL_SEC = readSeconds(
 
 type PublicUser = { id: string; phone: string; name?: string };
 
+// Cache the encoded secret key to avoid re-encoding on every call
+let cachedSecretKey: Uint8Array | null = null;
+
 function getSecretKey() {
-  const secret = process.env.JWT_SECRET || process.env.NEXTAUTH_SECRET || "";
-  if (!secret) throw new Error("JWT_SECRET not set");
-  return new TextEncoder().encode(secret);
+  // Return cached key if available
+  if (cachedSecretKey) return cachedSecretKey;
+
+  const secret = process.env.JWT_SECRET || process.env.NEXTAUTH_SECRET;
+  if (!secret) {
+    const msg = "JWT_SECRET and NEXTAUTH_SECRET are both unset";
+    throw new Error(msg);
+  }
+  try {
+    cachedSecretKey = new TextEncoder().encode(secret);
+    return cachedSecretKey;
+  } catch (err) {
+    throw new Error(`Failed to encode JWT secret: ${String(err)}`);
+  }
 }
 
 function newJti() {
@@ -59,6 +78,7 @@ async function getRefreshRepo() {
 }
 
 export async function signAccessToken(user: PublicUser) {
+  const { SignJWT } = await getJose();
   const key = getSecretKey();
   return await new SignJWT({
     sub: user.id,
@@ -73,6 +93,7 @@ export async function signAccessToken(user: PublicUser) {
 }
 
 export async function signRefreshToken(user: PublicUser, jti?: string) {
+  const { SignJWT } = await getJose();
   const key = getSecretKey();
   const tokenJti = jti || newJti();
   return await new SignJWT({
@@ -89,6 +110,7 @@ export async function signRefreshToken(user: PublicUser, jti?: string) {
 }
 
 export async function verifyToken(token: string) {
+  const { jwtVerify } = await getJose();
   const key = getSecretKey();
   const { payload } = await jwtVerify(token, key, { algorithms: ["HS256"] });
   return payload as JWTPayload & {
