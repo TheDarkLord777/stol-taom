@@ -19,6 +19,11 @@ type MeResponse = {
     avatarUrl?: string;
     locale?: string;
     timezone?: string;
+    roles?: Array<{
+      name: string;
+      scopeType?: string | null;
+      scopeId?: string | null;
+    }>;
   } | null;
 };
 
@@ -120,7 +125,7 @@ export default function ProfileClient() {
   const handleLogout = async () => {
     try {
       await fetch("/api/auth/logout", { method: "POST" });
-    } catch {}
+    } catch { }
     window.location.href = "/login";
   };
 
@@ -189,176 +194,190 @@ export default function ProfileClient() {
             ) : errorMe ? (
               <div className="text-sm text-red-500">{errorMe}</div>
             ) : me ? (
-              <form className="grid gap-4 sm:grid-cols-2">
-                <div className="sm:col-span-2">
-                  <label
-                    htmlFor="me-name"
-                    className="mb-1 block text-sm text-gray-300"
-                  >
-                    Ism
-                  </label>
-                  <Input
-                    id="me-name"
-                    value={editing ? editName : (me.name ?? "")}
-                    onChange={(e) => setEditName(e.target.value)}
-                    disabled={!editing}
-                    readOnly={!editing}
-                  />
-                </div>
-                <div>
-                  <label
-                    htmlFor="me-email"
-                    className="mb-1 block text-sm text-gray-300"
-                  >
-                    Email
-                  </label>
-                  <Input
-                    id="me-email"
-                    value={editing ? editEmail : (me.email ?? "")}
-                    onChange={(e) => setEditEmail(e.target.value)}
-                    disabled={!editing}
-                    readOnly={!editing}
-                  />
-                </div>
-                <div>
-                  <label
-                    htmlFor="me-phone"
-                    className="mb-1 block text-sm text-gray-300"
-                  >
-                    Telefon
-                  </label>
-                  <Input
-                    id="me-phone"
-                    value={editing ? editPhone : (me.phone ?? "")}
-                    onChange={(e) => setEditPhone(e.target.value)}
-                    disabled={!editing}
-                    readOnly={!editing}
-                  />
-                </div>
-                <div>
-                  <label
-                    htmlFor="me-locale"
-                    className="mb-1 block text-sm text-gray-300"
-                  >
-                    Til
-                  </label>
-                  <Input
-                    id="me-locale"
-                    value={me.locale ?? "uz"}
-                    disabled
-                    readOnly
-                  />
-                </div>
-                <div>
-                  <label
-                    htmlFor="me-timezone"
-                    className="mb-1 block text-sm text-gray-300"
-                  >
-                    Vaqt mintaqasi
-                  </label>
-                  <Input
-                    id="me-timezone"
-                    value={
-                      me.timezone ??
-                      Intl.DateTimeFormat().resolvedOptions().timeZone
-                    }
-                    disabled
-                    readOnly
-                  />
-                </div>
-                <div className="sm:col-span-2 flex items-center justify-between">
-                  <div className="text-xs text-gray-400">
-                    Profildagi ma'lumotni tahrirlash
+              <>
+                <div className="sm:col-span-2 mb-3">
+                  <div className="flex flex-wrap items-center gap-2">
+                    {(me.roles && me.roles.length > 0 ? me.roles.map((r) => r.name) : ["client"]).map((r) => (
+                      <span
+                        key={r}
+                        className="inline-flex items-center rounded-full border border-white/10 bg-white/5 px-3 py-1 text-sm font-medium text-gray-100"
+                      >
+                        {r}
+                      </span>
+                    ))}
                   </div>
-                  <div className="flex gap-2">
-                    {editing ? (
-                      <>
-                        <Button
-                          onClick={async () => {
-                            // Cancel
-                            setEditing(false);
-                            if (me) {
-                              setEditName(me.name ?? "");
-                              setEditEmail(me.email ?? "");
-                              setEditPhone(me.phone ?? "");
-                            }
-                          }}
-                          variant="outline"
-                        >
-                          Bekor qilish
-                        </Button>
-                        <Button
-                          onClick={async () => {
-                            // Save
-                            if (!me) return;
-                            setSaving(true);
-                            try {
-                              const payload: ProfileUpdateRequest = {
-                                name: editName,
-                                email: editEmail,
-                              };
-                              if (editPhone !== me.phone)
-                                payload.phone = editPhone;
-                              const res = await fetch("/api/profile/update", {
-                                method: "POST",
-                                headers: { "Content-Type": "application/json" },
-                                body: JSON.stringify(payload),
-                              });
-                              const data =
-                                (await res.json()) as ProfileUpdateResponse;
-                              if (!res.ok)
-                                throw new Error(data.error || "Xatolik");
-                              // If phone change initiated, redirect to verify
-                              if (data.requestId && data.phone) {
-                                const url = new URL(
-                                  `/verify`,
-                                  window.location.origin,
-                                );
-                                url.searchParams.set(
-                                  "phone",
-                                  String(data.phone),
-                                );
-                                url.searchParams.set(
-                                  "requestId",
-                                  String(data.requestId),
-                                );
-                                url.searchParams.set("from", "profile");
-                                window.location.href = url.toString();
-                                return;
+                </div>
+                <form className="grid gap-4 sm:grid-cols-2">
+                  <div className="sm:col-span-2">
+                    <label
+                      htmlFor="me-name"
+                      className="mb-1 block text-sm text-gray-300"
+                    >
+                      Ism
+                    </label>
+                    <Input
+                      id="me-name"
+                      value={editing ? editName : (me.name ?? "")}
+                      onChange={(e) => setEditName(e.target.value)}
+                      disabled={!editing}
+                      readOnly={!editing}
+                    />
+                  </div>
+                  <div>
+                    <label
+                      htmlFor="me-email"
+                      className="mb-1 block text-sm text-gray-300"
+                    >
+                      Email
+                    </label>
+                    <Input
+                      id="me-email"
+                      value={editing ? editEmail : (me.email ?? "")}
+                      onChange={(e) => setEditEmail(e.target.value)}
+                      disabled={!editing}
+                      readOnly={!editing}
+                    />
+                  </div>
+                  <div>
+                    <label
+                      htmlFor="me-phone"
+                      className="mb-1 block text-sm text-gray-300"
+                    >
+                      Telefon
+                    </label>
+                    <Input
+                      id="me-phone"
+                      value={editing ? editPhone : (me.phone ?? "")}
+                      onChange={(e) => setEditPhone(e.target.value)}
+                      disabled={!editing}
+                      readOnly={!editing}
+                    />
+                  </div>
+                  <div>
+                    <label
+                      htmlFor="me-locale"
+                      className="mb-1 block text-sm text-gray-300"
+                    >
+                      Til
+                    </label>
+                    <Input
+                      id="me-locale"
+                      value={me.locale ?? "uz"}
+                      disabled
+                      readOnly
+                    />
+                  </div>
+                  <div>
+                    <label
+                      htmlFor="me-timezone"
+                      className="mb-1 block text-sm text-gray-300"
+                    >
+                      Vaqt mintaqasi
+                    </label>
+                    <Input
+                      id="me-timezone"
+                      value={
+                        me.timezone ??
+                        Intl.DateTimeFormat().resolvedOptions().timeZone
+                      }
+                      disabled
+                      readOnly
+                    />
+                  </div>
+                  <div className="sm:col-span-2 flex items-center justify-between">
+                    <div className="text-xs text-gray-400">
+                      Profildagi ma'lumotni tahrirlash
+                    </div>
+                    <div className="flex gap-2">
+                      {editing ? (
+                        <>
+                          <Button
+                            onClick={async () => {
+                              // Cancel
+                              setEditing(false);
+                              if (me) {
+                                setEditName(me.name ?? "");
+                                setEditEmail(me.email ?? "");
+                                setEditPhone(me.phone ?? "");
                               }
-                              // Otherwise, update local state
-                              setMe((prev) =>
-                                prev
-                                  ? {
+                            }}
+                            variant="outline"
+                          >
+                            Bekor qilish
+                          </Button>
+                          <Button
+                            onClick={async () => {
+                              // Save
+                              if (!me) return;
+                              setSaving(true);
+                              try {
+                                const payload: ProfileUpdateRequest = {
+                                  name: editName,
+                                  email: editEmail,
+                                };
+                                if (editPhone !== me.phone)
+                                  payload.phone = editPhone;
+                                const res = await fetch("/api/profile/update", {
+                                  method: "POST",
+                                  headers: { "Content-Type": "application/json" },
+                                  body: JSON.stringify(payload),
+                                });
+                                const data =
+                                  (await res.json()) as ProfileUpdateResponse;
+                                if (!res.ok)
+                                  throw new Error(data.error || "Xatolik");
+                                // If phone change initiated, redirect to verify
+                                if (data.requestId && data.phone) {
+                                  const url = new URL(
+                                    `/verify`,
+                                    window.location.origin,
+                                  );
+                                  url.searchParams.set(
+                                    "phone",
+                                    String(data.phone),
+                                  );
+                                  url.searchParams.set(
+                                    "requestId",
+                                    String(data.requestId),
+                                  );
+                                  url.searchParams.set("from", "profile");
+                                  window.location.href = url.toString();
+                                  return;
+                                }
+                                // Otherwise, update local state
+                                setMe((prev) =>
+                                  prev
+                                    ? {
                                       ...prev,
                                       name: editName,
                                       email: editEmail,
                                       phone: editPhone,
                                     }
-                                  : prev,
-                              );
-                              setEditing(false);
-                            } catch (e: unknown) {
-                              const msg =
-                                e instanceof Error ? e.message : String(e);
-                              setErrorMe(msg);
-                            } finally {
-                              setSaving(false);
-                            }
-                          }}
-                          disabled={saving}
-                        >
-                          Saqlash
+                                    : prev,
+                                );
+                                setEditing(false);
+                              } catch (e: unknown) {
+                                const msg =
+                                  e instanceof Error ? e.message : String(e);
+                                setErrorMe(msg);
+                              } finally {
+                                setSaving(false);
+                              }
+                            }}
+                            disabled={saving}
+                          >
+                            Saqlash
+                          </Button>
+                        </>
+                      ) : (
+                        <Button onClick={() => setEditing(true)}>
+                          Tahrirlash
                         </Button>
-                      </>
-                    ) : (
-                      <Button onClick={() => setEditing(true)}>
-                        Tahrirlash
-                      </Button>
-                    )}
+                      )}
+                    </div>
                   </div>
-                </div>
-              </form>
+                </form>
+              </>
             ) : (
               <div className="text-sm text-gray-400">Ma'lumot topilmadi</div>
             )}
