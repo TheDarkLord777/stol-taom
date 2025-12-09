@@ -27,7 +27,7 @@ export default function RestaurantManagementPage() {
     async function init() {
       if (!restaurantId) return;
       setStatus("checking");
-      
+
       // Load restaurant name
       try {
         const restRes = await fetch(`/api/restaurants/${restaurantId}`);
@@ -346,7 +346,7 @@ export default function RestaurantManagementPage() {
                 ) : null}
               </div>
             </div>
-            <button 
+            <button
               className="rounded bg-emerald-600 text-white px-3 py-1 hover:bg-emerald-700 transition-colors"
               onClick={() => {
                 setShowMenu(true);
