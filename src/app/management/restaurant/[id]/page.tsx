@@ -16,12 +16,28 @@ export default function RestaurantManagementPage() {
   const [message, setMessage] = React.useState<string | null>(null);
   const [openOrders, setOpenOrders] = React.useState<any[] | null>(null);
   const [showRaw, setShowRaw] = React.useState(false);
+  const [menuItems, setMenuItems] = React.useState<any[] | null>(null);
+  const [showMenu, setShowMenu] = React.useState(false);
+  const [selectedMenuItem, setSelectedMenuItem] = React.useState<any | null>(null);
+  const [menuItemIngredients, setMenuItemIngredients] = React.useState<any[] | null>(null);
+  const [restaurantName, setRestaurantName] = React.useState<string>("");
 
   React.useEffect(() => {
     let mounted = true;
     async function init() {
       if (!restaurantId) return;
       setStatus("checking");
+      
+      // Load restaurant name
+      try {
+        const restRes = await fetch(`/api/restaurants/${restaurantId}`);
+        if (restRes.ok) {
+          const restData = await restRes.json();
+          if (mounted) setRestaurantName(restData.name || "");
+        }
+      } catch (e) {
+        // ignore error, keep empty name
+      }
       // Fast path: try fetching orders directly (works if cookies/access token valid)
       try {
         const direct = await apiFetch(
@@ -79,6 +95,34 @@ export default function RestaurantManagementPage() {
       mounted = false;
     };
   }, [restaurantId]);
+
+  async function loadMenuItems() {
+    if (!restaurantId) return;
+    try {
+      const res = await fetch(`/api/restaurants/${restaurantId}/menu`);
+      if (!res.ok) throw new Error(`Status ${res.status}`);
+      const data = await res.json();
+      setMenuItems(data.items || []);
+    } catch (err) {
+      setMessage(String(err));
+      setMenuItems([]);
+    }
+  }
+
+  async function loadMenuItemDetails(menuItemId: string) {
+    try {
+      const [detailRes, ingredientsRes] = await Promise.all([
+        fetch(`/api/menu/${menuItemId}`),
+        fetch(`/api/menu/${menuItemId}/ingredients`)
+      ]);
+      const detail = await detailRes.json();
+      const ingredients = await ingredientsRes.json();
+      setSelectedMenuItem(detail);
+      setMenuItemIngredients(ingredients.items || []);
+    } catch (err) {
+      setMessage(String(err));
+    }
+  }
 
   async function doLogin(e?: React.FormEvent) {
     e?.preventDefault();
@@ -204,7 +248,9 @@ export default function RestaurantManagementPage() {
 
   return (
     <main className="p-6 mx-auto max-w-3xl">
-      <h1 className="text-2xl font-bold mb-4">Management — {restaurantId}</h1>
+      <h1 className="text-2xl font-bold mb-4">
+        Management — {restaurantName || restaurantId}
+      </h1>
       {status === "loading" || status === "checking" ? (
         <div>Checking access...</div>
       ) : null}
@@ -300,7 +346,13 @@ export default function RestaurantManagementPage() {
                 ) : null}
               </div>
             </div>
-            <button className="rounded bg-emerald-600 text-white px-3 py-1">
+            <button 
+              className="rounded bg-emerald-600 text-white px-3 py-1 hover:bg-emerald-700 transition-colors"
+              onClick={() => {
+                setShowMenu(true);
+                if (!menuItems) loadMenuItems();
+              }}
+            >
               Edit Menu
             </button>
             <button
@@ -396,6 +448,108 @@ export default function RestaurantManagementPage() {
                 );
               }
             })()}
+          </div>
+        </div>
+      )}
+
+      {/* Menu Items Section */}
+      {showMenu && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4" onClick={() => setShowMenu(false)}>
+          <div className="bg-white dark:bg-gray-800 rounded-lg max-w-6xl w-full max-h-[90vh] overflow-auto" onClick={(e) => e.stopPropagation()}>
+            <div className="sticky top-0 bg-white dark:bg-gray-800 border-b p-4 flex justify-between items-center">
+              <h2 className="text-2xl font-bold">Restaurant Menu</h2>
+              <button onClick={() => setShowMenu(false)} className="text-2xl hover:text-red-600">&times;</button>
+            </div>
+            <div className="p-6">
+              {menuItems === null ? (
+                <div className="text-center py-8">Loading menu...</div>
+              ) : menuItems.length === 0 ? (
+                <div className="text-center py-8 text-gray-500">No menu items found</div>
+              ) : (
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                  {menuItems.map((item) => (
+                    <div key={item.id} className="border rounded-lg overflow-hidden hover:shadow-lg transition-shadow cursor-pointer" onClick={() => loadMenuItemDetails(item.id)}>
+                      <div className="relative h-48 bg-gray-200 dark:bg-gray-700">
+                        {item.logoUrl ? (
+                          <img src={item.logoUrl} alt={item.name} className="w-full h-full object-cover" />
+                        ) : (
+                          <div className="flex items-center justify-center h-full text-4xl font-bold text-gray-400">
+                            {item.name?.charAt(0) || "M"}
+                          </div>
+                        )}
+                      </div>
+                      <div className="p-4">
+                        <h3 className="font-semibold text-lg mb-1">{item.name}</h3>
+                        <p className="text-xs text-gray-500">{item.slug || "No slug"}</p>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Menu Item Detail Modal */}
+      {selectedMenuItem && (
+        <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-60 p-4" onClick={() => { setSelectedMenuItem(null); setMenuItemIngredients(null); }}>
+          <div className="bg-white dark:bg-gray-800 rounded-lg max-w-4xl w-full max-h-[90vh] overflow-auto" onClick={(e) => e.stopPropagation()}>
+            <div className="sticky top-0 bg-white dark:bg-gray-800 border-b p-4 flex justify-between items-center">
+              <h2 className="text-2xl font-bold">{selectedMenuItem.name}</h2>
+              <button onClick={() => { setSelectedMenuItem(null); setMenuItemIngredients(null); }} className="text-2xl hover:text-red-600">&times;</button>
+            </div>
+            <div className="p-6">
+              <div className="grid md:grid-cols-2 gap-6">
+                <div>
+                  <div className="relative h-64 bg-gray-200 dark:bg-gray-700 rounded-lg overflow-hidden mb-4">
+                    {selectedMenuItem.imageUrl || selectedMenuItem.logoUrl ? (
+                      <img src={selectedMenuItem.imageUrl || selectedMenuItem.logoUrl} alt={selectedMenuItem.name} className="w-full h-full object-cover" />
+                    ) : (
+                      <div className="flex items-center justify-center h-full text-6xl font-bold text-gray-400">
+                        {selectedMenuItem.name?.charAt(0) || "M"}
+                      </div>
+                    )}
+                  </div>
+                  <div className="space-y-2 text-sm">
+                    <div><span className="font-semibold">Slug:</span> {selectedMenuItem.slug || "—"}</div>
+                    <div><span className="font-semibold">Description:</span></div>
+                    <p className="text-gray-700 dark:text-gray-300">{selectedMenuItem.description || "No description available"}</p>
+                  </div>
+                </div>
+                <div>
+                  <h3 className="text-xl font-bold mb-4">Ingredients</h3>
+                  {menuItemIngredients === null ? (
+                    <div className="text-center py-4">Loading ingredients...</div>
+                  ) : menuItemIngredients.length === 0 ? (
+                    <div className="text-gray-500">No ingredients found</div>
+                  ) : (
+                    <div className="space-y-3">
+                      {menuItemIngredients.map((ing) => (
+                        <div key={ing.id} className="flex gap-3 p-3 border rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors">
+                          <div className="w-16 h-16 shrink-0 bg-gray-200 dark:bg-gray-700 rounded overflow-hidden">
+                            {ing.logoUrl ? (
+                              <img src={ing.logoUrl} alt={ing.name} className="w-full h-full object-cover" />
+                            ) : (
+                              <div className="flex items-center justify-center h-full text-xl font-bold text-gray-400">
+                                {ing.name?.charAt(0) || "I"}
+                              </div>
+                            )}
+                          </div>
+                          <div className="flex-1">
+                            <div className="font-semibold">{ing.name}</div>
+                            <div className="text-xs text-gray-500">{ing.slug || ""}</div>
+                            {ing.description && (
+                              <div className="text-sm text-gray-600 dark:text-gray-400 mt-1">{ing.description}</div>
+                            )}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              </div>
+            </div>
           </div>
         </div>
       )}
