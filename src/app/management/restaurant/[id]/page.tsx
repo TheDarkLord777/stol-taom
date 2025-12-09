@@ -21,6 +21,13 @@ export default function RestaurantManagementPage() {
   const [selectedMenuItem, setSelectedMenuItem] = React.useState<any | null>(null);
   const [menuItemIngredients, setMenuItemIngredients] = React.useState<any[] | null>(null);
   const [restaurantName, setRestaurantName] = React.useState<string>("");
+  const [showManagers, setShowManagers] = React.useState(false);
+  const [managers, setManagers] = React.useState<any[] | null>(null);
+  const [newManagerPhone, setNewManagerPhone] = React.useState("");
+  const [managerMessage, setManagerMessage] = React.useState<string | null>(null);
+  const [editingMenuItem, setEditingMenuItem] = React.useState<any | null>(null);
+  const [menuFormData, setMenuFormData] = React.useState({ name: "", slug: "", logoUrl: "", description: "", price: "" });
+  const [menuError, setMenuError] = React.useState<string | null>(null);
 
   React.useEffect(() => {
     let mounted = true;
@@ -107,6 +114,184 @@ export default function RestaurantManagementPage() {
       setMessage(String(err));
       setMenuItems([]);
     }
+  }
+
+  async function loadManagers() {
+    if (!restaurantId) return;
+    try {
+      const res = await apiFetch(`/api/dev/admin/managers?restaurantId=${restaurantId}`);
+      if (!res.ok) throw new Error(`Status ${res.status}`);
+      const data = await res.json();
+      setManagers(data.items || []);
+    } catch (err) {
+      setManagerMessage(String(err));
+      setManagers([]);
+    }
+  }
+
+  async function addManager(e: React.FormEvent) {
+    e.preventDefault();
+    if (!newManagerPhone.trim()) return;
+    setManagerMessage(null);
+    try {
+      const res = await apiFetch('/api/dev/admin/managers', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ restaurantId, phone: newManagerPhone.trim() }),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        setManagerMessage(data.error || `Status ${res.status}`);
+        return;
+      }
+      setManagerMessage(data.tempPassword ? `Manager added! Temp password: ${data.tempPassword}` : 'Manager added successfully!');
+      setNewManagerPhone('');
+      loadManagers();
+    } catch (err) {
+      setManagerMessage(String(err));
+    }
+  }
+
+  async function removeManager(userId: string) {
+    if (!confirm('Remove this manager?')) return;
+    setManagerMessage(null);
+    try {
+      const res = await apiFetch('/api/dev/admin/managers', {
+        method: 'DELETE',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ restaurantId, userId }),
+      });
+      if (!res.ok) {
+        const data = await res.json();
+        setManagerMessage(data.error || `Status ${res.status}`);
+        return;
+      }
+      setManagerMessage('Manager removed successfully!');
+      loadManagers();
+    } catch (err) {
+      setManagerMessage(String(err));
+    }
+  }
+
+  async function createMenuItem(e: React.FormEvent) {
+    e.preventDefault();
+    setMenuError(null);
+    if (!menuFormData.name || !menuFormData.slug) {
+      setMenuError('Name and slug are required');
+      return;
+    }
+    try {
+      const res = await apiFetch('/api/menu', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(menuFormData),
+      });
+      if (!res.ok) {
+        const data = await res.json();
+        setMenuError(data.error || `Status ${res.status}`);
+        return;
+      }
+      const data = await res.json();
+      // Assign to restaurant with price
+      const assignRes = await apiFetch(`/api/menu/${data.item.id}/restaurants`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          restaurantIds: [restaurantId],
+          priceOverride: menuFormData.price || null
+        }),
+      });
+      if (!assignRes.ok) {
+        const assignData = await assignRes.json();
+        setMenuError(`Created but assignment failed: ${assignData.error || assignRes.status}`);
+        return;
+      }
+      setMenuError('Menu item created successfully!');
+      setMenuFormData({ name: '', slug: '', logoUrl: '', description: '', price: '' });
+      loadMenuItems();
+    } catch (err) {
+      setMenuError(String(err));
+    }
+  }
+
+  async function updateMenuItem(e: React.FormEvent) {
+    e.preventDefault();
+    setMenuError(null);
+    if (!editingMenuItem) return;
+    try {
+      const res = await apiFetch(`/api/menu/${editingMenuItem.id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(menuFormData),
+      });
+      if (!res.ok) {
+        const data = await res.json();
+        setMenuError(data.error || `Status ${res.status}`);
+        return;
+      }
+
+      // Also update the price in MenuItemOnRestaurant if price changed
+      if (menuFormData.price !== undefined) {
+        const priceRes = await apiFetch(`/api/menu/${editingMenuItem.id}/restaurants`, {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            restaurantIds: [restaurantId],
+            priceOverride: menuFormData.price || null
+          }),
+        });
+        if (!priceRes.ok) {
+          const priceData = await priceRes.json();
+          setMenuError(`Updated item but price update failed: ${priceData.error || priceRes.status}`);
+          loadMenuItems();
+          return;
+        }
+      }
+
+      setMenuError('Menu item updated successfully!');
+      setEditingMenuItem(null);
+      setMenuFormData({ name: '', slug: '', logoUrl: '', description: '', price: '' });
+      loadMenuItems();
+    } catch (err) {
+      setMenuError(String(err));
+    }
+  }
+
+  async function deleteMenuItem(id: string) {
+    if (!confirm('Are you sure you want to delete this menu item?')) return;
+    setMenuError(null);
+    try {
+      const res = await apiFetch(`/api/menu/${id}`, {
+        method: 'DELETE',
+      });
+      if (!res.ok) {
+        const data = await res.json();
+        setMenuError(data.error || `Status ${res.status}`);
+        return;
+      }
+      setMenuError('Menu item deleted successfully!');
+      loadMenuItems();
+    } catch (err) {
+      setMenuError(String(err));
+    }
+  }
+
+  function startEditMenuItem(item: any) {
+    setEditingMenuItem(item);
+    setMenuFormData({
+      name: item.name || '',
+      slug: item.slug || '',
+      logoUrl: item.logoUrl || '',
+      description: item.description || '',
+      price: item.priceOverride || '',
+    });
+    setMenuError(null);
+  }
+
+  function cancelEditMenuItem() {
+    setEditingMenuItem(null);
+    setMenuFormData({ name: '', slug: '', logoUrl: '', description: '', price: '' });
+    setMenuError(null);
   }
 
   async function loadMenuItemDetails(menuItemId: string) {
@@ -356,6 +541,15 @@ export default function RestaurantManagementPage() {
               Edit Menu
             </button>
             <button
+              className="rounded bg-purple-600 text-white px-3 py-1 hover:bg-purple-700 transition-colors"
+              onClick={() => {
+                setShowManagers(true);
+                if (!managers) loadManagers();
+              }}
+            >
+              Manage Managers
+            </button>
+            <button
               type="button"
               className="rounded bg-gray-200 dark:bg-gray-700 px-3 py-1 text-sm text-gray-800 dark:text-gray-100"
               onClick={() => setShowRaw((s) => !s)}
@@ -452,15 +646,153 @@ export default function RestaurantManagementPage() {
         </div>
       )}
 
+      {/* Managers Section */}
+      {showManagers && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4" onClick={() => setShowManagers(false)}>
+          <div className="bg-white dark:bg-gray-800 rounded-lg max-w-2xl w-full max-h-[90vh] overflow-auto" onClick={(e) => e.stopPropagation()}>
+            <div className="sticky top-0 bg-white dark:bg-gray-800 border-b p-4 flex justify-between items-center">
+              <h2 className="text-2xl font-bold">Restaurant Managers</h2>
+              <button onClick={() => setShowManagers(false)} className="text-2xl hover:text-red-600">&times;</button>
+            </div>
+            <div className="p-6">
+              {/* Add Manager Form */}
+              <form onSubmit={addManager} className="mb-6 p-4 border rounded-lg bg-gray-50 dark:bg-gray-900">
+                <h3 className="text-lg font-semibold mb-3">Add New Manager</h3>
+                <div className="flex gap-2">
+                </div>
+                <div className="col-span-full grid grid-cols-1 md:grid-cols-2 gap-3">
+                  <input
+                    type="text"
+                    placeholder="Phone number"
+                    value={newManagerPhone}
+                    onChange={(e) => setNewManagerPhone(e.target.value)}
+                    className="flex-1 rounded border px-3 py-2 dark:bg-gray-800 dark:border-gray-700"
+                  />
+                  <button
+                    type="submit"
+                    className="rounded bg-purple-600 text-white px-4 py-2 hover:bg-purple-700 transition-colors"
+                  >
+                    Add Manager
+                  </button>
+                </div>
+                {managerMessage && (
+                  <div className={`mt-2 text-sm ${managerMessage.includes('successfully') || managerMessage.includes('added') ? 'text-green-600' : 'text-red-600'}`}>
+                    {managerMessage}
+                  </div>
+                )}
+              </form>
+
+              {/* Managers List */}
+              <div>
+                <h3 className="text-lg font-semibold mb-3">Current Managers</h3>
+                {managers === null ? (
+                  <div className="text-center py-4">Loading managers...</div>
+                ) : managers.length === 0 ? (
+                  <div className="text-center py-4 text-gray-500">No managers found</div>
+                ) : (
+                  <div className="space-y-2">
+                    {managers.map((mgr) => (
+                      <div key={mgr.userId} className="flex items-center justify-between p-3 border rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors">
+                        <div>
+                          <div className="font-semibold">{mgr.name || 'No name'}</div>
+                          <div className="text-sm text-gray-600 dark:text-gray-400">{mgr.phone}</div>
+                          <div className="text-xs text-gray-500 dark:text-gray-500">
+                            Added: {mgr.createdAt ? new Date(mgr.createdAt).toLocaleDateString() : 'Unknown'}
+                          </div>
+                        </div>
+                        <button
+                          onClick={() => removeManager(mgr.userId)}
+                          className="rounded bg-red-500 text-white px-3 py-1 hover:bg-red-600 transition-colors text-sm"
+                        >
+                          Remove
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Menu Items Section */}
       {showMenu && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4" onClick={() => setShowMenu(false)}>
           <div className="bg-white dark:bg-gray-800 rounded-lg max-w-6xl w-full max-h-[90vh] overflow-auto" onClick={(e) => e.stopPropagation()}>
-            <div className="sticky top-0 bg-white dark:bg-gray-800 border-b p-4 flex justify-between items-center">
+            <div className="sticky top-0 bg-white dark:bg-gray-800 border-b p-4 flex justify-between items-center z-10">
               <h2 className="text-2xl font-bold">Restaurant Menu</h2>
               <button onClick={() => setShowMenu(false)} className="text-2xl hover:text-red-600">&times;</button>
             </div>
             <div className="p-6">
+              {/* Create/Edit Form */}
+              <form onSubmit={editingMenuItem ? updateMenuItem : createMenuItem} className="mb-6 p-4 border rounded-lg bg-gray-50 dark:bg-gray-900">
+                <h3 className="text-lg font-semibold mb-3">{editingMenuItem ? 'Edit Menu Item' : 'Add New Menu Item'}</h3>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                  <input
+                    type="text"
+                    placeholder="Name *"
+                    value={menuFormData.name}
+                    onChange={(e) => setMenuFormData({ ...menuFormData, name: e.target.value })}
+                    className="rounded border px-3 py-2 dark:bg-gray-800 dark:border-gray-700"
+                    required
+                  />
+                  <input
+                    type="text"
+                    placeholder="Slug (unique) *"
+                    value={menuFormData.slug}
+                    onChange={(e) => setMenuFormData({ ...menuFormData, slug: e.target.value })}
+                    className="rounded border px-3 py-2 dark:bg-gray-800 dark:border-gray-700"
+                    required
+                  />
+                  <input
+                    type="text"
+                    placeholder="Logo URL"
+                    value={menuFormData.logoUrl}
+                    onChange={(e) => setMenuFormData({ ...menuFormData, logoUrl: e.target.value })}
+                    className="rounded border px-3 py-2 dark:bg-gray-800 dark:border-gray-700"
+                  />
+                  <input
+                    type="text"
+                    placeholder="Price in UZS (e.g., 25000)"
+                    value={menuFormData.price}
+                    onChange={(e) => setMenuFormData({ ...menuFormData, price: e.target.value })}
+                    className="rounded border px-3 py-2 dark:bg-gray-800 dark:border-gray-700"
+                  />
+                </div>
+                <div className="col-span-full">
+                  <textarea
+                    placeholder="Description"
+                    value={menuFormData.description}
+                    onChange={(e) => setMenuFormData({ ...menuFormData, description: e.target.value })}
+                    className="w-full rounded border px-3 py-2 dark:bg-gray-800 dark:border-gray-700"
+                    rows={3}
+                  />
+                </div>
+                <div className="flex gap-2 mt-3">
+                  <button
+                    type="submit"
+                    className="rounded bg-emerald-600 text-white px-4 py-2 hover:bg-emerald-700 transition-colors"
+                  >
+                    {editingMenuItem ? 'Update' : 'Create'}
+                  </button>
+                  {editingMenuItem && (
+                    <button
+                      type="button"
+                      onClick={cancelEditMenuItem}
+                      className="rounded bg-gray-500 text-white px-4 py-2 hover:bg-gray-600 transition-colors"
+                    >
+                      Cancel
+                    </button>
+                  )}
+                </div>
+                {menuError && (
+                  <div className={`mt-2 text-sm ${menuError.includes('success') ? 'text-green-600' : 'text-red-600'}`}>
+                    {menuError}
+                  </div>
+                )}
+              </form>
+
               {menuItems === null ? (
                 <div className="text-center py-8">Loading menu...</div>
               ) : menuItems.length === 0 ? (
@@ -468,8 +800,8 @@ export default function RestaurantManagementPage() {
               ) : (
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                   {menuItems.map((item) => (
-                    <div key={item.id} className="border rounded-lg overflow-hidden hover:shadow-lg transition-shadow cursor-pointer" onClick={() => loadMenuItemDetails(item.id)}>
-                      <div className="relative h-48 bg-gray-200 dark:bg-gray-700">
+                    <div key={item.id} className="border rounded-lg overflow-hidden hover:shadow-lg transition-shadow">
+                      <div className="relative h-48 bg-gray-200 dark:bg-gray-700 cursor-pointer" onClick={() => loadMenuItemDetails(item.id)}>
                         {item.logoUrl ? (
                           <img src={item.logoUrl} alt={item.name} className="w-full h-full object-cover" />
                         ) : (
@@ -480,7 +812,26 @@ export default function RestaurantManagementPage() {
                       </div>
                       <div className="p-4">
                         <h3 className="font-semibold text-lg mb-1">{item.name}</h3>
-                        <p className="text-xs text-gray-500">{item.slug || "No slug"}</p>
+                        <p className="text-xs text-gray-500 mb-1">{item.slug || "No slug"}</p>
+                        {item.priceOverride && (
+                          <p className="text-sm font-medium text-green-600 dark:text-green-400 mb-2">
+                            Price: {item.priceOverride}
+                          </p>
+                        )}
+                        <div className="flex gap-2">
+                          <button
+                            onClick={() => startEditMenuItem(item)}
+                            className="flex-1 rounded bg-blue-600 text-white px-3 py-1 text-sm hover:bg-blue-700 transition-colors"
+                          >
+                            Edit
+                          </button>
+                          <button
+                            onClick={() => deleteMenuItem(item.id)}
+                            className="flex-1 rounded bg-red-600 text-white px-3 py-1 text-sm hover:bg-red-700 transition-colors"
+                          >
+                            Delete
+                          </button>
+                        </div>
                       </div>
                     </div>
                   ))}

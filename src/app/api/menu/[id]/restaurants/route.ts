@@ -11,7 +11,7 @@ function extractMenuIdFromUrl(urlStr: string) {
     const parts = url.pathname.split("/").filter(Boolean);
     const idx = parts.indexOf("restaurants");
     if (idx > 0) return parts[idx - 1];
-  } catch {}
+  } catch { }
   return undefined;
 }
 
@@ -58,7 +58,7 @@ export async function POST(req: NextRequest) {
   }
 
   try {
-    const body = (await req.json()) as { restaurantIds?: string[] };
+    const body = (await req.json()) as { restaurantIds?: string[]; priceOverride?: string | null };
     if (!body.restaurantIds)
       return NextResponse.json(
         { error: "Missing restaurantIds" },
@@ -66,6 +66,7 @@ export async function POST(req: NextRequest) {
       );
 
     const restaurantIds = body.restaurantIds;
+    const priceOverride = body.priceOverride;
 
     const prisma = getPrisma();
 
@@ -75,6 +76,7 @@ export async function POST(req: NextRequest) {
         const data = restaurantIds.map((rid) => ({
           menuItemId: id,
           restaurantId: rid,
+          priceOverride: priceOverride || null,
         }));
         await tx.menuItemOnRestaurant.createMany({ data });
       }
@@ -86,6 +88,56 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ assigned });
   } catch (e: unknown) {
     console.error("POST /api/menu/[id]/restaurants error", e);
+    return NextResponse.json({ error: "Server error" }, { status: 500 });
+  }
+}
+
+/**
+ * PATCH: Update price for a menu item at specific restaurants (don't delete other assignments)
+ */
+export async function PATCH(req: NextRequest) {
+  const id = extractMenuIdFromUrl(req.url);
+  if (!id)
+    return NextResponse.json({ error: "Missing menu id" }, { status: 400 });
+
+  const devAdminEnabled =
+    process.env.NODE_ENV !== "production" ||
+    process.env.DEV_ADMIN_ENABLED === "true";
+  if (!devAdminEnabled) {
+    return NextResponse.json(
+      { error: "Dev admin disabled in production" },
+      { status: 403 },
+    );
+  }
+
+  try {
+    const body = (await req.json()) as { restaurantIds?: string[]; priceOverride?: string | null };
+    if (!body.restaurantIds)
+      return NextResponse.json(
+        { error: "Missing restaurantIds" },
+        { status: 400 },
+      );
+
+    const restaurantIds = body.restaurantIds;
+    const priceOverride = body.priceOverride;
+    const prisma = getPrisma();
+
+    // Update price for specified restaurants only
+    const updated = await Promise.all(
+      restaurantIds.map((rid) =>
+        prisma.menuItemOnRestaurant.updateMany({
+          where: { menuItemId: id, restaurantId: rid },
+          data: { priceOverride: priceOverride || null },
+        })
+      )
+    );
+
+    const assigned = await prisma.menuItemOnRestaurant.findMany({
+      where: { menuItemId: id },
+    });
+    return NextResponse.json({ assigned, updated });
+  } catch (e: unknown) {
+    console.error("PATCH /api/menu/[id]/restaurants error", e);
     return NextResponse.json({ error: "Server error" }, { status: 500 });
   }
 }

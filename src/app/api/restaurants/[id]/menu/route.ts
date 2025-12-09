@@ -25,6 +25,7 @@ export async function GET(
             slug: true,
             logoUrl: true,
             createdAt: true,
+            updatedAt: true,
           },
         },
       },
@@ -37,7 +38,9 @@ export async function GET(
       name: r.menuItem.name,
       slug: r.menuItem.slug,
       logoUrl: r.menuItem.logoUrl ?? undefined,
-      createdAt: r.menuItem.createdAt.getTime(),
+      priceOverride: r.priceOverride ?? undefined,
+      createdAt: r.menuItem.createdAt.toISOString(),
+      updatedAt: r.menuItem.updatedAt.toISOString(),
     }));
 
     return NextResponse.json({ items });

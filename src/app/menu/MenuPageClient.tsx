@@ -27,7 +27,7 @@ export default function MenuPageClient() {
     const restaurantId = params.get("restaurant");
     const url = restaurantId
       ? `/api/restaurants/${restaurantId}/menu`
-      : "/api/menu";
+      : "/api/menu?withRestaurants=1";
 
     fetch(url)
       .then((r) => r.json())
@@ -39,6 +39,8 @@ export default function MenuPageClient() {
           slug?: string;
           logoUrl?: string;
           createdAt?: number;
+          priceOverride?: string;
+          restaurants?: Array<{ id: string; name?: string; priceOverride?: string }>;
         }>;
         const mapped: MenuItem[] = list.map((it) => ({
           id: it.id,
@@ -46,6 +48,8 @@ export default function MenuPageClient() {
           slug: it.slug,
           logoUrl: it.logoUrl,
           createdAt: it.createdAt,
+          price: it.restaurants?.[0]?.priceOverride ?? it.priceOverride,
+          restaurantName: it.restaurants?.[0]?.name,
         }));
         setItems(mapped);
       })

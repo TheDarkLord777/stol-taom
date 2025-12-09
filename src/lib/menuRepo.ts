@@ -7,7 +7,16 @@ export type MenuItemDTO = {
   name: string;
   slug: string;
   logoUrl?: string;
-  createdAt: number;
+  createdAt: string;
+};
+
+export type MenuItemFull = {
+  id: string;
+  name: string;
+  slug: string;
+  logoUrl?: string;
+  createdAt: string;
+  updatedAt: string;
 };
 
 export const menuRepo = {
@@ -81,7 +90,7 @@ export const menuRepo = {
                       name: m.name,
                       slug: m.slug,
                       logoUrl: m.logoUrl ?? undefined,
-                      createdAt: m.createdAt.getTime(),
+                      createdAt: m.createdAt.toISOString(),
                     }));
                     // read version again in case it changed
                     const verRaw2 = await r.get("menu:list:version");
@@ -107,7 +116,7 @@ export const menuRepo = {
                   } finally {
                     try {
                       await r.del(lockKey);
-                    } catch {}
+                    } catch { }
                   }
                 })();
               }
@@ -152,7 +161,7 @@ export const menuRepo = {
       name: m.name,
       slug: m.slug,
       logoUrl: m.logoUrl ?? undefined,
-      createdAt: m.createdAt.getTime(),
+      createdAt: m.createdAt.toISOString(),
     }));
 
     menuListCache.value = result;
@@ -178,7 +187,7 @@ export const menuRepo = {
     name: string;
     slug: string;
     logoUrl?: string;
-  }): Promise<MenuItemDTO> {
+  }): Promise<MenuItemFull> {
     const row = await dbTry(() =>
       prisma.menuItem.upsert({
         where: { slug: data.slug },
@@ -221,7 +230,7 @@ export const menuRepo = {
           name: m.name,
           slug: m.slug,
           logoUrl: m.logoUrl ?? undefined,
-          createdAt: m.createdAt.getTime(),
+          createdAt: m.createdAt.toISOString(),
         }));
         const ttlMs = Number(
           process.env.MENU_CACHE_TTL_MS ?? 3 * 24 * 60 * 60 * 1000,
@@ -237,7 +246,7 @@ export const menuRepo = {
         // fallback to invalidation if write-through fails
         try {
           invalidateMenuListCache();
-        } catch {}
+        } catch { }
         // eslint-disable-next-line no-console
         console.warn("[menuRepo:cache] write-through error", err);
       }
@@ -249,7 +258,8 @@ export const menuRepo = {
       name: row.name,
       slug: row.slug,
       logoUrl: row.logoUrl ?? undefined,
-      createdAt: row.createdAt.getTime(),
+      createdAt: row.createdAt.toISOString(),
+      updatedAt: row.updatedAt.toISOString(),
     };
   },
 };

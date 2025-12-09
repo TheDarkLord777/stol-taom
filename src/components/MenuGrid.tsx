@@ -12,6 +12,7 @@ export type MenuItem = {
   description?: string;
   imageUrl?: string;
   price?: string;
+  restaurantName?: string;
   logoUrl?: string;
   createdAt?: number;
 };
@@ -128,7 +129,10 @@ export default function MenuGrid({
             </p>
           ) : null}
           <div className="mt-2 flex items-center justify-between">
-            <div className="text-sm text-gray-500">{it.price ?? ""}</div>
+            <div className="text-sm text-gray-600">
+              {it.price ? `${it.price} UZS` : ""}
+              {it.restaurantName ? ` · ${it.restaurantName}` : ""}
+            </div>
             <button
               type="button"
               className="rounded-md bg-linear-to-r from-blue-500 to-blue-600 px-3 py-1 text-sm text-white hover:from-blue-600 hover:to-blue-700"
@@ -328,6 +332,11 @@ export default function MenuGrid({
                 <h2 className="mb-2 text-2xl font-bold text-gray-800">
                   {selected.name}
                 </h2>
+                {selected.price && (
+                  <div className="mb-4 text-lg font-semibold text-emerald-600">
+                    {selected.price} UZS
+                  </div>
+                )}
                 <div className="mb-4 text-sm text-gray-600">
                   {detailLoading ? (
                     <span>Yuklanmoqda…</span>
